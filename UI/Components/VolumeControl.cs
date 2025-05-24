@@ -14,17 +14,14 @@ namespace BackSpeakerMod.UI.Components
         public void Setup(BackSpeakerManager manager, RectTransform parent)
         {
             this.manager = manager;
-            LoggerUtil.Info("VolumeControl: Setting up volume slider");
+            LoggerUtil.Info("VolumeControl: Setting up modern volume control");
             
-            // Get canvas dimensions for proper sizing
-            Rect canvasRect = parent.rect;
-            float canvasWidth = canvasRect.width;
-            
+            // Modern compact volume control - positioned between repeat and bottom buttons
             volumeSlider = UIFactory.CreateSlider(
                 parent.transform,
                 "VolumeSlider",
-                new Vector2(0f, -100f), // Below the controls
-                new Vector2(250f, 25f), // Fixed width, smaller height
+                new Vector2(0f, -105f), // Between repeat button and bottom buttons
+                new Vector2(140f, 20f), // Wide for better usability
                 0f,
                 1f,
                 manager.CurrentVolume
@@ -32,7 +29,7 @@ namespace BackSpeakerMod.UI.Components
             
             volumeSlider.onValueChanged.AddListener((UnityEngine.Events.UnityAction<float>)OnVolumeChanged);
             
-            LoggerUtil.Info("VolumeControl: Setup completed");
+            LoggerUtil.Info("VolumeControl: Modern setup completed");
         }
 
         private void OnVolumeChanged(float volume)

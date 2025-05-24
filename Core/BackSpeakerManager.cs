@@ -7,6 +7,13 @@ using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.Core
 {
+    public enum RepeatMode
+    {
+        None,       // No repeat - stop after playlist ends
+        RepeatOne,  // Repeat current song
+        RepeatAll   // Repeat entire playlist
+    }
+
     public class BackSpeakerManager
     {
         private GameObject speakerObject;
@@ -16,6 +23,8 @@ namespace BackSpeakerMod.Core
         private List<(string title, string artist)> trackInfo = new List<(string, string)>();
         private int currentTrackIndex = 0;
         private bool isPlaying = false;
+        // Always auto-advance except in specific cases (RepeatOne, or None at end of playlist)
+        private RepeatMode repeatMode = RepeatMode.None;
         
         // Event to notify UI when tracks are reloaded
         public System.Action OnTracksReloaded;
@@ -123,7 +132,7 @@ namespace BackSpeakerMod.Core
             speakerObject.transform.localPosition = new Vector3(0, 1, -0.3f); // Example position
             audioSource = speakerObject.AddComponent<AudioSource>();
             audioSource.spatialBlend = 1.0f; // 3D sound
-            audioSource.loop = true;
+            audioSource.loop = false; // Don't loop - we'll handle auto-advance manually
             LoggerUtil.Info("Back speaker attached to player.");
             SetTrack(currentTrackIndex);
         }
@@ -203,6 +212,21 @@ namespace BackSpeakerMod.Core
             OnTracksReloaded?.Invoke();
         }
 
+        private void NextTrackWithoutAutoPlay()
+        {
+            LoggerUtil.Info($"NextTrackWithoutAutoPlay() called. Current index: {currentTrackIndex}, Track count: {tracks.Count}");
+            if (tracks.Count == 0) return;
+            int next = (currentTrackIndex + 1) % tracks.Count;
+            LoggerUtil.Info($"Moving to track {next}");
+            SetTrack(next);
+            // Don't call Play() here - let the track advance but continue playing from previous state
+            if (isPlaying) {
+                Play(); // Only start playing if we were already playing
+            }
+            // Trigger UI update to show new track
+            OnTracksReloaded?.Invoke();
+        }
+
         public void PreviousTrack()
         {
             LoggerUtil.Info($"PreviousTrack() called. Current index: {currentTrackIndex}, Track count: {tracks.Count}");
@@ -250,8 +274,98 @@ namespace BackSpeakerMod.Core
         // Get track count for debugging
         public int GetTrackCount() => tracks.Count;
         
+        // Call this regularly to check for auto-advance
+        public void Update()
+        {
+            // Check if current track finished and handle repeat/auto-advance
+            if (audioSource != null && isPlaying && !audioSource.isPlaying)
+            {
+                LoggerUtil.Info($"Current track finished. Repeat mode: {repeatMode}");
+                
+                switch (repeatMode)
+                {
+                    case RepeatMode.RepeatOne:
+                        LoggerUtil.Info("Repeating current track");
+                        Play(); // Just restart the same track
+                        break;
+                        
+                    case RepeatMode.RepeatAll:
+                        LoggerUtil.Info("Repeat all - advancing to next track");
+                        NextTrack();
+                        break;
+                        
+                    case RepeatMode.None:
+                        if (currentTrackIndex < tracks.Count - 1)
+                        {
+                            LoggerUtil.Info("Auto-advancing to next track (no repeat mode)");
+                            NextTrackWithoutAutoPlay(); // Advance and continue playing
+                        }
+                        else
+                        {
+                            LoggerUtil.Info("Reached end of playlist - stopping and resetting to first track");
+                            isPlaying = false;
+                            currentTrackIndex = 0; // Reset to first track
+                            SetTrack(0); // Set first track but don't play it
+                            OnTracksReloaded?.Invoke(); // Update UI to show stopped state
+                        }
+                        break;
+                }
+            }
+        }
+        
         // Check if audio system is ready
         public bool IsAudioReady() => audioSource != null && currentPlayer != null;
+        
+        // Auto-advance is now always enabled except for specific repeat modes
+        
+        // Repeat mode control
+        public RepeatMode RepeatMode 
+        { 
+            get => repeatMode; 
+            set 
+            { 
+                repeatMode = value;
+                LoggerUtil.Info($"Repeat mode set to: {repeatMode}");
+            } 
+        }
+        
+        // Song progress and seeking
+        public float CurrentTime => audioSource != null ? audioSource.time : 0f;
+        public float TotalTime => audioSource != null && audioSource.clip != null ? audioSource.clip.length : 0f;
+        public float Progress => TotalTime > 0 ? CurrentTime / TotalTime : 0f;
+        
+        public void SeekToTime(float time)
+        {
+            if (audioSource != null && audioSource.clip != null)
+            {
+                audioSource.time = Mathf.Clamp(time, 0f, audioSource.clip.length);
+                LoggerUtil.Info($"Seeked to time: {audioSource.time:F2}s");
+            }
+        }
+        
+        public void SeekToProgress(float progress)
+        {
+            if (audioSource != null && audioSource.clip != null)
+            {
+                float targetTime = Mathf.Clamp01(progress) * audioSource.clip.length;
+                SeekToTime(targetTime);
+            }
+        }
+        
+        // Playlist management
+        public void PlayTrack(int index)
+        {
+            if (index >= 0 && index < tracks.Count)
+            {
+                LoggerUtil.Info($"Playing track {index} from playlist");
+                SetTrack(index);
+                Play();
+                OnTracksReloaded?.Invoke(); // Update UI
+            }
+        }
+        
+        public List<(string title, string artist)> GetAllTracks() => new List<(string, string)>(trackInfo);
+        public int CurrentTrackIndex => currentTrackIndex;
         
         // Manually try to attach speaker if player is available
         public void TryAttachSpeaker()
