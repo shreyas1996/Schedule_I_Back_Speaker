@@ -53,11 +53,11 @@ namespace BackSpeakerMod.UI
                 displayPanel = displayObj.AddComponent<DisplayPanel>();
                 displayPanel.Setup(manager, bgRectTransform);
                 
-                // Set up control panel (buttons go on canvas level for proper interaction)
+                // Set up control panel (buttons go on background to prevent UI bleeding)
                 var controlObj = new GameObject("MusicControlPanel");
-                controlObj.transform.SetParent(canvasTransform, false);
+                controlObj.transform.SetParent(imgBackground.transform, false); // Parent to background, not canvas!
                 controlPanel = controlObj.AddComponent<MusicControlPanel>();
-                controlPanel.Setup(manager, canvasTransform);
+                controlPanel.Setup(manager, imgBackground.transform); // Pass background transform, not canvas
                 
                 // Set up volume control (slider goes on background)
                 var volumeObj = new GameObject("VolumeControl");
