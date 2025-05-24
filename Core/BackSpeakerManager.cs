@@ -45,63 +45,20 @@ namespace BackSpeakerMod.Core
             tracks.Clear();
             trackInfo.Clear();
             
-            // Try to get music from the game's MusicPlayer singleton first
-            try
+            LoggerUtil.Info("🎵 Starting song detection - PRIORITIZING JUKEBOX MUSIC...");
+            
+            // PRIORITY 1: Search for AmbientLoopJukebox objects - THE REAL MUSIC! 🎵
+            bool foundJukeboxMusic = TryLoadFromJukeboxes();
+            
+            // Only fallback to game audio if no jukebox music found
+            if (!foundJukeboxMusic)
             {
-                var musicPlayer = Il2CppScheduleOne.Audio.MusicPlayer.instance;
-                if (musicPlayer != null && musicPlayer.Tracks != null)
-                {
-                    LoggerUtil.Info($"Found MusicPlayer with {musicPlayer.Tracks.Count} tracks");
-                    var seen = new HashSet<AudioClip>();
-                    
-                    foreach (var musicTrack in musicPlayer.Tracks)
-                    {
-                        if (musicTrack?.Controller?.AudioSource?.clip != null)
-                        {
-                            var clip = musicTrack.Controller.AudioSource.clip;
-                            if (seen.Add(clip))
-                            {
-                                tracks.Add(clip);
-                                // Use track name if available, otherwise clip name
-                                string trackName = !string.IsNullOrEmpty(musicTrack.TrackName) ? musicTrack.TrackName : clip.name;
-                                trackInfo.Add((trackName, "Game Music"));
-                                LoggerUtil.Info($"Added track: {trackName}");
-                            }
-
-                        }
-                    }
-                }
-            }
-            catch (System.Exception e)
-            {
-                LoggerUtil.Warn($"Failed to load from MusicPlayer: {e.Message}");
+                LoggerUtil.Info("⚠️ No jukebox music found, falling back to game audio sources...");
+                TryLoadFromGameAudio();
             }
             
-            // Fallback to AmbientLoopJukebox if MusicPlayer didn't work
-            if (tracks.Count == 0)
-            {
-                LoggerUtil.Info("Falling back to AmbientLoopJukebox search...");
-                var jukeboxes = GameObject.FindObjectsOfType<AmbientLoopJukebox>();
-                var seen = new HashSet<AudioClip>();
-                foreach (var jukebox in jukeboxes)
-                {
-                    var clips = jukebox.Clips;
-                    if (clips != null)
-                    {
-                        foreach (var clip in clips)
-                        {
-                            if (clip != null && seen.Add(clip))
-                            {
-                                tracks.Add(clip);
-                                // Use clip name as title, artist unknown
-                                trackInfo.Add((clip.name, "Game Artist"));
-                            }
-                        }
-                    }
-                }
-            }
-            
-            LoggerUtil.Info($"Loaded {tracks.Count} music tracks total.");
+            LoggerUtil.Info($"🎵 Final result: Loaded {tracks.Count} music tracks total.");
+            LogTrackSummary();
             
             // Reset to first track if we have tracks and current index is invalid
             if (tracks.Count > 0 && currentTrackIndex >= tracks.Count)
@@ -112,6 +69,178 @@ namespace BackSpeakerMod.Core
             
             // Notify UI that tracks have been reloaded
             OnTracksReloaded?.Invoke();
+        }
+        
+        private bool TryLoadFromJukeboxes()
+        {
+            try
+            {
+                LoggerUtil.Info("🎵 PRIORITY METHOD: Searching for jukebox music...");
+                var jukeboxes = GameObject.FindObjectsOfType<AmbientLoopJukebox>();
+                LoggerUtil.Info($"Found {jukeboxes.Length} jukebox objects in the scene");
+                
+                if (jukeboxes.Length == 0)
+                {
+                    LoggerUtil.Warn("❌ No AmbientLoopJukebox objects found in scene!");
+                    return false;
+                }
+                
+                var seen = new HashSet<AudioClip>();
+                int addedCount = 0;
+                
+                foreach (var jukebox in jukeboxes)
+                {
+                    LoggerUtil.Info($"   🎵 Checking jukebox: '{jukebox.name}' at position {jukebox.transform.position}");
+                    
+                    var clips = jukebox.Clips;
+                    if (clips != null && clips.Count > 0)
+                    {
+                        LoggerUtil.Info($"      ✅ This jukebox has {clips.Count} clips!");
+                        
+                        foreach (var clip in clips)
+                        {
+                            if (clip != null && seen.Add(clip))
+                            {
+                                tracks.Add(clip);
+                                // Format track name properly
+                                string trackName = FormatTrackName(clip.name);
+                                trackInfo.Add((trackName, "Jukebox Music"));
+                                addedCount++;
+                                LoggerUtil.Info($"      ♪ Added: '{trackName}' ({clip.length:F1}s)");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        LoggerUtil.Warn($"      ❌ Jukebox '{jukebox.name}' has no clips or clips is null");
+                    }
+                }
+                
+                if (addedCount > 0)
+                {
+                    LoggerUtil.Info($"✅ SUCCESS: Loaded {addedCount} jukebox tracks from {jukeboxes.Length} jukeboxes!");
+                    return true;
+                }
+                else
+                {
+                    LoggerUtil.Warn($"❌ Found {jukeboxes.Length} jukeboxes but no valid music clips in any of them");
+                    return false;
+                }
+            }
+            catch (System.Exception e)
+            {
+                LoggerUtil.Error($"❌ Error loading from jukeboxes: {e.Message}");
+                LoggerUtil.Error($"Stack trace: {e.StackTrace}");
+                return false;
+            }
+        }
+        
+        private bool TryLoadFromGameAudio()
+        {
+            try
+            {
+                LoggerUtil.Info("🎵 FALLBACK: Searching game's MusicPlayer system...");
+                var musicPlayer = Il2CppScheduleOne.Audio.MusicPlayer.instance;
+                if (musicPlayer != null && musicPlayer.Tracks != null)
+                {
+                    LoggerUtil.Info($"Found MusicPlayer with {musicPlayer.Tracks.Count} tracks");
+                    var seen = new HashSet<AudioClip>();
+                    int addedCount = 0;
+                    
+                    foreach (var musicTrack in musicPlayer.Tracks)
+                    {
+                        if (musicTrack?.Controller?.AudioSource?.clip != null)
+                        {
+                            var clip = musicTrack.Controller.AudioSource.clip;
+                            if (seen.Add(clip))
+                            {
+                                tracks.Add(clip);
+                                string trackName = !string.IsNullOrEmpty(musicTrack.TrackName) ? musicTrack.TrackName : clip.name;
+                                trackInfo.Add((trackName, "Game Audio"));
+                                addedCount++;
+                                LoggerUtil.Info($"   ♪ Added game audio: '{trackName}' ({clip.length:F1}s)");
+                            }
+                        }
+                    }
+                    
+                    if (addedCount > 0)
+                    {
+                        LoggerUtil.Info($"✅ Loaded {addedCount} tracks from game audio system");
+                        return true;
+                    }
+                }
+                else
+                {
+                    LoggerUtil.Info("⚠️ MusicPlayer.instance is null or has no tracks");
+                }
+            }
+            catch (System.Exception e)
+            {
+                LoggerUtil.Warn($"❌ Failed to load from MusicPlayer: {e.Message}");
+            }
+            return false;
+        }
+        
+        private string FormatTrackName(string clipName)
+        {
+            if (string.IsNullOrEmpty(clipName))
+                return "Unknown Track";
+                
+            // Clean up the track name
+            string formatted = clipName;
+            
+            // Remove file extensions
+            if (formatted.Contains("."))
+                formatted = formatted.Substring(0, formatted.LastIndexOf('.'));
+                
+            // Remove common prefixes
+            if (formatted.StartsWith("audio_", System.StringComparison.OrdinalIgnoreCase))
+                formatted = formatted.Substring(6);
+            if (formatted.StartsWith("music_", System.StringComparison.OrdinalIgnoreCase))
+                formatted = formatted.Substring(6);
+            if (formatted.StartsWith("track_", System.StringComparison.OrdinalIgnoreCase))
+                formatted = formatted.Substring(6);
+                
+            // Replace underscores and dashes with spaces
+            formatted = formatted.Replace('_', ' ').Replace('-', ' ');
+            
+            // Capitalize first letter of each word
+            var words = formatted.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i].Length > 0)
+                {
+                    words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1).ToLower();
+                }
+            }
+            
+            return string.Join(" ", words);
+        }
+        
+        private void LogTrackSummary()
+        {
+            if (tracks.Count > 0)
+            {
+                LoggerUtil.Info("🎵 LOADED TRACKS:");
+                for (int i = 0; i < tracks.Count && i < 10; i++) // Show first 10
+                {
+                    var track = trackInfo[i];
+                    var clip = tracks[i];
+                    LoggerUtil.Info($"   {i+1}. '{track.title}' by {track.artist} ({clip.length:F1}s)");
+                }
+                if (tracks.Count > 10)
+                {
+                    LoggerUtil.Info($"   ... and {tracks.Count - 10} more tracks");
+                }
+            }
+            else
+            {
+                LoggerUtil.Error("❌ NO MUSIC FOUND! This could mean:");
+                LoggerUtil.Error("   - No jukeboxes in this game scene");
+                LoggerUtil.Error("   - Jukeboxes exist but have no music loaded");
+                LoggerUtil.Error("   - You're in a menu/loading screen");
+                LoggerUtil.Error("   - Try moving to a different area with jukeboxes");
+            }
         }
 
         private void TryInitialAttachment()
@@ -519,5 +648,4 @@ namespace BackSpeakerMod.Core
             }
         }
     }
-} 
-} 
+}
