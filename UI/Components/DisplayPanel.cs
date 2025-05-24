@@ -21,14 +21,14 @@ namespace BackSpeakerMod.UI.Components
             Rect canvasRect = parent.rect;
             float canvasWidth = canvasRect.width;
             
-            // Create song title display - positioned like Drones status label
+            // Create song title display - centered above controls
             songTitleText = UIFactory.CreateText(
                 parent.transform, 
                 "SongTitle", 
                 "No Song Playing", 
-                new Vector2(0f, -50f), // Position from top-center
-                new Vector2(canvasWidth * 0.8f, 40f), // 80% width, 40px height
-                24 // Large font size
+                new Vector2(0f, -50f), // Above the controls
+                new Vector2(300f, 30f), // Fixed width for consistency
+                22 // Large font size
             );
             
             // Create artist display - positioned below title
@@ -36,9 +36,9 @@ namespace BackSpeakerMod.UI.Components
                 parent.transform, 
                 "Artist", 
                 "Unknown Artist", 
-                new Vector2(0f, -100f), // Below the title
-                new Vector2(canvasWidth * 0.8f, 30f), // 80% width, 30px height
-                18 // Smaller font
+                new Vector2(0f, -20f), // Below the title
+                new Vector2(300f, 25f), // Fixed width for consistency
+                16 // Smaller font
             );
             artistText.color = Color.gray;
             

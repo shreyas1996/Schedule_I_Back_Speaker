@@ -34,6 +34,9 @@ namespace BackSpeakerMod.UI
                 
                 this.manager = manager;
                 
+                // Subscribe to tracks reload event
+                manager.OnTracksReloaded += UpdateDisplay;
+                
                 // Get the transforms we need - CRITICAL: Use container like Drones does
                 Transform canvasTransform = imgBackground.GetComponentInParent<Canvas>().transform;
                 RectTransform bgRectTransform = imgBackground.rectTransform;
@@ -80,11 +83,19 @@ namespace BackSpeakerMod.UI
                 displayPanel?.UpdateDisplay();
                 controlPanel?.UpdateButtonText();
                 volumeControl?.UpdateVolume();
+                LoggerUtil.Info("BackSpeakerScreen: Display updated");
             }
             catch (Exception ex)
             {
                 LoggerUtil.Error($"BackSpeakerScreen: UpdateDisplay failed: {ex}");
             }
+        }
+        
+        void OnDestroy()
+        {
+            // Unsubscribe from events to prevent memory leaks
+            if (manager != null)
+                manager.OnTracksReloaded -= UpdateDisplay;
         }
     }
 } 

@@ -23,8 +23,8 @@ namespace BackSpeakerMod.UI.Components
             volumeSlider = UIFactory.CreateSlider(
                 parent.transform,
                 "VolumeSlider",
-                new Vector2(0f, -150f), // Position below the artist text
-                new Vector2(canvasWidth * 0.6f, 30f), // 60% width, 30px height
+                new Vector2(0f, -100f), // Below the controls
+                new Vector2(250f, 25f), // Fixed width, smaller height
                 0f,
                 1f,
                 manager.CurrentVolume

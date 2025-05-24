@@ -13,10 +13,10 @@ namespace BackSpeakerMod.UI.Helpers
             var rectTransform = textObj.AddComponent<RectTransform>();
             textObj.transform.SetParent(parent, false);
             
-            // Use Drones-style positioning
-            rectTransform.anchorMin = new Vector2(0.5f, 1f); // Top-center anchor
-            rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
+            // Use center anchoring for better positioning
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = anchorPosition;
             rectTransform.sizeDelta = size;
             
@@ -25,7 +25,7 @@ namespace BackSpeakerMod.UI.Helpers
             textComponent.alignment = TextAnchor.MiddleCenter;
             textComponent.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             textComponent.fontSize = fontSize;
-            textComponent.color = Color.white; // White text like Drones
+            textComponent.color = Color.white; // White text for dark theme
             
             LoggerUtil.Info($"UIFactory: Created text '{name}' with text '{text}' at {anchorPosition} size {size}");
             return textComponent;
@@ -39,15 +39,15 @@ namespace BackSpeakerMod.UI.Helpers
             buttonObj.AddComponent<CanvasRenderer>();
             
             var rectTransform = buttonObj.AddComponent<RectTransform>();
-            // Use Drones-style positioning: top-left anchor
-            rectTransform.anchorMin = new Vector2(0f, 1f);
-            rectTransform.anchorMax = new Vector2(0f, 1f);
-            rectTransform.pivot = new Vector2(0f, 1f);
+            // Use center anchoring for better positioning
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = anchorPosition;
             rectTransform.sizeDelta = size;
             
             var image = buttonObj.AddComponent<Image>();
-            image.color = new Color(1f, 1f, 1f, 0.8f);
+            image.color = new Color(0.3f, 0.3f, 0.3f, 0.9f); // Dark gray buttons
             var button = buttonObj.AddComponent<Button>();
             button.targetGraphic = image;
             
@@ -66,7 +66,7 @@ namespace BackSpeakerMod.UI.Helpers
                 textComponent.alignment = TextAnchor.MiddleCenter;
                 textComponent.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 textComponent.fontSize = 20; // Drones font size
-                textComponent.color = Color.black;
+                textComponent.color = Color.white; // White text for dark theme
             }
             
             LoggerUtil.Info($"UIFactory: Created button '{text}' at {anchorPosition} size {size}");
@@ -80,10 +80,10 @@ namespace BackSpeakerMod.UI.Helpers
             var rectTransform = sliderObj.AddComponent<RectTransform>();
             sliderObj.transform.SetParent(parent, false);
             
-            // Use Drones-style positioning
-            rectTransform.anchorMin = new Vector2(0.5f, 1f); // Top-center anchor
-            rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
+            // Use center anchoring for better positioning
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = anchorPosition;
             rectTransform.sizeDelta = size;
             
@@ -91,6 +91,10 @@ namespace BackSpeakerMod.UI.Helpers
             slider.minValue = minValue;
             slider.maxValue = maxValue;
             slider.value = defaultValue;
+            
+            // Add dark theme styling to slider
+            var background = sliderObj.AddComponent<Image>();
+            background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f); // Dark background
             
             LoggerUtil.Info($"UIFactory: Created slider '{name}' at {anchorPosition} size {size}");
             return slider;

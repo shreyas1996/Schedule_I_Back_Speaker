@@ -110,7 +110,7 @@ namespace BackSpeakerMod.Core
             // Get the App component like Drones does
             app = canvas.GetComponent<App<ProductManagerApp>>();
             if (app != null)
-                app.AppName = AppLabel;
+                this.app.AppName = AppLabel;
             
             canvas.name = "BackSpeakerApp";
             canvas.transform.localPosition = Vector3.zero;
@@ -191,7 +191,7 @@ namespace BackSpeakerMod.Core
             GameObject gameObject3 = container.FindChild("Background").gameObject;
             gameObject3.transform.SetAsFirstSibling();
             var imgBackground = gameObject3.GetComponent<Image>();
-            imgBackground.color = Color.white;
+            imgBackground.color = new Color(0.1f, 0.1f, 0.1f, 1f); // Dark background
             // --- End Drones-style cleanup ---
 
             var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
@@ -219,8 +219,8 @@ namespace BackSpeakerMod.Core
             if (app != null)
             {
                 // Track app state like Drones does
-                var phone = PlayerSingleton<Il2CppScheduleOne.UI.Phone.Phone>.instance;
-                bool isActive = app.isOpen && phone != null && phone.IsOpen;
+			    Phone phone = PlayerSingleton<Phone>.instance;
+                bool isActive = this.app.isOpen && phone != null && phone.IsOpen;
                 appActive = isActive;
                 
                 // If app becomes inactive, ensure our UI components know
