@@ -156,6 +156,26 @@ namespace BackSpeakerMod.UI
             }
         }
         
+        private float lastUIUpdate = 0f;
+        
+        void Update()
+        {
+            if (manager != null)
+            {
+                manager.Update();
+                
+                // Update UI components at 10fps instead of every frame to reduce overhead
+                if (Time.time - lastUIUpdate > 0.1f)
+                {
+                    displayPanel?.UpdateDisplay();
+                    progressBar?.UpdateProgress();
+                    volumeControl?.UpdateVolume();
+                    controlPanel?.UpdateButtonText();
+                    lastUIUpdate = Time.time;
+                }
+            }
+        }
+        
         void OnDestroy()
         {
             // Unsubscribe from events to prevent memory leaks

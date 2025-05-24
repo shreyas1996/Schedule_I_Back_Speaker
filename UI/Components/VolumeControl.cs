@@ -16,11 +16,11 @@ namespace BackSpeakerMod.UI.Components
             this.manager = manager;
             LoggerUtil.Info("VolumeControl: Setting up modern volume control");
             
-            // Modern compact volume control - positioned between repeat and bottom buttons
+            // Modern compact volume control - positioned with better spacing around it
             volumeSlider = UIFactory.CreateSlider(
                 parent.transform,
                 "VolumeSlider",
-                new Vector2(0f, -105f), // Between repeat button and bottom buttons
+                new Vector2(0f, -110f), // Better spacing: 30px from repeat, 20px from bottom buttons
                 new Vector2(140f, 20f), // Wide for better usability
                 0f,
                 1f,

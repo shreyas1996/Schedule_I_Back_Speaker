@@ -14,7 +14,7 @@ namespace BackSpeakerMod.UI.Components
         private Button prevTrackButton;
         private Button repeatButton;
         private Button reloadButton;
-        private Button attachButton;
+        private Button statusButton;
 
         public void Setup(BackSpeakerManager manager, Transform canvasTransform)
         {
@@ -63,24 +63,25 @@ namespace BackSpeakerMod.UI.Components
                 repeatButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnToggleRepeat);
                 LoggerUtil.Info("MusicControlPanel: Repeat button created");
                 
-                // Essential fallback controls - bottom row with good spacing
+                // Essential fallback controls - bottom row with better spacing from volume
                 reloadButton = UIFactory.CreateButton(
                     canvasTransform, 
                     "RELOAD", 
-                    new Vector2(-60f, -130f), // Bottom left, well separated
-                    new Vector2(80f, 30f) // Better button size
+                    new Vector2(-70f, -140f), // Bottom left, more space from volume slider
+                    new Vector2(90f, 30f) // Slightly wider button
                 );
                 reloadButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnReload);
                 LoggerUtil.Info("MusicControlPanel: Reload button created");
                 
-                attachButton = UIFactory.CreateButton(
+                // Status button (shows status + manual trigger if needed)
+                statusButton = UIFactory.CreateButton(
                     canvasTransform, 
-                    "ATTACH", 
-                    new Vector2(60f, -130f), // Bottom right, well separated
-                    new Vector2(80f, 30f) // Better button size
+                    "CHECKING...", 
+                    new Vector2(70f, -140f), // Bottom right, more space from volume slider
+                    new Vector2(100f, 30f) // Wider button to fit status text
                 );
-                attachButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnAttach);
-                LoggerUtil.Info("MusicControlPanel: Attach button created");
+                statusButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnStatusButtonClick);
+                LoggerUtil.Info("MusicControlPanel: Status button created");
                 
                 LoggerUtil.Info("MusicControlPanel: Simplified setup completed");
             }
@@ -116,21 +117,28 @@ namespace BackSpeakerMod.UI.Components
             LoggerUtil.Info($"Reload complete - now have {manager.GetTrackCount()} tracks");
         }
 
-        private void OnAttach()
+        private void OnStatusButtonClick()
         {
-            if (manager.IsAudioReady())
+            string status = manager.GetAttachmentStatus();
+            LoggerUtil.Info($"Status button clicked. Current status: {status}");
+            
+            if (status == "SPAWN IN GAME")
             {
-                LoggerUtil.Info("Attach button clicked - detaching speaker");
-                // TODO: Add detach functionality if needed
-                LoggerUtil.Info("Speaker detach not implemented yet");
+                LoggerUtil.Info("Status: Player needs to spawn in game first");
+            }
+            else if (status == "PLAYER FOUND")
+            {
+                LoggerUtil.Info("Status: Manually triggering attachment...");
+                manager.TriggerManualAttachment();
+            }
+            else if (status == "ATTACHED")
+            {
+                LoggerUtil.Info("Status: System already attached and working");
             }
             else
             {
-                LoggerUtil.Info("Attach button clicked - trying to attach speaker");
-                manager.TryAttachSpeaker();
-                LoggerUtil.Info($"Audio ready: {manager.IsAudioReady()}");
+                LoggerUtil.Info($"Status: Current state is {status}");
             }
-            UpdateAttachButtonText(); // Update button text after action
         }
 
 
@@ -162,18 +170,18 @@ namespace BackSpeakerMod.UI.Components
                 if (textComponent != null)
                     textComponent.text = manager.IsPlaying ? "PAUSE" : "PLAY"; // Clear text labels
             }
-            UpdateAttachButtonText();
+            UpdateStatusButtonText();
             UpdateRepeatButtonText();
         }
         
-        private void UpdateAttachButtonText()
+        private void UpdateStatusButtonText()
         {
-            if (attachButton != null && manager != null)
+            if (statusButton != null && manager != null)
             {
-                var textComponent = attachButton.GetComponentInChildren<Text>();
+                var textComponent = statusButton.GetComponentInChildren<Text>();
                 if (textComponent != null)
                 {
-                    textComponent.text = manager.IsAudioReady() ? "UNATTACH" : "ATTACH";
+                    textComponent.text = manager.GetAttachmentStatus();
                 }
             }
         }

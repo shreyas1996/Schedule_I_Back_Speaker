@@ -3,6 +3,7 @@ using MelonLoader;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Audio;
 using System.Collections.Generic;
+using System.Collections;
 using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.Core
@@ -31,10 +32,12 @@ namespace BackSpeakerMod.Core
 
         public BackSpeakerManager()
         {
-            // Subscribe to player spawn event
+            LoggerUtil.Info("BackSpeakerManager: Initializing with auto-attach enabled");
+            // Subscribe to player spawn event for auto-attachment
             Player.onLocalPlayerSpawned += (Il2CppSystem.Action)(OnLocalPlayerSpawned);
-            // Load all jukebox music from the game
-            LoadJukeboxTracks();
+            
+            // Try immediate attachment if player is already spawned
+            TryInitialAttachment();
         }
 
         private void LoadJukeboxTracks()
@@ -64,6 +67,7 @@ namespace BackSpeakerMod.Core
                                 trackInfo.Add((trackName, "Game Music"));
                                 LoggerUtil.Info($"Added track: {trackName}");
                             }
+
                         }
                     }
                 }
@@ -110,31 +114,135 @@ namespace BackSpeakerMod.Core
             OnTracksReloaded?.Invoke();
         }
 
+        private void TryInitialAttachment()
+        {
+            LoggerUtil.Info("BackSpeakerManager: Attempting initial attachment...");
+            LoggerUtil.Info($"BackSpeakerManager: Player.Local is null: {Player.Local == null}");
+            
+            if (Player.Local != null)
+            {
+                LoggerUtil.Info("BackSpeakerManager: Player already spawned, attaching immediately");
+                OnLocalPlayerSpawned();
+            }
+            else
+            {
+                LoggerUtil.Info("BackSpeakerManager: Player not yet spawned, waiting for spawn event");
+                LoggerUtil.Info("BackSpeakerManager: You may need to spawn/respawn in-game for auto-attach to work");
+                
+                // Also try to poll for player periodically as a backup
+                MelonLoader.MelonCoroutines.Start(PollForPlayer());
+            }
+        }
+
+        private System.Collections.IEnumerator PollForPlayer()
+        {
+            int attempts = 0;
+            while (Player.Local == null && attempts < 30) // Try for 30 seconds
+            {
+                yield return new UnityEngine.WaitForSeconds(1f);
+                attempts++;
+                LoggerUtil.Info($"BackSpeakerManager: Polling for player... attempt {attempts}/30");
+                
+                if (Player.Local != null)
+                {
+                    LoggerUtil.Info("BackSpeakerManager: Player found via polling!");
+                    OnLocalPlayerSpawned();
+                    yield break;
+                }
+            }
+            
+            if (Player.Local == null)
+            {
+                LoggerUtil.Warn("BackSpeakerManager: Player not found after 30 seconds. Try spawning/respawning in game.");
+            }
+        }
+
         private void OnLocalPlayerSpawned()
         {
+            LoggerUtil.Info("BackSpeakerManager: Player spawn detected, starting auto-attachment");
             currentPlayer = Player.Local;
             if (currentPlayer == null) {
-                LoggerUtil.Warn("Local player not found!");
+                LoggerUtil.Warn("Local player not found after spawn event!");
                 return;
             }
+            
+            if (audioSource != null)
+            {
+                LoggerUtil.Info("BackSpeakerManager: Speaker already attached, skipping");
+                return;
+            }
+            
             AttachSpeakerToPlayer(currentPlayer);
         }
 
         private void AttachSpeakerToPlayer(Player player)
         {
+            LoggerUtil.Info("BackSpeakerManager: Starting speaker attachment process...");
             var playerObj = player.LocalGameObject;
             if (playerObj == null) {
-                LoggerUtil.Warn("Player GameObject not found!");
+                LoggerUtil.Warn("Player GameObject not found! Retrying in 2 seconds...");
+                // Retry attachment after a delay
+                MelonLoader.MelonCoroutines.Start(RetryAttachment(player));
                 return;
             }
-            speakerObject = new GameObject("BackSpeaker");
-            speakerObject.transform.SetParent(playerObj.transform);
-            speakerObject.transform.localPosition = new Vector3(0, 1, -0.3f); // Example position
-            audioSource = speakerObject.AddComponent<AudioSource>();
-            audioSource.spatialBlend = 1.0f; // 3D sound
-            audioSource.loop = false; // Don't loop - we'll handle auto-advance manually
-            LoggerUtil.Info("Back speaker attached to player.");
-            SetTrack(currentTrackIndex);
+            
+            try
+            {
+                speakerObject = new GameObject("BackSpeaker");
+                speakerObject.transform.SetParent(playerObj.transform);
+                speakerObject.transform.localPosition = new Vector3(0, 1, -0.3f); // Behind player
+                audioSource = speakerObject.AddComponent<AudioSource>();
+                audioSource.spatialBlend = 1.0f; // 3D sound
+                audioSource.loop = false; // Don't loop - we'll handle auto-advance manually
+                audioSource.volume = 0.7f; // Default volume
+                
+                LoggerUtil.Info("BackSpeakerManager: ✅ Speaker successfully attached to player!");
+                
+                // Auto-load tracks immediately after successful attachment
+                LoadJukeboxTracksAfterAttachment();
+                
+                // Force UI update to show new status
+                OnTracksReloaded?.Invoke();
+            }
+            catch (System.Exception e)
+            {
+                LoggerUtil.Error($"BackSpeakerManager: Failed to attach speaker: {e.Message}");
+                // Retry after error
+                MelonLoader.MelonCoroutines.Start(RetryAttachment(player));
+            }
+        }
+
+        private System.Collections.IEnumerator RetryAttachment(Player player)
+        {
+            yield return new UnityEngine.WaitForSeconds(2f);
+            LoggerUtil.Info("BackSpeakerManager: Retrying speaker attachment...");
+            AttachSpeakerToPlayer(player);
+        }
+
+        private void LoadJukeboxTracksAfterAttachment()
+        {
+            LoggerUtil.Info("BackSpeakerManager: Auto-loading tracks after successful attachment...");
+            LoadJukeboxTracks();
+            
+            if (tracks.Count > 0)
+            {
+                LoggerUtil.Info($"BackSpeakerManager: ✅ Auto-loaded {tracks.Count} tracks successfully!");
+                SetTrack(currentTrackIndex);
+                OnTracksReloaded?.Invoke(); // Update UI immediately
+            }
+            else
+            {
+                LoggerUtil.Warn("BackSpeakerManager: No tracks found after auto-load, will retry...");
+                // Retry loading tracks after a delay
+                MelonLoader.MelonCoroutines.Start(RetryTrackLoading());
+            }
+        }
+
+        private System.Collections.IEnumerator RetryTrackLoading()
+        {
+            yield return new UnityEngine.WaitForSeconds(3f);
+            LoggerUtil.Info("BackSpeakerManager: Retrying track loading...");
+            LoadJukeboxTracksAfterAttachment();
         }
 
         private void SetTrack(int index)
@@ -243,10 +351,8 @@ namespace BackSpeakerMod.Core
         {
             if (trackInfo.Count == 0) 
             {
-                LoggerUtil.Info("GetCurrentTrackInfo: No tracks loaded");
                 return "No Songs Loaded";
             }
-            LoggerUtil.Info($"GetCurrentTrackInfo: Track {currentTrackIndex}: {trackInfo[currentTrackIndex].title}");
             return trackInfo[currentTrackIndex].title;
         }
 
@@ -254,21 +360,24 @@ namespace BackSpeakerMod.Core
         {
             if (trackInfo.Count == 0) 
             {
-                LoggerUtil.Info("GetCurrentArtistInfo: No tracks loaded");
                 return "Load some music first";
             }
-            LoggerUtil.Info($"GetCurrentArtistInfo: Artist {currentTrackIndex}: {trackInfo[currentTrackIndex].artist}");
             return trackInfo[currentTrackIndex].artist;
         }
 
         public bool IsPlaying => isPlaying;
         public float CurrentVolume => audioSource != null ? audioSource.volume : 0.5f;
         
-        // Allow reloading tracks on demand in case they weren't available during initialization
+        // Allow manual reloading tracks if auto-load failed
         public void ReloadTracks()
         {
-            LoggerUtil.Info("Manually reloading music tracks...");
-            LoadJukeboxTracks();
+            LoggerUtil.Info("Manual track reload requested...");
+            if (audioSource == null)
+            {
+                LoggerUtil.Warn("Cannot reload tracks - speaker not attached yet");
+                return;
+            }
+            LoadJukeboxTracksAfterAttachment();
         }
         
         // Get track count for debugging
@@ -367,20 +476,48 @@ namespace BackSpeakerMod.Core
         public List<(string title, string artist)> GetAllTracks() => new List<(string, string)>(trackInfo);
         public int CurrentTrackIndex => currentTrackIndex;
         
-        // Manually try to attach speaker if player is available
-        public void TryAttachSpeaker()
+        private string lastStatus = "";
+        
+        // Get attachment status for UI
+        public string GetAttachmentStatus()
         {
-            LoggerUtil.Info("Manually trying to attach speaker...");
-            currentPlayer = Player.Local;
-            if (currentPlayer != null)
+            string status;
+            if (audioSource != null && currentPlayer != null)
+                status = "ATTACHED";
+            else if (currentPlayer != null)
+                status = "ATTACHING...";
+            else if (Player.Local != null)
+                status = "PLAYER FOUND";
+            else
+                status = "SPAWN IN GAME";
+                
+            // Only log when status changes to reduce spam
+            if (status != lastStatus)
             {
-                LoggerUtil.Info("Local player found, attaching speaker");
-                AttachSpeakerToPlayer(currentPlayer);
+                LoggerUtil.Info($"GetAttachmentStatus: audioSource={audioSource != null}, currentPlayer={currentPlayer != null}, status={status}");
+                lastStatus = status;
+            }
+            return status;
+        }
+
+        // Manual trigger for attachment if auto-detection fails
+        public void TriggerManualAttachment()
+        {
+            LoggerUtil.Info("BackSpeakerManager: Manual attachment triggered");
+            if (Player.Local != null && audioSource == null)
+            {
+                LoggerUtil.Info("BackSpeakerManager: Player found, starting manual attachment");
+                OnLocalPlayerSpawned();
+            }
+            else if (Player.Local == null)
+            {
+                LoggerUtil.Warn("BackSpeakerManager: No player found - spawn in game first");
             }
             else
             {
-                LoggerUtil.Warn("Local player not found yet");
+                LoggerUtil.Info("BackSpeakerManager: Already attached or in progress");
             }
         }
     }
+} 
 } 
