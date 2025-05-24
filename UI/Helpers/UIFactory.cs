@@ -75,28 +75,66 @@ namespace BackSpeakerMod.UI.Helpers
         
         public static Slider CreateSlider(Transform parent, string name, Vector2 anchorPosition, Vector2 size, float minValue = 0f, float maxValue = 1f, float defaultValue = 0.5f)
         {
+            // Create main slider object
             var sliderObj = new GameObject(name);
             sliderObj.AddComponent<CanvasRenderer>();
             var rectTransform = sliderObj.AddComponent<RectTransform>();
             sliderObj.transform.SetParent(parent, false);
             
-            // Use center anchoring for better positioning
+            // Position the slider
             rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = anchorPosition;
             rectTransform.sizeDelta = size;
             
+            // Add background image to main slider
+            var background = sliderObj.AddComponent<Image>();
+            background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f); // Dark background
+            background.sprite = null; // Use solid color
+            
+            // Create the Slider component
             var slider = sliderObj.AddComponent<Slider>();
             slider.minValue = minValue;
             slider.maxValue = maxValue;
             slider.value = defaultValue;
+            slider.direction = Slider.Direction.LeftToRight;
             
-            // Add dark theme styling to slider
-            var background = sliderObj.AddComponent<Image>();
-            background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f); // Dark background
+            // Create Handle Slide Area
+            var handleSlideAreaObj = new GameObject("Handle Slide Area");
+            handleSlideAreaObj.transform.SetParent(sliderObj.transform, false);
+            var handleSlideAreaRect = handleSlideAreaObj.AddComponent<RectTransform>();
             
-            LoggerUtil.Info($"UIFactory: Created slider '{name}' at {anchorPosition} size {size}");
+            // Handle slide area fills the entire slider
+            handleSlideAreaRect.anchorMin = Vector2.zero;
+            handleSlideAreaRect.anchorMax = Vector2.one;
+            handleSlideAreaRect.sizeDelta = Vector2.zero;
+            handleSlideAreaRect.offsetMin = Vector2.zero;
+            handleSlideAreaRect.offsetMax = Vector2.zero;
+            
+            // Create Handle
+            var handleObj = new GameObject("Handle");
+            handleObj.transform.SetParent(handleSlideAreaObj.transform, false);
+            handleObj.AddComponent<CanvasRenderer>();
+            var handleRect = handleObj.AddComponent<RectTransform>();
+            
+            // Handle positioning and size
+            handleRect.anchorMin = new Vector2(0f, 0.25f);
+            handleRect.anchorMax = new Vector2(0f, 0.75f);
+            handleRect.sizeDelta = new Vector2(20f, 0f); // Handle width
+            handleRect.offsetMin = new Vector2(-10f, 0f);
+            handleRect.offsetMax = new Vector2(10f, 0f);
+            
+            // Handle visual styling
+            var handleImage = handleObj.AddComponent<Image>();
+            handleImage.color = new Color(0.8f, 0.8f, 0.8f, 1f); // Light gray handle
+            handleImage.sprite = null; // Use solid color
+            
+            // Assign references to slider
+            slider.targetGraphic = handleImage;
+            slider.handleRect = handleRect;
+            
+            LoggerUtil.Info($"UIFactory: Created functional slider '{name}' at {anchorPosition} size {size}");
             return slider;
         }
     }
