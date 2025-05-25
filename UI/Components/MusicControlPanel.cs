@@ -21,19 +21,19 @@ namespace BackSpeakerMod.UI.Components
         // IL2CPP compatibility - explicit parameterless constructor
         public MusicControlPanel() : base() { }
 
-        public void Setup(BackSpeakerManager manager, Transform canvasTransform)
+        public void Setup(BackSpeakerManager manager, Transform parentTransform)
         {
             try 
             {
                 this.manager = manager;
                 LoggerUtil.Info("MusicControlPanel: Setting up modern Spotify-style controls");
                 
-                // Main control row - proper spacing with Spotify styling
+                // Main control row - positioned below progress bar with proper spacing
                 prevTrackButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     "<<", // Previous text
-                    new Vector2(-90f, -30f), // More spacing from progress bar and each other
-                    new Vector2(60f, 45f) // Good touch targets
+                    new Vector2(-80f, -80f), // Much lower to avoid overlap with time display
+                    new Vector2(50f, 40f) // Good touch targets
                 );
                 prevTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPreviousTrack);
                 ApplySecondaryButtonStyling(prevTrackButton);
@@ -41,10 +41,10 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Create Play/Pause button (center) - largest, most prominent with Spotify green
                 playPauseButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     "PLAY", // Start with PLAY text
-                    new Vector2(0f, -30f), // Center, good spacing from progress bar
-                    new Vector2(80f, 50f) // Largest button for main action
+                    new Vector2(0f, -80f), // Center, well below time display
+                    new Vector2(70f, 45f) // Largest button for main action
                 );
                 playPauseButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPlayPause);
                 ApplyPrimaryButtonStyling(playPauseButton);
@@ -52,32 +52,32 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Create Next button (right) - main control row
                 nextTrackButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     ">>", // Next text
-                    new Vector2(90f, -30f), // More spacing from center
-                    new Vector2(60f, 45f) // Good touch targets
+                    new Vector2(80f, -80f), // Right of center, same level
+                    new Vector2(50f, 40f) // Good touch targets
                 );
                 nextTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnNextTrack);
                 ApplySecondaryButtonStyling(nextTrackButton);
                 LoggerUtil.Info("MusicControlPanel: Next button created");
                 
-                // Repeat mode control - centered below main controls
+                // Repeat mode control - centered below main controls with proper spacing
                 repeatButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     GetRepeatModeText(manager.RepeatMode), 
-                    new Vector2(0f, -80f), // Centered below main controls, good spacing
+                    new Vector2(0f, -130f), // Much more spacing below main controls
                     new Vector2(120f, 30f) // Wider button for text readability
                 );
                 repeatButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnToggleRepeat);
                 ApplyTertiaryButtonStyling(repeatButton);
                 LoggerUtil.Info("MusicControlPanel: Repeat button created");
                 
-                // Essential fallback controls - bottom row with better spacing from volume
+                // Essential fallback controls - bottom row with more spacing from volume control
                 reloadButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     "RELOAD", 
-                    new Vector2(-70f, -140f), // Bottom left, more space from volume slider
-                    new Vector2(90f, 30f) // Slightly wider button
+                    new Vector2(-60f, -210f), // Moved further down to avoid overlap with volume
+                    new Vector2(80f, 28f) // Compact but usable
                 );
                 reloadButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnReload);
                 ApplyUtilityButtonStyling(reloadButton);
@@ -85,10 +85,10 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Status button (shows status + manual trigger if needed)
                 statusButton = UIFactory.CreateButton(
-                    canvasTransform, 
+                    parentTransform, 
                     "CHECKING...", 
-                    new Vector2(70f, -140f), // Bottom right, more space from volume slider
-                    new Vector2(100f, 30f) // Wider button to fit status text
+                    new Vector2(60f, -210f), // Moved further down to avoid overlap with volume
+                    new Vector2(90f, 28f) // Wider button to fit status text
                 );
                 statusButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnStatusButtonClick);
                 ApplyStatusButtonStyling(statusButton);

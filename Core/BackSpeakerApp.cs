@@ -197,7 +197,7 @@ namespace BackSpeakerMod.Core
             var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
             backSpeakerScreenObj.transform.SetParent(canvas.transform, false);
             var backSpeakerScreen = backSpeakerScreenObj.AddComponent<BackSpeakerMod.UI.BackSpeakerScreen>();
-            backSpeakerScreen.Setup(manager, imgBackground);
+            backSpeakerScreen.Setup(manager);
             
             // Activate the canvas like Drones does
             canvas.active = true;

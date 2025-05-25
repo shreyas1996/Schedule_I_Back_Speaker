@@ -33,10 +33,8 @@ namespace BackSpeakerMod.UI.Helpers
                 {
                     progressBar.Setup(manager, backgroundRect);
                 }
-                else if (component is PlaylistPanel playlistPanel)
-                {
-                    playlistPanel.Setup(manager, backgroundRect);
-                }
+                // Note: PlaylistPanel now requires BackSpeakerScreen reference, 
+                // so it's set up directly in BackSpeakerScreen rather than via factory
                 
                 LoggerUtil.Info($"ComponentFactory: Created {typeof(T).Name} successfully");
                 return component;

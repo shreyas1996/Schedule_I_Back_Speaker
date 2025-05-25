@@ -12,114 +12,163 @@ namespace BackSpeakerMod.UI
     {
         // IL2CPP compatibility - explicit field initialization
         private BackSpeakerManager manager = null;
+        private RectTransform parentContainer = null;
+        
+        // UI Components
         private DisplayPanel displayPanel = null;
-        private MusicControlPanel controlPanel = null;
-        private VolumeControl volumeControl = null;
         private ProgressBar progressBar = null;
+        private MusicControlPanel musicControlPanel = null;
+        private VolumeControl volumeControl = null;
         private PlaylistPanel playlistPanel = null;
-        private float lastUIUpdate = 0f;
-
+        
+        // Layout management
+        private RectTransform controlsContainer = null;
+        private bool isPlaylistOpen = false;
+        private Vector2 controlsClosedPosition = Vector2.zero;
+        private Vector2 controlsOpenPosition = new Vector2(-150f, 0f); // More left to center in left 40% area
+        
         // IL2CPP compatibility - explicit parameterless constructor
         public BackSpeakerScreen() : base() { }
 
-        public void Setup(BackSpeakerManager manager, Image imgBackground)
+        public void Setup(BackSpeakerManager manager)
         {
             try
             {
-                LoggerUtil.Info("BackSpeakerScreen: Starting setup");
-                
-                if (!ValidateInputs(manager, imgBackground))
-                    return;
-                
                 this.manager = manager;
-                manager.OnTracksReloaded += UpdateDisplay;
+                LoggerUtil.Info("BackSpeakerScreen: Setting up responsive UI layout within app structure");
                 
-                var (canvasTransform, backgroundRect) = LayoutManager.GetTransforms(imgBackground);
-                LayoutManager.SetupLayoutConstraints(imgBackground);
+                // Find the parent container (should be the app's main container)
+                FindParentContainer();
+                CreateControlsContainer();
+                SetupUIComponents();
                 
-                CreateUIComponents(imgBackground.transform, backgroundRect);
-                UpdateDisplay();
-                
-                LoggerUtil.Info("BackSpeakerScreen: Setup completed successfully");
+                LoggerUtil.Info("BackSpeakerScreen: Responsive UI setup completed");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 LoggerUtil.Error($"BackSpeakerScreen: Setup failed: {ex}");
+                throw;
             }
         }
 
-        private bool ValidateInputs(BackSpeakerManager manager, Image imgBackground)
+        private void FindParentContainer()
         {
-            if (!LayoutManager.ValidateSetup(imgBackground))
-                return false;
-                
-            if (manager == null)
+            // The BackSpeakerScreen is created as a child of the app canvas
+            // We need to find the appropriate container to work within
+            Transform current = this.transform;
+            
+            // Look for the Container or similar structure
+            while (current != null)
             {
-                LoggerUtil.Error("BackSpeakerScreen: manager is null!");
-                return false;
+                var container = current.FindChild("Container");
+                if (container != null)
+                {
+                    parentContainer = container.GetComponent<RectTransform>();
+                    LoggerUtil.Info($"BackSpeakerScreen: Found parent container: {container.name}");
+                    break;
+                }
+                current = current.parent;
             }
             
-            return true;
+            // Fallback to using this transform if no container found
+            if (parentContainer == null)
+            {
+                parentContainer = this.GetComponent<RectTransform>();
+                if (parentContainer == null)
+                {
+                    parentContainer = this.gameObject.AddComponent<RectTransform>();
+                }
+                LoggerUtil.Info("BackSpeakerScreen: Using self as parent container");
+            }
+            
+            // Set up this object's RectTransform to fill the parent
+            var myRect = this.GetComponent<RectTransform>();
+            if (myRect == null)
+            {
+                myRect = this.gameObject.AddComponent<RectTransform>();
+            }
+            
+            myRect.anchorMin = Vector2.zero;
+            myRect.anchorMax = Vector2.one;
+            myRect.offsetMin = Vector2.zero;
+            myRect.offsetMax = Vector2.zero;
         }
 
-        private void CreateUIComponents(Transform parent, RectTransform backgroundRect)
+        private void CreateControlsContainer()
         {
-            LoggerUtil.Info("BackSpeakerScreen: Creating UI components");
+            // Create a container for all the music controls so we can move them as a group
+            var containerObj = new GameObject("ControlsContainer");
+            containerObj.transform.SetParent(this.transform, false);
             
-            // Create all components using the factory
-            ComponentFactory.TryCreateComponent<DisplayPanel>("DisplayPanel", parent, manager, backgroundRect, out displayPanel);
-            ComponentFactory.TryCreateComponent<ProgressBar>("ProgressBar", parent, manager, backgroundRect, out progressBar);
-            ComponentFactory.TryCreateComponent<MusicControlPanel>("MusicControlPanel", parent, manager, backgroundRect, out controlPanel);
-            ComponentFactory.TryCreateComponent<VolumeControl>("VolumeControl", parent, manager, backgroundRect, out volumeControl);
-            ComponentFactory.TryCreateComponent<PlaylistPanel>("PlaylistPanel", parent, manager, backgroundRect, out playlistPanel);
+            controlsContainer = containerObj.AddComponent<RectTransform>();
+            controlsContainer.anchorMin = new Vector2(0.5f, 0.5f);
+            controlsContainer.anchorMax = new Vector2(0.5f, 0.5f);
+            controlsContainer.pivot = new Vector2(0.5f, 0.5f);
+            controlsContainer.anchoredPosition = controlsClosedPosition;
+            controlsContainer.sizeDelta = new Vector2(400f, 520f); // Even larger for playlist button at bottom
             
-            LoggerUtil.Info("BackSpeakerScreen: All components created");
+            LoggerUtil.Info("BackSpeakerScreen: Controls container created with expanded size for playlist button");
         }
 
-        public void UpdateDisplay()
+        private void SetupUIComponents()
+        {
+            // Setup display panel (album art, track info) - top section
+            displayPanel = gameObject.AddComponent<DisplayPanel>();
+            displayPanel.Setup(manager, controlsContainer);
+            
+            // Setup progress bar - below display, proper spacing
+            progressBar = gameObject.AddComponent<ProgressBar>();
+            progressBar.Setup(manager, controlsContainer);
+            
+            // Setup music controls - below progress bar, proper spacing  
+            musicControlPanel = gameObject.AddComponent<MusicControlPanel>();
+            musicControlPanel.Setup(manager, controlsContainer);
+            
+            // Setup volume control - below music controls, proper spacing
+            volumeControl = gameObject.AddComponent<VolumeControl>();
+            volumeControl.Setup(manager, controlsContainer);
+            
+            // Setup playlist panel - uses the parent container for full screen management
+            playlistPanel = gameObject.AddComponent<PlaylistPanel>();
+            playlistPanel.Setup(manager, parentContainer, this);
+            
+            // Create playlist toggle button in the controls container so it shifts with other controls
+            playlistPanel.CreateToggleButton(controlsContainer);
+            
+            LoggerUtil.Info("BackSpeakerScreen: All UI components setup with proper spacing and playlist button");
+        }
+
+        public void OnPlaylistToggle(bool isOpen)
+        {
+            isPlaylistOpen = isOpen;
+            
+            // Animate the controls container position
+            if (controlsContainer != null)
+            {
+                Vector2 targetPosition = isOpen ? controlsOpenPosition : controlsClosedPosition;
+                controlsContainer.anchoredPosition = targetPosition;
+                
+                LoggerUtil.Info($"BackSpeakerScreen: Controls shifted to {(isOpen ? "left" : "center")} for playlist");
+            }
+        }
+
+        public void Update()
         {
             try
             {
-                displayPanel?.UpdateDisplay();
-                controlPanel?.UpdateButtonText();
-                volumeControl?.UpdateVolume();
-                progressBar?.UpdateProgress();
-                playlistPanel?.UpdatePlaylist();
-                LoggerUtil.Info("BackSpeakerScreen: Display updated");
-            }
-            catch (Exception ex)
-            {
-                LoggerUtil.Error($"BackSpeakerScreen: UpdateDisplay failed: {ex}");
-            }
-        }
-        
-        void Update()
-        {
-            if (manager != null)
-            {
-                manager.Update();
+                if (manager == null) return;
                 
-                // Update UI at 10fps to reduce overhead
-                if (Time.time - lastUIUpdate > 0.1f)
-                {
-                    UpdateUIComponents();
-                    lastUIUpdate = Time.time;
-                }
+                // Update all UI components
+                displayPanel?.UpdateDisplay();
+                progressBar?.UpdateProgress();
+                musicControlPanel?.UpdateButtonText();
+                volumeControl?.UpdateVolume();
+                playlistPanel?.UpdatePlaylist();
             }
-        }
-
-        private void UpdateUIComponents()
-        {
-            displayPanel?.UpdateDisplay();
-            progressBar?.UpdateProgress();
-            volumeControl?.UpdateVolume();
-            controlPanel?.UpdateButtonText();
-        }
-        
-        void OnDestroy()
-        {
-            if (manager != null)
-                manager.OnTracksReloaded -= UpdateDisplay;
+            catch (System.Exception ex)
+            {
+                LoggerUtil.Error($"BackSpeakerScreen: Update failed: {ex}");
+            }
         }
     }
 } 

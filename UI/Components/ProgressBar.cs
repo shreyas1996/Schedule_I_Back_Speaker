@@ -24,12 +24,12 @@ namespace BackSpeakerMod.UI.Components
                 this.manager = manager;
                 LoggerUtil.Info("ProgressBar: Setting up modern Spotify-style progress bar");
                 
-                // Modern progress bar with Spotify styling - prominent, top section below display
+                // Modern progress bar with Spotify styling - positioned below display area
                 progressSlider = UIFactory.CreateSlider(
                     parent.transform,
                     "ProgressSlider",
-                    new Vector2(0f, -15f), // Just below display area, good visual hierarchy
-                    new Vector2(250f, 15f), // Full width for easy seeking
+                    new Vector2(0f, -10f), // Clear spacing below artist info
+                    new Vector2(300f, 20f), // Wide for easy seeking
                     0f,
                     1f,
                     0f
@@ -56,21 +56,21 @@ namespace BackSpeakerMod.UI.Components
                 
                 LoggerUtil.Info("ProgressBar: Progress slider created with seeking functionality");
                 
-                // Time display with Spotify styling - shows current time / total time
+                // Time display with Spotify styling - shows current time / total time, clearly visible
                 timeText = UIFactory.CreateText(
                     parent.transform,
                     "TimeDisplay",
                     "0:00 / 0:00",
-                    new Vector2(0f, -35f), // Below progress bar
-                    new Vector2(150f, 20f),
-                    12 // Small font for time info
+                    new Vector2(0f, -40f), // Well below progress bar, clear of controls
+                    new Vector2(200f, 25f),
+                    14 // Readable font for time info
                 );
                 
-                // Apply Spotify-style text color
-                timeText.color = new Color(0.7f, 0.7f, 0.7f, 1f); // Light gray secondary text
+                // Apply Spotify-style text color - make it more visible
+                timeText.color = new Color(0.9f, 0.9f, 0.9f, 1f); // Bright gray for better visibility
                 timeText.fontStyle = FontStyle.Normal;
                 
-                LoggerUtil.Info("ProgressBar: Time display created with Spotify styling");
+                LoggerUtil.Info("ProgressBar: Time display created with enhanced visibility");
                 
                 LoggerUtil.Info("ProgressBar: Modern Spotify-style setup completed");
             }

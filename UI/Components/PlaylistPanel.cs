@@ -23,93 +23,75 @@ namespace BackSpeakerMod.UI.Components
         private InputField searchInput = null;
         private string currentSearchQuery = "";
         private Button clearSearchButton = null;
+        
+        // Layout management
+        private BackSpeakerScreen mainScreen = null;
+        private RectTransform canvasRect = null;
 
         // IL2CPP compatibility - explicit parameterless constructor
         public PlaylistPanel() : base() { }
 
-        public void Setup(BackSpeakerManager manager, RectTransform parent)
+        public void Setup(BackSpeakerManager manager, RectTransform canvasRect, BackSpeakerScreen mainScreen)
         {
             try
             {
                 this.manager = manager;
-                LoggerUtil.Info("PlaylistPanel: Setting up modern playlist interface with search");
+                this.canvasRect = canvasRect;
+                this.mainScreen = mainScreen;
+                LoggerUtil.Info("PlaylistPanel: Setting up responsive playlist interface");
                 
-                // Playlist toggle button - bottom corner, doesn't interfere with main controls
-                toggleButton = UIFactory.CreateButton(
-                    parent.transform,
-                    "♫ Playlist",
-                    new Vector2(120f, -170f), // Far bottom right corner
-                    new Vector2(80f, 25f) // Compact button
-                );
-                toggleButton.onClick.AddListener((UnityEngine.Events.UnityAction)TogglePlaylist);
-                LoggerUtil.Info("PlaylistPanel: Toggle button created");
+                // Create playlist container first (but keep it hidden)
+                CreatePlaylistContainer();
                 
-                // Create playlist container (hidden by default)
-                playlistContainer = new GameObject("PlaylistContainer");
-                playlistContainer.transform.SetParent(parent.transform, false);
+                // Note: Playlist toggle button will be created by the main screen 
+                // in the controls container so it shifts with other controls
                 
-                var containerRect = playlistContainer.AddComponent<RectTransform>();
-                containerRect.anchorMin = new Vector2(0f, 0f);
-                containerRect.anchorMax = new Vector2(1f, 1f);
-                containerRect.offsetMin = new Vector2(20f, 20f); // 20px margin
-                containerRect.offsetMax = new Vector2(-20f, -200f); // Leave space for controls
-                
-                // Add background to playlist container with Spotify-style dark theme
-                var background = playlistContainer.AddComponent<Image>();
-                background.color = new Color(0.08f, 0.08f, 0.08f, 0.96f); // Very dark background
-                
-                // Create title for playlist
-                var titleText = UIFactory.CreateText(
-                    playlistContainer.transform,
-                    "PlaylistTitle",
-                    "♫ Music Playlist ♫",
-                    new Vector2(0f, -25f), // Top of container
-                    new Vector2(200f, 30f),
-                    18
-                );
-                titleText.color = new Color(1f, 1f, 1f, 1f); // White text
-                
-                // Create search functionality
-                CreateSearchInterface();
-                
-                // Create scroll view for track list
-                var scrollObj = new GameObject("ScrollView");
-                scrollObj.transform.SetParent(playlistContainer.transform, false);
-                
-                var scrollRectTransform = scrollObj.AddComponent<RectTransform>();
-                scrollRectTransform.anchorMin = new Vector2(0f, 0f);
-                scrollRectTransform.anchorMax = new Vector2(1f, 1f);
-                scrollRectTransform.offsetMin = new Vector2(10f, 10f);
-                scrollRectTransform.offsetMax = new Vector2(-10f, -90f); // Leave space for title and search
-                
-                scrollRect = scrollObj.AddComponent<ScrollRect>();
-                scrollRect.horizontal = false;
-                scrollRect.vertical = true;
-                
-                // Create content area for track buttons
-                var contentObj = new GameObject("Content");
-                contentObj.transform.SetParent(scrollObj.transform, false);
-                
-                var contentRect = contentObj.AddComponent<RectTransform>();
-                contentRect.anchorMin = new Vector2(0f, 1f);
-                contentRect.anchorMax = new Vector2(1f, 1f);
-                contentRect.pivot = new Vector2(0.5f, 1f);
-                contentRect.sizeDelta = new Vector2(0f, 100f); // Will resize based on content
-                contentRect.anchoredPosition = Vector2.zero;
-                
-                contentParent = contentObj.transform;
-                scrollRect.content = contentRect;
-                
-                // Start hidden
-                playlistContainer.SetActive(false);
-                
-                LoggerUtil.Info("PlaylistPanel: Modern setup with search completed");
+                LoggerUtil.Info("PlaylistPanel: Responsive playlist setup completed");
             }
             catch (System.Exception ex)
             {
                 LoggerUtil.Error($"PlaylistPanel: Setup failed: {ex}");
                 throw;
             }
+        }
+
+        private void CreatePlaylistContainer()
+        {
+            playlistContainer = new GameObject("PlaylistContainer");
+            playlistContainer.transform.SetParent(canvasRect.transform, false);
+            
+            var containerRect = playlistContainer.AddComponent<RectTransform>();
+            // Position on the right side with more space - increased from 45% to 60%
+            containerRect.anchorMin = new Vector2(0.4f, 0f); // Right 60% of available space
+            containerRect.anchorMax = new Vector2(1f, 1f);    // Full height of container
+            containerRect.offsetMin = new Vector2(5f, 5f);    // Small margins
+            containerRect.offsetMax = new Vector2(-5f, -5f);
+            
+            // IMPORTANT: NO background image when container is created - only add when shown
+            // This prevents the grey overlay from appearing when closed
+            
+            // Create title for playlist (but don't add background until shown)
+            var titleText = UIFactory.CreateText(
+                playlistContainer.transform,
+                "PlaylistTitle",
+                "♫ Music Playlist ♫",
+                new Vector2(0f, -25f), // Top of container
+                new Vector2(200f, 25f), // Wider for bigger playlist panel
+                16 // Slightly larger font for bigger panel
+            );
+            titleText.color = new Color(1f, 1f, 1f, 1f); // White text
+            
+            // Create search functionality
+            CreateSearchInterface();
+            
+            // Create scroll view for track list
+            CreateScrollView();
+            
+            // IMPORTANT: Start completely hidden - no background showing
+            playlistContainer.SetActive(false);
+            isVisible = false;
+            
+            LoggerUtil.Info("PlaylistPanel: Playlist container created with expanded width (60%) - properly hidden by default with no background");
         }
 
         private void CreateSearchInterface()
@@ -121,8 +103,8 @@ namespace BackSpeakerMod.UI.Components
             var searchRect = searchContainer.AddComponent<RectTransform>();
             searchRect.anchorMin = new Vector2(0f, 1f);
             searchRect.anchorMax = new Vector2(1f, 1f);
-            searchRect.offsetMin = new Vector2(15f, -70f);
-            searchRect.offsetMax = new Vector2(-15f, -50f);
+            searchRect.offsetMin = new Vector2(10f, -65f);
+            searchRect.offsetMax = new Vector2(-10f, -45f);
             
             // Create search input field background
             var searchBg = searchContainer.AddComponent<Image>();
@@ -153,7 +135,7 @@ namespace BackSpeakerMod.UI.Components
             var placeholderText = placeholderObj.AddComponent<Text>();
             placeholderText.text = "Search tracks...";
             placeholderText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            placeholderText.fontSize = 12;
+            placeholderText.fontSize = 11;
             placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Gray placeholder
             placeholderText.alignment = TextAnchor.MiddleLeft;
             
@@ -170,7 +152,7 @@ namespace BackSpeakerMod.UI.Components
             var inputText = textObj.AddComponent<Text>();
             inputText.text = "";
             inputText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            inputText.fontSize = 12;
+            inputText.fontSize = 11;
             inputText.color = new Color(1f, 1f, 1f, 1f); // White input text
             inputText.alignment = TextAnchor.MiddleLeft;
             
@@ -184,7 +166,7 @@ namespace BackSpeakerMod.UI.Components
                 searchContainer.transform,
                 "✕",
                 new Vector2(0f, 0f),
-                new Vector2(30f, 16f)
+                new Vector2(25f, 16f)
             );
             
             var clearRect = clearSearchButton.GetComponent<RectTransform>();
@@ -202,7 +184,66 @@ namespace BackSpeakerMod.UI.Components
                 clearImage.color = new Color(0.4f, 0.4f, 0.4f, 0.8f);
             }
             
+            // Make sure the clear button text is visible
+            var clearTextComponent = clearSearchButton.GetComponentInChildren<Text>();
+            if (clearTextComponent != null)
+            {
+                clearTextComponent.color = new Color(1f, 1f, 1f, 1f); // White text
+                clearTextComponent.fontSize = 12; // Clear font size
+                clearTextComponent.fontStyle = FontStyle.Bold; // Make it stand out
+            }
+            
             LoggerUtil.Info("PlaylistPanel: Search interface created");
+        }
+
+        private void CreateScrollView()
+        {
+            var scrollObj = new GameObject("ScrollView");
+            scrollObj.transform.SetParent(playlistContainer.transform, false);
+            
+            var scrollRectTransform = scrollObj.AddComponent<RectTransform>();
+            scrollRectTransform.anchorMin = new Vector2(0f, 0f);
+            scrollRectTransform.anchorMax = new Vector2(1f, 1f);
+            scrollRectTransform.offsetMin = new Vector2(8f, 8f);
+            scrollRectTransform.offsetMax = new Vector2(-8f, -75f); // Leave space for title and search
+            
+            scrollRect = scrollObj.AddComponent<ScrollRect>();
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            
+            // Create content area for track buttons
+            var contentObj = new GameObject("Content");
+            contentObj.transform.SetParent(scrollObj.transform, false);
+            
+            var contentRect = contentObj.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.sizeDelta = new Vector2(0f, 100f); // Will resize based on content
+            contentRect.anchoredPosition = Vector2.zero;
+            
+            contentParent = contentObj.transform;
+            scrollRect.content = contentRect;
+        }
+
+        private void ApplyToggleButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Purple accent for playlist button
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.4f, 0.2f, 0.8f, 0.8f); // Purple accent
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(1f, 1f, 1f, 1f); // White text
+                textComponent.fontSize = 10;
+                textComponent.fontStyle = FontStyle.Normal;
+            }
         }
 
         private void OnSearchChanged(string query)
@@ -232,13 +273,36 @@ namespace BackSpeakerMod.UI.Components
                 
                 if (isVisible)
                 {
+                    // Add background and styling ONLY when opening
+                    var background = playlistContainer.GetComponent<Image>();
+                    if (background == null)
+                    {
+                        background = playlistContainer.AddComponent<Image>();
+                        background.color = new Color(0.05f, 0.05f, 0.05f, 0.95f); // Very dark background
+                        
+                        // Add subtle border
+                        UIFactory.ApplyModernBorder(playlistContainer, new Color(0.3f, 0.3f, 0.3f, 0.8f), 2f);
+                    }
+                    
                     FilterAndUpdatePlaylist(); // Refresh when showing
-                    LoggerUtil.Info("PlaylistPanel: Playlist shown");
+                    LoggerUtil.Info("PlaylistPanel: Playlist opened with background added");
                 }
                 else
                 {
-                    LoggerUtil.Info("PlaylistPanel: Playlist hidden");
+                    // IMPORTANT: Remove background component when closing to prevent grey overlay
+                    var background = playlistContainer.GetComponent<Image>();
+                    if (background != null)
+                    {
+                        GameObject.Destroy(background);
+                    }
+                    LoggerUtil.Info("PlaylistPanel: Playlist closed - background component destroyed");
                 }
+            }
+            
+            // Notify main screen about layout change
+            if (mainScreen != null)
+            {
+                mainScreen.OnPlaylistToggle(isVisible);
             }
             
             // Update button text
@@ -254,7 +318,10 @@ namespace BackSpeakerMod.UI.Components
 
         public void UpdatePlaylist()
         {
-            FilterAndUpdatePlaylist();
+            if (isVisible)
+            {
+                FilterAndUpdatePlaylist();
+            }
         }
 
         private void FilterAndUpdatePlaylist()
@@ -282,8 +349,8 @@ namespace BackSpeakerMod.UI.Components
                         "NoTracks",
                         "No music loaded yet.\nUse 'RELOAD' to find music.",
                         new Vector2(0f, -30f),
-                        new Vector2(300f, 60f),
-                        14
+                        new Vector2(250f, 60f),
+                        12
                     );
                     noTracksText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
                     return;
@@ -296,7 +363,8 @@ namespace BackSpeakerMod.UI.Components
                 {
                     var track = allTracks[i];
                     bool matchesSearch = string.IsNullOrEmpty(currentSearchQuery) ||
-                                       track.title.ToLower().Contains(currentSearchQuery);
+                                       track.title.ToLower().Contains(currentSearchQuery) ||
+                                       track.artist.ToLower().Contains(currentSearchQuery);
                     
                     if (matchesSearch)
                     {
@@ -312,8 +380,8 @@ namespace BackSpeakerMod.UI.Components
                         "NoMatches",
                         $"No tracks found for '{currentSearchQuery}'",
                         new Vector2(0f, -30f),
-                        new Vector2(300f, 40f),
-                        14
+                        new Vector2(250f, 40f),
+                        12
                     );
                     noMatchText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
                     return;
@@ -336,7 +404,7 @@ namespace BackSpeakerMod.UI.Components
                         contentParent,
                         buttonText,
                         new Vector2(0f, yPosition),
-                        new Vector2(280f, 35f) // Wide buttons for better touch targets
+                        new Vector2(300f, 35f) // Wider buttons for bigger playlist panel (was 230f)
                     );
                     
                     // Apply Spotify-style button colors
@@ -349,7 +417,11 @@ namespace BackSpeakerMod.UI.Components
                         if (buttonImage != null)
                             buttonImage.color = new Color(0.11f, 0.73f, 0.33f, 0.8f); // Spotify green
                         if (buttonText_comp != null)
+                        {
                             buttonText_comp.color = new Color(0f, 0f, 0f, 1f); // Black text on green
+                            buttonText_comp.fontSize = 11; // Slightly larger for bigger panel
+                            buttonText_comp.alignment = TextAnchor.MiddleLeft; // Left-align for better readability
+                        }
                     }
                     else
                     {
@@ -357,21 +429,28 @@ namespace BackSpeakerMod.UI.Components
                         if (buttonImage != null)
                             buttonImage.color = new Color(0.25f, 0.25f, 0.25f, 0.6f); // Dark gray
                         if (buttonText_comp != null)
+                        {
                             buttonText_comp.color = new Color(1f, 1f, 1f, 0.9f); // White text
+                            buttonText_comp.fontSize = 11; // Slightly larger for bigger panel
+                            buttonText_comp.alignment = TextAnchor.MiddleLeft; // Left-align for better readability
+                        }
                     }
                     
-                    // Add click handler
+                    // IMPORTANT: Add click handler with proper closure capture
                     int trackIndex = originalIndex; // Capture for closure
-                    trackButton.onClick.AddListener((UnityEngine.Events.UnityAction)(() => OnTrackSelected(trackIndex)));
+                    trackButton.onClick.AddListener(() => {
+                        LoggerUtil.Info($"PlaylistPanel: Track button clicked - index {trackIndex}");
+                        OnTrackSelected(trackIndex);
+                    });
                     
                     trackButtons.Add(trackButton);
-                    yPosition -= 40f; // Space between buttons
+                    yPosition -= 38f; // More space between bigger buttons (was 35f)
                 }
                 
                 // Resize content area to fit all buttons
                 if (scrollRect?.content != null)
                 {
-                    float contentHeight = Mathf.Max(100f, filteredTracks.Count * 40f + 40f);
+                    float contentHeight = Mathf.Max(100f, filteredTracks.Count * 38f + 40f);
                     scrollRect.content.sizeDelta = new Vector2(0f, contentHeight);
                 }
                 
@@ -393,9 +472,23 @@ namespace BackSpeakerMod.UI.Components
                 LoggerUtil.Info($"PlaylistPanel: Track {trackIndex + 1} selected");
                 manager.PlayTrack(trackIndex);
                 
-                // Auto-close playlist after selection (mobile-friendly)
-                TogglePlaylist();
+                // Keep playlist open but refresh to show new current track
+                FilterAndUpdatePlaylist();
             }
+        }
+
+        public void CreateToggleButton(Transform parentTransform)
+        {
+            // Create playlist toggle button positioned at the bottom with other controls
+            toggleButton = UIFactory.CreateButton(
+                parentTransform,
+                "♫ Playlist",
+                new Vector2(0f, -250f), // Bottom center, below RELOAD and STATUS buttons
+                new Vector2(80f, 30f) // Good size for touch
+            );
+            toggleButton.onClick.AddListener((UnityEngine.Events.UnityAction)TogglePlaylist);
+            ApplyToggleButtonStyling(toggleButton);
+            LoggerUtil.Info("PlaylistPanel: Toggle button created at bottom of controls");
         }
     }
 } 

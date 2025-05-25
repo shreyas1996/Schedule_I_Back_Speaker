@@ -27,6 +27,7 @@ namespace BackSpeakerMod
             LoggerUtil.Info("Starting Il2Cpp type registration...");
             
             // Register each component individually with detailed error reporting
+            // Note: The "Assembly not registered" warning is normal and benign
             try
             {
                 LoggerUtil.Info("Registering BackSpeakerScreen...");

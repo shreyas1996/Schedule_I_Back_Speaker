@@ -22,12 +22,12 @@ namespace BackSpeakerMod.UI.Components
                 this.manager = manager;
                 LoggerUtil.Info("VolumeControl: Setting up modern Spotify-style volume control");
                 
-                // Modern compact volume control with Spotify styling
+                // Modern compact volume control with Spotify styling - positioned below repeat button
                 volumeSlider = UIFactory.CreateSlider(
                     parent.transform,
                     "VolumeSlider",
-                    new Vector2(0f, -110f), // Better spacing: 30px from repeat, 20px from bottom buttons
-                    new Vector2(140f, 20f), // Wide for better usability
+                    new Vector2(0f, -160f), // Below repeat button with proper spacing
+                    new Vector2(160f, 20f), // Wide for better usability
                     0f,
                     1f,
                     manager?.CurrentVolume ?? 0.5f

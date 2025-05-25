@@ -25,17 +25,17 @@ namespace BackSpeakerMod.UI.Components
                 this.manager = manager;
                 LoggerUtil.Info("DisplayPanel: Setting up modern track display with album art");
                 
-                // Create album art container with modern styling
+                // Create album art container with modern styling - top of the container
                 CreateAlbumArtDisplay(parent);
                 
-                // Modern track info display - positioned to work with album art
+                // Modern track info display - positioned below album art with proper spacing
                 trackNameText = UIFactory.CreateText(
                     parent.transform,
                     "TrackName",
                     "♪ No Track Selected ♪",
-                    new Vector2(0f, 25f), // Slightly lower to accommodate album art
+                    new Vector2(0f, 60f), // Increased spacing from album art
                     new Vector2(320f, 40f), // Wider for better text display
-                    24 // Large, readable text
+                    20 // Large, readable text
                 );
                 
                 // Apply Spotify-style text color
@@ -47,9 +47,9 @@ namespace BackSpeakerMod.UI.Components
                     parent.transform,
                     "ArtistName",
                     "Load music to get started",
-                    new Vector2(0f, -5f), // Below track name, good spacing
+                    new Vector2(0f, 30f), // Better spacing below track name
                     new Vector2(300f, 25f), // Appropriate width
-                    16 // Subtitle text size
+                    14 // Subtitle text size
                 );
                 
                 // Apply Spotify-style secondary text color
@@ -74,8 +74,8 @@ namespace BackSpeakerMod.UI.Components
             var containerRect = albumArtContainer.AddComponent<RectTransform>();
             containerRect.anchorMin = new Vector2(0.5f, 0.5f);
             containerRect.anchorMax = new Vector2(0.5f, 0.5f);
-            containerRect.anchoredPosition = new Vector2(0f, 70f); // Above track info
-            containerRect.sizeDelta = new Vector2(80f, 80f); // Square album art
+            containerRect.anchoredPosition = new Vector2(0f, 120f); // Top area, above track info
+            containerRect.sizeDelta = new Vector2(60f, 60f); // Compact square album art
             
             // Add album art background with rounded appearance and modern depth
             var background = albumArtContainer.AddComponent<Image>();
@@ -92,8 +92,8 @@ namespace BackSpeakerMod.UI.Components
             var artRect = albumArtObj.AddComponent<RectTransform>();
             artRect.anchorMin = Vector2.zero;
             artRect.anchorMax = Vector2.one;
-            artRect.offsetMin = new Vector2(4f, 4f); // Small border
-            artRect.offsetMax = new Vector2(-4f, -4f);
+            artRect.offsetMin = new Vector2(3f, 3f); // Small border
+            artRect.offsetMax = new Vector2(-3f, -3f);
             
             albumArt = albumArtObj.AddComponent<Image>();
             
