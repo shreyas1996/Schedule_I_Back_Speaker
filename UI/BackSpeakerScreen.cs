@@ -25,7 +25,7 @@ namespace BackSpeakerMod.UI
         private RectTransform controlsContainer = null;
         private bool isPlaylistOpen = false;
         private Vector2 controlsClosedPosition = Vector2.zero;
-        private Vector2 controlsOpenPosition = new Vector2(-150f, 0f); // More left to center in left 40% area
+        private Vector2 controlsOpenPosition = new Vector2(-200f, 0f); // Center in left 50% area (25% from original center)
         
         // IL2CPP compatibility - explicit parameterless constructor
         public BackSpeakerScreen() : base() { }

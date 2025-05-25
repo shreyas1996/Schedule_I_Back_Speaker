@@ -27,6 +27,12 @@ namespace BackSpeakerMod.UI.Components
         // Layout management
         private BackSpeakerScreen mainScreen = null;
         private RectTransform canvasRect = null;
+        
+        // Track list change detection to prevent constant recreation
+        private int lastTrackCount = -1;
+        private int lastCurrentTrackIndex = -1;
+        private string lastSearchQuery = "";
+        private bool needsPlaylistRefresh = false;
 
         // IL2CPP compatibility - explicit parameterless constructor
         public PlaylistPanel() : base() { }
@@ -57,29 +63,51 @@ namespace BackSpeakerMod.UI.Components
 
         private void CreatePlaylistContainer()
         {
+            // PROTECTION: Don't create multiple containers
+            if (playlistContainer != null)
+            {
+                return;
+            }
+            
             playlistContainer = new GameObject("PlaylistContainer");
             playlistContainer.transform.SetParent(canvasRect.transform, false);
             
             var containerRect = playlistContainer.AddComponent<RectTransform>();
-            // Position on the right side with more space - increased from 45% to 60%
-            containerRect.anchorMin = new Vector2(0.4f, 0f); // Right 60% of available space
-            containerRect.anchorMax = new Vector2(1f, 1f);    // Full height of container
-            containerRect.offsetMin = new Vector2(5f, 5f);    // Small margins
-            containerRect.offsetMax = new Vector2(-5f, -5f);
+            // Position on the right side with proper 50/50 split
+            containerRect.anchorMin = new Vector2(0.5f, 0f);
+            containerRect.anchorMax = new Vector2(1f, 1f);
+            containerRect.offsetMin = new Vector2(10f, 10f);
+            containerRect.offsetMax = new Vector2(-10f, -10f);
             
-            // IMPORTANT: NO background image when container is created - only add when shown
-            // This prevents the grey overlay from appearing when closed
+            // Ensure NO background image when container is created
+            var existingImages = playlistContainer.GetComponents<Image>();
+            for (int i = existingImages.Length - 1; i >= 0; i--)
+            {
+                if (existingImages[i] != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(existingImages[i]);
+                }
+            }
             
-            // Create title for playlist (but don't add background until shown)
+            LoggerUtil.Info("PlaylistPanel: PlaylistContainer created with NO background components");
+            
+            // Create title at the TOP of the playlist container - fix positioning
             var titleText = UIFactory.CreateText(
                 playlistContainer.transform,
                 "PlaylistTitle",
                 "♫ Music Playlist ♫",
-                new Vector2(0f, -25f), // Top of container
-                new Vector2(200f, 25f), // Wider for bigger playlist panel
-                16 // Slightly larger font for bigger panel
+                new Vector2(0f, 0f),
+                new Vector2(220f, 30f),
+                18
             );
-            titleText.color = new Color(1f, 1f, 1f, 1f); // White text
+            titleText.color = new Color(1f, 1f, 1f, 1f);
+            
+            // Position title at the TOP of the container
+            var titleRect = titleText.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.offsetMin = new Vector2(0f, -35f);
+            titleRect.offsetMax = new Vector2(0f, -5f);
             
             // Create search functionality
             CreateSearchInterface();
@@ -87,11 +115,11 @@ namespace BackSpeakerMod.UI.Components
             // Create scroll view for track list
             CreateScrollView();
             
-            // IMPORTANT: Start completely hidden - no background showing
+            // Start completely hidden
             playlistContainer.SetActive(false);
             isVisible = false;
             
-            LoggerUtil.Info("PlaylistPanel: Playlist container created with expanded width (60%) - properly hidden by default with no background");
+            LoggerUtil.Info("PlaylistPanel: Playlist setup completed");
         }
 
         private void CreateSearchInterface()
@@ -103,8 +131,8 @@ namespace BackSpeakerMod.UI.Components
             var searchRect = searchContainer.AddComponent<RectTransform>();
             searchRect.anchorMin = new Vector2(0f, 1f);
             searchRect.anchorMax = new Vector2(1f, 1f);
-            searchRect.offsetMin = new Vector2(10f, -65f);
-            searchRect.offsetMax = new Vector2(-10f, -45f);
+            searchRect.offsetMin = new Vector2(15f, -75f); // Below title (was -70f)
+            searchRect.offsetMax = new Vector2(-15f, -45f); // 30px height for search
             
             // Create search input field background
             var searchBg = searchContainer.AddComponent<Image>();
@@ -117,8 +145,8 @@ namespace BackSpeakerMod.UI.Components
             var inputRect = inputObj.AddComponent<RectTransform>();
             inputRect.anchorMin = Vector2.zero;
             inputRect.anchorMax = new Vector2(0.8f, 1f);
-            inputRect.offsetMin = new Vector2(5f, 2f);
-            inputRect.offsetMax = new Vector2(-5f, -2f);
+            inputRect.offsetMin = new Vector2(8f, 3f); // Better padding
+            inputRect.offsetMax = new Vector2(-8f, -3f);
             
             searchInput = inputObj.AddComponent<InputField>();
             
@@ -188,9 +216,9 @@ namespace BackSpeakerMod.UI.Components
             var clearTextComponent = clearSearchButton.GetComponentInChildren<Text>();
             if (clearTextComponent != null)
             {
-                clearTextComponent.color = new Color(1f, 1f, 1f, 1f); // White text
-                clearTextComponent.fontSize = 12; // Clear font size
-                clearTextComponent.fontStyle = FontStyle.Bold; // Make it stand out
+                clearTextComponent.color = new Color(1f, 1f, 1f, 1f);
+                clearTextComponent.fontSize = 12;
+                clearTextComponent.fontStyle = FontStyle.Bold;
             }
             
             LoggerUtil.Info("PlaylistPanel: Search interface created");
@@ -204,8 +232,8 @@ namespace BackSpeakerMod.UI.Components
             var scrollRectTransform = scrollObj.AddComponent<RectTransform>();
             scrollRectTransform.anchorMin = new Vector2(0f, 0f);
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
-            scrollRectTransform.offsetMin = new Vector2(8f, 8f);
-            scrollRectTransform.offsetMax = new Vector2(-8f, -75f); // Leave space for title and search
+            scrollRectTransform.offsetMin = new Vector2(15f, 15f); // Bottom margin
+            scrollRectTransform.offsetMax = new Vector2(-15f, -85f); // Leave space for title (35px) + search (30px) + margin (20px)
             
             scrollRect = scrollObj.AddComponent<ScrollRect>();
             scrollRect.horizontal = false;
@@ -249,8 +277,7 @@ namespace BackSpeakerMod.UI.Components
         private void OnSearchChanged(string query)
         {
             currentSearchQuery = query.ToLower();
-            LoggerUtil.Info($"PlaylistPanel: Search query changed to: '{query}'");
-            FilterAndUpdatePlaylist();
+            needsPlaylistRefresh = true;
         }
 
         private void ClearSearch()
@@ -259,43 +286,92 @@ namespace BackSpeakerMod.UI.Components
             {
                 searchInput.text = "";
                 currentSearchQuery = "";
-                FilterAndUpdatePlaylist();
-                LoggerUtil.Info("PlaylistPanel: Search cleared");
+                needsPlaylistRefresh = true;
             }
         }
 
         private void TogglePlaylist()
         {
             isVisible = !isVisible;
+            LoggerUtil.Info($"PlaylistPanel: Playlist {(isVisible ? "opened" : "closed")}");
+            
             if (playlistContainer != null)
             {
-                playlistContainer.SetActive(isVisible);
-                
                 if (isVisible)
                 {
-                    // Add background and styling ONLY when opening
+                    playlistContainer.SetActive(true);
+                    
+                    // Add background and styling when opening
                     var background = playlistContainer.GetComponent<Image>();
                     if (background == null)
                     {
                         background = playlistContainer.AddComponent<Image>();
-                        background.color = new Color(0.05f, 0.05f, 0.05f, 0.95f); // Very dark background
-                        
-                        // Add subtle border
+                        background.color = new Color(0.05f, 0.05f, 0.05f, 0.95f);
                         UIFactory.ApplyModernBorder(playlistContainer, new Color(0.3f, 0.3f, 0.3f, 0.8f), 2f);
                     }
                     
-                    FilterAndUpdatePlaylist(); // Refresh when showing
-                    LoggerUtil.Info("PlaylistPanel: Playlist opened with background added");
+                    needsPlaylistRefresh = true;
                 }
                 else
                 {
-                    // IMPORTANT: Remove background component when closing to prevent grey overlay
-                    var background = playlistContainer.GetComponent<Image>();
-                    if (background != null)
+                    // Clean up all visual components
+                    var allImages = playlistContainer.GetComponents<Image>();
+                    for (int i = allImages.Length - 1; i >= 0; i--)
                     {
-                        GameObject.Destroy(background);
+                        if (allImages[i] != null)
+                        {
+                            allImages[i].enabled = false;
+                            allImages[i].color = new Color(0f, 0f, 0f, 0f);
+                            UnityEngine.Object.Destroy(allImages[i]);
+                        }
                     }
-                    LoggerUtil.Info("PlaylistPanel: Playlist closed - background component destroyed");
+                    
+                    // Clean up border objects created by ApplyModernBorder
+                    if (playlistContainer.transform.parent != null)
+                    {
+                        var parentTransform = playlistContainer.transform.parent;
+                        for (int i = 0; i < parentTransform.childCount; i++)
+                        {
+                            var child = parentTransform.GetChild(i);
+                            if (child.name.Contains("PlaylistContainer_Border"))
+                            {
+                                var borderImages = child.GetComponents<Image>();
+                                foreach (var img in borderImages)
+                                {
+                                    if (img != null)
+                                    {
+                                        img.enabled = false;
+                                        img.color = new Color(0f, 0f, 0f, 0f);
+                                        UnityEngine.Object.Destroy(img);
+                                    }
+                                }
+                                UnityEngine.Object.Destroy(child.gameObject);
+                            }
+                        }
+                    }
+                    
+                    // Clean up other components
+                    var outlines = playlistContainer.GetComponents<UnityEngine.UI.Outline>();
+                    for (int i = outlines.Length - 1; i >= 0; i--)
+                    {
+                        if (outlines[i] != null)
+                        {
+                            outlines[i].enabled = false;
+                            UnityEngine.Object.Destroy(outlines[i]);
+                        }
+                    }
+                    
+                    var shadows = playlistContainer.GetComponents<UnityEngine.UI.Shadow>();
+                    for (int i = shadows.Length - 1; i >= 0; i--)
+                    {
+                        if (shadows[i] != null)
+                        {
+                            shadows[i].enabled = false;
+                            UnityEngine.Object.Destroy(shadows[i]);
+                        }
+                    }
+                    
+                    playlistContainer.SetActive(false);
                 }
             }
             
@@ -318,10 +394,29 @@ namespace BackSpeakerMod.UI.Components
 
         public void UpdatePlaylist()
         {
-            if (isVisible)
-            {
-                FilterAndUpdatePlaylist();
-            }
+            // Only update if playlist is visible AND something actually changed
+            if (!isVisible) return;
+            
+            if (manager == null) return;
+            
+            // Check if anything actually changed
+            var allTracks = manager.GetAllTracks();
+            int currentTrackIndex = manager.CurrentTrackIndex;
+            
+            bool hasChanges = needsPlaylistRefresh ||
+                             allTracks.Count != lastTrackCount ||
+                             currentTrackIndex != lastCurrentTrackIndex ||
+                             currentSearchQuery != lastSearchQuery;
+            
+            if (!hasChanges) return; // No changes, don't recreate buttons
+            
+            // Update tracking variables
+            lastTrackCount = allTracks.Count;
+            lastCurrentTrackIndex = currentTrackIndex;
+            lastSearchQuery = currentSearchQuery;
+            needsPlaylistRefresh = false;
+            
+            FilterAndUpdatePlaylist();
         }
 
         private void FilterAndUpdatePlaylist()
@@ -397,17 +492,17 @@ namespace BackSpeakerMod.UI.Components
                     string buttonText = $"{originalIndex + 1}. {track.title}";
                     if (originalIndex == currentTrackIndex)
                     {
-                        buttonText = $"♪ {buttonText} ♪"; // Current track indicator
+                        buttonText = $"♪ {buttonText} ♪";
                     }
                     
                     var trackButton = UIFactory.CreateButton(
                         contentParent,
                         buttonText,
                         new Vector2(0f, yPosition),
-                        new Vector2(300f, 35f) // Wider buttons for bigger playlist panel (was 230f)
+                        new Vector2(260f, 35f)
                     );
                     
-                    // Apply Spotify-style button colors
+                    // Apply styling
                     var buttonImage = trackButton.GetComponent<Image>();
                     var buttonText_comp = trackButton.GetComponentInChildren<Text>();
                     
@@ -415,36 +510,35 @@ namespace BackSpeakerMod.UI.Components
                     {
                         // Current track styling - Spotify green
                         if (buttonImage != null)
-                            buttonImage.color = new Color(0.11f, 0.73f, 0.33f, 0.8f); // Spotify green
+                            buttonImage.color = new Color(0.11f, 0.73f, 0.33f, 0.8f);
                         if (buttonText_comp != null)
                         {
-                            buttonText_comp.color = new Color(0f, 0f, 0f, 1f); // Black text on green
-                            buttonText_comp.fontSize = 11; // Slightly larger for bigger panel
-                            buttonText_comp.alignment = TextAnchor.MiddleLeft; // Left-align for better readability
+                            buttonText_comp.color = new Color(0f, 0f, 0f, 1f);
+                            buttonText_comp.fontSize = 11;
+                            buttonText_comp.alignment = TextAnchor.MiddleLeft;
                         }
                     }
                     else
                     {
                         // Regular track styling
                         if (buttonImage != null)
-                            buttonImage.color = new Color(0.25f, 0.25f, 0.25f, 0.6f); // Dark gray
+                            buttonImage.color = new Color(0.25f, 0.25f, 0.25f, 0.6f);
                         if (buttonText_comp != null)
                         {
-                            buttonText_comp.color = new Color(1f, 1f, 1f, 0.9f); // White text
-                            buttonText_comp.fontSize = 11; // Slightly larger for bigger panel
-                            buttonText_comp.alignment = TextAnchor.MiddleLeft; // Left-align for better readability
+                            buttonText_comp.color = new Color(1f, 1f, 1f, 0.9f);
+                            buttonText_comp.fontSize = 11;
+                            buttonText_comp.alignment = TextAnchor.MiddleLeft;
                         }
                     }
                     
-                    // IMPORTANT: Add click handler with proper closure capture
-                    int trackIndex = originalIndex; // Capture for closure
-                    trackButton.onClick.AddListener(() => {
-                        LoggerUtil.Info($"PlaylistPanel: Track button clicked - index {trackIndex}");
-                        OnTrackSelected(trackIndex);
-                    });
+                    // Add click handler
+                    int capturedIndex = originalIndex;
+                    trackButton.onClick.AddListener((UnityEngine.Events.UnityAction)(() => {
+                        OnTrackSelected(capturedIndex);
+                    }));
                     
                     trackButtons.Add(trackButton);
-                    yPosition -= 38f; // More space between bigger buttons (was 35f)
+                    yPosition -= 38f;
                 }
                 
                 // Resize content area to fit all buttons
@@ -454,10 +548,15 @@ namespace BackSpeakerMod.UI.Components
                     scrollRect.content.sizeDelta = new Vector2(0f, contentHeight);
                 }
                 
-                string searchInfo = string.IsNullOrEmpty(currentSearchQuery) ? 
-                    $"Updated with {allTracks.Count} tracks" : 
-                    $"Filtered {filteredTracks.Count} of {allTracks.Count} tracks for '{currentSearchQuery}'";
-                LoggerUtil.Info($"PlaylistPanel: {searchInfo}");
+                // Log only important information
+                if (!string.IsNullOrEmpty(currentSearchQuery))
+                {
+                    LoggerUtil.Info($"PlaylistPanel: Filtered {filteredTracks.Count} of {allTracks.Count} tracks for '{currentSearchQuery}'");
+                }
+                else
+                {
+                    LoggerUtil.Info($"PlaylistPanel: Updated with {allTracks.Count} tracks");
+                }
             }
             catch (System.Exception ex)
             {
@@ -471,9 +570,7 @@ namespace BackSpeakerMod.UI.Components
             {
                 LoggerUtil.Info($"PlaylistPanel: Track {trackIndex + 1} selected");
                 manager.PlayTrack(trackIndex);
-                
-                // Keep playlist open but refresh to show new current track
-                FilterAndUpdatePlaylist();
+                needsPlaylistRefresh = true;
             }
         }
 
@@ -483,12 +580,11 @@ namespace BackSpeakerMod.UI.Components
             toggleButton = UIFactory.CreateButton(
                 parentTransform,
                 "♫ Playlist",
-                new Vector2(0f, -250f), // Bottom center, below RELOAD and STATUS buttons
-                new Vector2(80f, 30f) // Good size for touch
+                new Vector2(0f, -250f),
+                new Vector2(80f, 30f)
             );
             toggleButton.onClick.AddListener((UnityEngine.Events.UnityAction)TogglePlaylist);
             ApplyToggleButtonStyling(toggleButton);
-            LoggerUtil.Info("PlaylistPanel: Toggle button created at bottom of controls");
         }
     }
 } 
