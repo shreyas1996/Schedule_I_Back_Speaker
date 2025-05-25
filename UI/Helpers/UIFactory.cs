@@ -137,5 +137,126 @@ namespace BackSpeakerMod.UI.Helpers
             LoggerUtil.Info($"UIFactory: Created functional slider '{name}' at {anchorPosition} size {size}");
             return slider;
         }
+
+        public static void ApplyModernShadow(GameObject target, Color shadowColor, Vector2 offset = default, float blur = 2f)
+        {
+            if (target == null) return;
+            
+            try
+            {
+                // Create shadow container
+                var shadowObj = new GameObject($"{target.name}_Shadow");
+                shadowObj.transform.SetParent(target.transform.parent, false);
+                shadowObj.transform.SetSiblingIndex(target.transform.GetSiblingIndex()); // Behind original
+                
+                // Copy the RectTransform properties
+                var originalRect = target.GetComponent<RectTransform>();
+                var shadowRect = shadowObj.AddComponent<RectTransform>();
+                
+                if (originalRect != null)
+                {
+                    shadowRect.anchorMin = originalRect.anchorMin;
+                    shadowRect.anchorMax = originalRect.anchorMax;
+                    shadowRect.anchoredPosition = originalRect.anchoredPosition + (offset != default ? offset : new Vector2(2f, -2f));
+                    shadowRect.sizeDelta = originalRect.sizeDelta;
+                    shadowRect.pivot = originalRect.pivot;
+                }
+                
+                // Add shadow image
+                var shadowImage = shadowObj.AddComponent<Image>();
+                var originalImage = target.GetComponent<Image>();
+                
+                if (originalImage != null && originalImage.sprite != null)
+                {
+                    shadowImage.sprite = originalImage.sprite;
+                }
+                
+                shadowImage.color = shadowColor;
+                
+                LoggerUtil.Info($"UIFactory: Applied modern shadow to {target.name}");
+            }
+            catch (System.Exception ex)
+            {
+                LoggerUtil.Error($"UIFactory: Failed to apply shadow to {target.name}: {ex}");
+            }
+        }
+
+        public static void ApplyGlow(GameObject target, Color glowColor, float intensity = 0.5f)
+        {
+            if (target == null) return;
+            
+            try
+            {
+                // Create glow effect by creating multiple shadow layers
+                for (int i = 0; i < 3; i++)
+                {
+                    var glowObj = new GameObject($"{target.name}_Glow_{i}");
+                    glowObj.transform.SetParent(target.transform.parent, false);
+                    glowObj.transform.SetSiblingIndex(target.transform.GetSiblingIndex());
+                    
+                    var originalRect = target.GetComponent<RectTransform>();
+                    var glowRect = glowObj.AddComponent<RectTransform>();
+                    
+                    if (originalRect != null)
+                    {
+                        glowRect.anchorMin = originalRect.anchorMin;
+                        glowRect.anchorMax = originalRect.anchorMax;
+                        glowRect.anchoredPosition = originalRect.anchoredPosition;
+                        glowRect.sizeDelta = originalRect.sizeDelta + Vector2.one * (i + 1) * 2f; // Expanding layers
+                        glowRect.pivot = originalRect.pivot;
+                    }
+                    
+                    var glowImage = glowObj.AddComponent<Image>();
+                    var originalImage = target.GetComponent<Image>();
+                    
+                    if (originalImage != null && originalImage.sprite != null)
+                    {
+                        glowImage.sprite = originalImage.sprite;
+                    }
+                    
+                    float layerIntensity = intensity / (i + 1); // Decreasing intensity for each layer
+                    glowImage.color = new Color(glowColor.r, glowColor.g, glowColor.b, layerIntensity);
+                }
+                
+                LoggerUtil.Info($"UIFactory: Applied glow effect to {target.name}");
+            }
+            catch (System.Exception ex)
+            {
+                LoggerUtil.Error($"UIFactory: Failed to apply glow to {target.name}: {ex}");
+            }
+        }
+
+        public static void ApplyModernBorder(GameObject target, Color borderColor, float thickness = 1f)
+        {
+            if (target == null) return;
+            
+            try
+            {
+                var borderObj = new GameObject($"{target.name}_Border");
+                borderObj.transform.SetParent(target.transform.parent, false);
+                borderObj.transform.SetSiblingIndex(target.transform.GetSiblingIndex());
+                
+                var originalRect = target.GetComponent<RectTransform>();
+                var borderRect = borderObj.AddComponent<RectTransform>();
+                
+                if (originalRect != null)
+                {
+                    borderRect.anchorMin = originalRect.anchorMin;
+                    borderRect.anchorMax = originalRect.anchorMax;
+                    borderRect.anchoredPosition = originalRect.anchoredPosition;
+                    borderRect.sizeDelta = originalRect.sizeDelta + Vector2.one * thickness * 2f;
+                    borderRect.pivot = originalRect.pivot;
+                }
+                
+                var borderImage = borderObj.AddComponent<Image>();
+                borderImage.color = borderColor;
+                
+                LoggerUtil.Info($"UIFactory: Applied modern border to {target.name}");
+            }
+            catch (System.Exception ex)
+            {
+                LoggerUtil.Error($"UIFactory: Failed to apply border to {target.name}: {ex}");
+            }
+        }
     }
 } 

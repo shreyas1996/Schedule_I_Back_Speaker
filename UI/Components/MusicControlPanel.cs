@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
 
@@ -8,22 +9,26 @@ namespace BackSpeakerMod.UI.Components
 {
     public class MusicControlPanel : MonoBehaviour
     {
-        private BackSpeakerManager manager;
-        private Button playPauseButton;
-        private Button nextTrackButton;
-        private Button prevTrackButton;
-        private Button repeatButton;
-        private Button reloadButton;
-        private Button statusButton;
+        // IL2CPP compatibility - explicit field initialization
+        private BackSpeakerManager manager = null;
+        private Button playPauseButton = null;
+        private Button nextTrackButton = null;
+        private Button prevTrackButton = null;
+        private Button repeatButton = null;
+        private Button reloadButton = null;
+        private Button statusButton = null;
+
+        // IL2CPP compatibility - explicit parameterless constructor
+        public MusicControlPanel() : base() { }
 
         public void Setup(BackSpeakerManager manager, Transform canvasTransform)
         {
             try 
             {
                 this.manager = manager;
-                LoggerUtil.Info("MusicControlPanel: Setting up simplified controls");
+                LoggerUtil.Info("MusicControlPanel: Setting up modern Spotify-style controls");
                 
-                // Main control row - proper spacing
+                // Main control row - proper spacing with Spotify styling
                 prevTrackButton = UIFactory.CreateButton(
                     canvasTransform, 
                     "<<", // Previous text
@@ -31,9 +36,10 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(60f, 45f) // Good touch targets
                 );
                 prevTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPreviousTrack);
+                ApplySecondaryButtonStyling(prevTrackButton);
                 LoggerUtil.Info("MusicControlPanel: Previous button created");
                 
-                // Create Play/Pause button (center) - largest, most prominent
+                // Create Play/Pause button (center) - largest, most prominent with Spotify green
                 playPauseButton = UIFactory.CreateButton(
                     canvasTransform, 
                     "PLAY", // Start with PLAY text
@@ -41,6 +47,7 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(80f, 50f) // Largest button for main action
                 );
                 playPauseButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPlayPause);
+                ApplyPrimaryButtonStyling(playPauseButton);
                 LoggerUtil.Info("MusicControlPanel: Play/Pause button created");
                 
                 // Create Next button (right) - main control row
@@ -51,6 +58,7 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(60f, 45f) // Good touch targets
                 );
                 nextTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnNextTrack);
+                ApplySecondaryButtonStyling(nextTrackButton);
                 LoggerUtil.Info("MusicControlPanel: Next button created");
                 
                 // Repeat mode control - centered below main controls
@@ -61,6 +69,7 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(120f, 30f) // Wider button for text readability
                 );
                 repeatButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnToggleRepeat);
+                ApplyTertiaryButtonStyling(repeatButton);
                 LoggerUtil.Info("MusicControlPanel: Repeat button created");
                 
                 // Essential fallback controls - bottom row with better spacing from volume
@@ -71,6 +80,7 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(90f, 30f) // Slightly wider button
                 );
                 reloadButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnReload);
+                ApplyUtilityButtonStyling(reloadButton);
                 LoggerUtil.Info("MusicControlPanel: Reload button created");
                 
                 // Status button (shows status + manual trigger if needed)
@@ -81,9 +91,10 @@ namespace BackSpeakerMod.UI.Components
                     new Vector2(100f, 30f) // Wider button to fit status text
                 );
                 statusButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnStatusButtonClick);
+                ApplyStatusButtonStyling(statusButton);
                 LoggerUtil.Info("MusicControlPanel: Status button created");
                 
-                LoggerUtil.Info("MusicControlPanel: Simplified setup completed");
+                LoggerUtil.Info("MusicControlPanel: Modern Spotify-style setup completed");
             }
             catch (System.Exception ex)
             {
@@ -92,46 +103,150 @@ namespace BackSpeakerMod.UI.Components
             }
         }
 
+        private void ApplyPrimaryButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Spotify green for primary play/pause button
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.11f, 0.73f, 0.33f, 0.9f); // Spotify green
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(0f, 0f, 0f, 1f); // Black text on green
+                textComponent.fontSize = 16;
+                textComponent.fontStyle = FontStyle.Bold;
+            }
+            
+            // Add subtle glow effect to make it more prominent
+            UIFactory.ApplyGlow(button.gameObject, new Color(0.11f, 0.73f, 0.33f, 1f), 0.3f);
+            
+            // Add modern shadow for depth
+            UIFactory.ApplyModernShadow(button.gameObject, new Color(0f, 0f, 0f, 0.4f), new Vector2(1f, -2f));
+        }
 
+        private void ApplySecondaryButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Dark gray for secondary control buttons
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.15f, 0.15f, 0.15f, 0.85f); // Dark gray
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(1f, 1f, 1f, 0.9f); // White text
+                textComponent.fontSize = 14;
+                textComponent.fontStyle = FontStyle.Bold;
+            }
+        }
+
+        private void ApplyTertiaryButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Medium gray for repeat/shuffle buttons
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.25f, 0.25f, 0.25f, 0.8f); // Medium gray
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(0.9f, 0.9f, 0.9f, 1f); // Light gray text
+                textComponent.fontSize = 12;
+                textComponent.fontStyle = FontStyle.Normal;
+            }
+        }
+
+        private void ApplyUtilityButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Blue accent for utility buttons like reload
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.2f, 0.4f, 0.8f, 0.8f); // Blue accent
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(1f, 1f, 1f, 1f); // White text
+                textComponent.fontSize = 11;
+                textComponent.fontStyle = FontStyle.Normal;
+            }
+        }
+
+        private void ApplyStatusButtonStyling(Button button)
+        {
+            if (button == null) return;
+            
+            // Amber/orange for status indicators
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.8f, 0.5f, 0.2f, 0.8f); // Amber/orange
+            }
+            
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(0f, 0f, 0f, 1f); // Black text on orange
+                textComponent.fontSize = 10;
+                textComponent.fontStyle = FontStyle.Normal;
+            }
+        }
 
         private void OnPlayPause()
         {
-            manager.TogglePlayPause();
+            manager?.TogglePlayPause();
             UpdateButtonText();
         }
 
         private void OnNextTrack()
         {
-            manager.NextTrack();
+            manager?.NextTrack();
         }
 
         private void OnPreviousTrack()
         {
-            manager.PreviousTrack();
+            manager?.PreviousTrack();
         }
 
         private void OnReload()
         {
             LoggerUtil.Info("Reload button clicked - reloading music tracks");
-            manager.ReloadTracks();
-            LoggerUtil.Info($"Reload complete - now have {manager.GetTrackCount()} tracks");
+            manager?.ReloadTracks();
+            LoggerUtil.Info($"Reload complete - now have {manager?.GetTrackCount() ?? 0} tracks");
         }
 
         private void OnStatusButtonClick()
         {
-            string status = manager.GetAttachmentStatus();
+            string status = manager?.GetAttachmentStatus() ?? "Unknown";
             LoggerUtil.Info($"Status button clicked. Current status: {status}");
             
-            if (status == "SPAWN IN GAME")
+            if (status.Contains("Waiting for player"))
             {
                 LoggerUtil.Info("Status: Player needs to spawn in game first");
             }
-            else if (status == "PLAYER FOUND")
+            else if (status.Contains("Player found"))
             {
                 LoggerUtil.Info("Status: Manually triggering attachment...");
-                manager.TriggerManualAttachment();
+                manager?.TriggerManualAttachment();
             }
-            else if (status == "ATTACHED")
+            else if (status.Contains("Ready"))
             {
                 LoggerUtil.Info("Status: System already attached and working");
             }
@@ -141,10 +256,10 @@ namespace BackSpeakerMod.UI.Components
             }
         }
 
-
-
         private void OnToggleRepeat()
         {
+            if (manager == null) return;
+            
             // Cycle through repeat modes: None -> RepeatOne -> RepeatAll -> None
             switch (manager.RepeatMode)
             {
@@ -186,8 +301,6 @@ namespace BackSpeakerMod.UI.Components
             }
         }
 
-
-
         private void UpdateRepeatButtonText()
         {
             if (repeatButton != null && manager != null)
@@ -203,13 +316,13 @@ namespace BackSpeakerMod.UI.Components
             switch (mode)
             {
                 case RepeatMode.None:
-                    return "NO REPEAT";
+                    return "No Repeat";
                 case RepeatMode.RepeatOne:
-                    return "REPEAT 1";
+                    return "Repeat One";
                 case RepeatMode.RepeatAll:
-                    return "REPEAT ALL";
+                    return "Repeat All";
                 default:
-                    return "NO REPEAT";
+                    return "No Repeat";
             }
         }
     }

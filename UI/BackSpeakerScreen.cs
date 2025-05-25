@@ -3,18 +3,24 @@ using UnityEngine.UI;
 using System;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.UI.Components;
+using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.UI
 {
     public class BackSpeakerScreen : MonoBehaviour
     {
-        private BackSpeakerManager manager;
-        private DisplayPanel displayPanel;
-        private MusicControlPanel controlPanel;
-        private VolumeControl volumeControl;
-        private ProgressBar progressBar;
-        private PlaylistPanel playlistPanel;
+        // IL2CPP compatibility - explicit field initialization
+        private BackSpeakerManager manager = null;
+        private DisplayPanel displayPanel = null;
+        private MusicControlPanel controlPanel = null;
+        private VolumeControl volumeControl = null;
+        private ProgressBar progressBar = null;
+        private PlaylistPanel playlistPanel = null;
+        private float lastUIUpdate = 0f;
+
+        // IL2CPP compatibility - explicit parameterless constructor
+        public BackSpeakerScreen() : base() { }
 
         public void Setup(BackSpeakerManager manager, Image imgBackground)
         {
@@ -22,121 +28,52 @@ namespace BackSpeakerMod.UI
             {
                 LoggerUtil.Info("BackSpeakerScreen: Starting setup");
                 
-                if (imgBackground == null)
-                {
-                    LoggerUtil.Error("BackSpeakerScreen: imgBackground is null!");
+                if (!ValidateInputs(manager, imgBackground))
                     return;
-                }
-                
-                if (manager == null)
-                {
-                    LoggerUtil.Error("BackSpeakerScreen: manager is null!");
-                    return;
-                }
                 
                 this.manager = manager;
-                
-                // Subscribe to tracks reload event
                 manager.OnTracksReloaded += UpdateDisplay;
                 
-                // Get the transforms we need - CRITICAL: Use container like Drones does
-                Transform canvasTransform = imgBackground.GetComponentInParent<Canvas>().transform;
-                RectTransform bgRectTransform = imgBackground.rectTransform;
+                var (canvasTransform, backgroundRect) = LayoutManager.GetTransforms(imgBackground);
+                LayoutManager.SetupLayoutConstraints(imgBackground);
                 
-                LoggerUtil.Info("BackSpeakerScreen: Setting up components");
-                LoggerUtil.Info($"BackSpeakerScreen: Canvas transform: {canvasTransform?.name}, Background: {bgRectTransform?.name}");
-                
-                // IMPORTANT: All UI elements should be children of imgBackground, not canvas level
-                // This prevents UI bleeding to other apps
-                
-                // Modern music app layout - vertical sections with proper spacing
-                
-                // Set up display panel (song info - larger, centered)
-                var displayObj = new GameObject("DisplayPanel");
-                displayObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    displayPanel = displayObj.AddComponent<DisplayPanel>();
-                    displayPanel.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("DisplayPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create DisplayPanel: {ex}");
-                    throw;
-                }
-                
-                // Set up progress bar (above main controls)
-                var progressObj = new GameObject("ProgressBar");
-                progressObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    progressBar = progressObj.AddComponent<ProgressBar>();
-                    progressBar.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("ProgressBar created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create ProgressBar: {ex}");
-                    throw;
-                }
-                
-                // Set up control panel (main playback controls)
-                var controlObj = new GameObject("MusicControlPanel");
-                controlObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    controlPanel = controlObj.AddComponent<MusicControlPanel>();
-                    controlPanel.Setup(manager, imgBackground.transform);
-                    LoggerUtil.Info("MusicControlPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create MusicControlPanel: {ex}");
-                    throw;
-                }
-                
-                // Set up volume control (part of secondary controls)
-                var volumeObj = new GameObject("VolumeControl");
-                volumeObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    volumeControl = volumeObj.AddComponent<VolumeControl>();
-                    volumeControl.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("VolumeControl created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create VolumeControl: {ex}");
-                    throw;
-                }
-                
-                // Set up playlist panel (hidden by default, toggle to show)
-                var playlistObj = new GameObject("PlaylistPanel");
-                playlistObj.transform.SetParent(imgBackground.transform, false); // Keep within bounds
-                try
-                {
-                    playlistPanel = playlistObj.AddComponent<PlaylistPanel>();
-                    playlistPanel.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("PlaylistPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create PlaylistPanel: {ex}");
-                    throw;
-                }
-                
-                // Note: Playlist integration temporarily removed for stability
-                
-                // Initial display update
+                CreateUIComponents(imgBackground.transform, backgroundRect);
                 UpdateDisplay();
                 
                 LoggerUtil.Info("BackSpeakerScreen: Setup completed successfully");
             }
             catch (Exception ex)
             {
-                LoggerUtil.Error($"BackSpeakerScreen: Setup failed with exception: {ex}");
+                LoggerUtil.Error($"BackSpeakerScreen: Setup failed: {ex}");
             }
+        }
+
+        private bool ValidateInputs(BackSpeakerManager manager, Image imgBackground)
+        {
+            if (!LayoutManager.ValidateSetup(imgBackground))
+                return false;
+                
+            if (manager == null)
+            {
+                LoggerUtil.Error("BackSpeakerScreen: manager is null!");
+                return false;
+            }
+            
+            return true;
+        }
+
+        private void CreateUIComponents(Transform parent, RectTransform backgroundRect)
+        {
+            LoggerUtil.Info("BackSpeakerScreen: Creating UI components");
+            
+            // Create all components using the factory
+            ComponentFactory.TryCreateComponent<DisplayPanel>("DisplayPanel", parent, manager, backgroundRect, out displayPanel);
+            ComponentFactory.TryCreateComponent<ProgressBar>("ProgressBar", parent, manager, backgroundRect, out progressBar);
+            ComponentFactory.TryCreateComponent<MusicControlPanel>("MusicControlPanel", parent, manager, backgroundRect, out controlPanel);
+            ComponentFactory.TryCreateComponent<VolumeControl>("VolumeControl", parent, manager, backgroundRect, out volumeControl);
+            ComponentFactory.TryCreateComponent<PlaylistPanel>("PlaylistPanel", parent, manager, backgroundRect, out playlistPanel);
+            
+            LoggerUtil.Info("BackSpeakerScreen: All components created");
         }
 
         public void UpdateDisplay()
@@ -156,29 +93,31 @@ namespace BackSpeakerMod.UI
             }
         }
         
-        private float lastUIUpdate = 0f;
-        
         void Update()
         {
             if (manager != null)
             {
                 manager.Update();
                 
-                // Update UI components at 10fps instead of every frame to reduce overhead
+                // Update UI at 10fps to reduce overhead
                 if (Time.time - lastUIUpdate > 0.1f)
                 {
-                    displayPanel?.UpdateDisplay();
-                    progressBar?.UpdateProgress();
-                    volumeControl?.UpdateVolume();
-                    controlPanel?.UpdateButtonText();
+                    UpdateUIComponents();
                     lastUIUpdate = Time.time;
                 }
             }
         }
+
+        private void UpdateUIComponents()
+        {
+            displayPanel?.UpdateDisplay();
+            progressBar?.UpdateProgress();
+            volumeControl?.UpdateVolume();
+            controlPanel?.UpdateButtonText();
+        }
         
         void OnDestroy()
         {
-            // Unsubscribe from events to prevent memory leaks
             if (manager != null)
                 manager.OnTracksReloaded -= UpdateDisplay;
         }
