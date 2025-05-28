@@ -9,6 +9,7 @@ using BackSpeakerMod.Core.Features.Placement.Managers;
 using BackSpeakerMod.Core.Features.Testing.Managers;
 using BackSpeakerMod.Core.Features.Audio.Managers;
 using BackSpeakerMod.Core.Common.Managers;
+using System.Threading.Tasks;
 
 namespace BackSpeakerMod.Core.System
 {
@@ -46,6 +47,48 @@ namespace BackSpeakerMod.Core.System
 
         /// <summary>
         /// Initialize all system components
+        /// </summary>
+        public async Task<bool> InitializeAsync()
+        {
+            if (isInitialized)
+            {
+                LoggingSystem.Warning("SystemInitializer already initialized", "System");
+                return true;
+            }
+
+            try
+            {
+                LoggingSystem.Info("Starting system initialization", "System");
+
+                // Initialize core managers first
+                InitializeCoreManagers();
+
+                // Initialize feature managers with async support
+                await InitializeFeatureManagersAsync();
+
+                // Initialize legacy modules
+                InitializeLegacyModules();
+
+                // Wire up events
+                WireUpEvents();
+
+                // Complete initialization
+                CompleteInitialization();
+
+                isInitialized = true;
+                LoggingSystem.Info("System initialization completed successfully", "System");
+                OnInitializationComplete?.Invoke();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"System initialization failed: {ex.Message}", "System");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Initialize all system components (fallback sync method)
         /// </summary>
         public bool Initialize()
         {
@@ -100,7 +143,27 @@ namespace BackSpeakerMod.Core.System
         }
 
         /// <summary>
-        /// Initialize the granular feature managers
+        /// Initialize feature managers with async support
+        /// </summary>
+        private async Task InitializeFeatureManagersAsync()
+        {
+            LoggingSystem.Info("Initializing feature managers with async support", "System");
+
+            // Initialize headphones with async loading first
+            if (components.HeadphoneManager != null)
+            {
+                await components.HeadphoneManager.InitializeAsync();
+            }
+
+            // Initialize other managers synchronously
+            components.PlacementManager?.Initialize();
+            components.TestingManager?.Initialize();
+
+            LoggingSystem.Info("Feature managers initialized successfully", "System");
+        }
+
+        /// <summary>
+        /// Initialize the granular feature managers (sync fallback)
         /// </summary>
         private void InitializeFeatureManagers()
         {

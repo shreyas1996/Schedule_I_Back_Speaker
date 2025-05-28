@@ -9,43 +9,10 @@ using Il2CppInterop.Runtime.InteropTypes;
 namespace BackSpeakerMod.Core.Common.Loaders
 {
     /// <summary>
-    /// Reusable asset bundle loading helper
-    /// Supports both file-based and embedded resource loading
+    /// Simple asset bundle loader for embedded resources
     /// </summary>
     public static class AssetBundleLoader
     {
-        /// <summary>
-        /// Load asset bundle from file path
-        /// </summary>
-        public static Il2CppAssetBundle LoadFromFile(string filePath)
-        {
-            try
-            {
-                if (!File.Exists(filePath))
-                {
-                    LoggingSystem.Warning($"Asset bundle file not found: {filePath}", "AssetLoader");
-                    return null;
-                }
-
-                LoggingSystem.Info($"Loading asset bundle from file: {filePath}", "AssetLoader");
-                var bundle = Il2CppAssetBundleManager.LoadFromFile(filePath);
-
-                if (bundle == null)
-                {
-                    LoggingSystem.Error($"Failed to load asset bundle from: {filePath}", "AssetLoader");
-                    return null;
-                }
-
-                LoggingSystem.Info($"Successfully loaded asset bundle from file", "AssetLoader");
-                return bundle;
-            }
-            catch (global::System.Exception ex)
-            {
-                LoggingSystem.Error($"Exception loading asset bundle from file: {ex.Message}", "AssetLoader");
-                return null;
-            }
-        }
-
         /// <summary>
         /// Load asset bundle from embedded resource
         /// </summary>
@@ -55,28 +22,19 @@ namespace BackSpeakerMod.Core.Common.Loaders
             {
                 assembly ??= Assembly.GetExecutingAssembly();
                 
-                // Try multiple possible resource name formats
+                // Try common resource name formats
                 string[] possibleNames = {
                     resourceName,
                     $"BackSpeakerMod.EmbeddedResources.{resourceName}",
-                    $"EmbeddedResources.{resourceName}",
-                    $"BackSpeakerMod.{resourceName}"
+                    $"EmbeddedResources.{resourceName}"
                 };
                 
                 LoggingSystem.Info($"Loading asset bundle from embedded resource: {resourceName}", "AssetLoader");
-                LoggingSystem.Debug("Available embedded resources:", "AssetLoader");
-                
-                // Log all available resources for debugging
-                var availableResources = assembly.GetManifestResourceNames();
-                foreach (var res in availableResources)
-                {
-                    LoggingSystem.Debug($"  - {res}", "AssetLoader");
-                }
 
                 global::System.IO.Stream stream = null;
                 string actualResourceName = null;
                 
-                // Try each possible name format
+                // Find the resource
                 foreach (var name in possibleNames)
                 {
                     stream = assembly.GetManifestResourceStream(name);
@@ -89,31 +47,34 @@ namespace BackSpeakerMod.Core.Common.Loaders
 
                 if (stream == null)
                 {
-                    LoggingSystem.Error($"Embedded resource not found. Tried: {string.Join(", ", possibleNames)}", "AssetLoader");
+                    LoggingSystem.Error($"Embedded resource not found: {resourceName}", "AssetLoader");
+                    LogAvailableResources(assembly);
                     return null;
                 }
 
                 LoggingSystem.Info($"Found embedded resource: {actualResourceName}", "AssetLoader");
 
+                // Read stream to byte array
                 var buffer = new byte[stream.Length];
                 stream.Read(buffer, 0, buffer.Length);
+                stream.Close();
                 stream.Dispose();
 
-                LoggingSystem.Info($"Loaded {buffer.Length} bytes from embedded resource", "AssetLoader");
-
+                // Load from memory
                 var bundle = Il2CppAssetBundleManager.LoadFromMemory(buffer);
+
                 if (bundle == null)
                 {
-                    LoggingSystem.Error($"Failed to load asset bundle from embedded resource: {actualResourceName}", "AssetLoader");
+                    LoggingSystem.Error($"Failed to load asset bundle from memory", "AssetLoader");
                     return null;
                 }
 
-                LoggingSystem.Info($"Successfully loaded embedded asset bundle from {actualResourceName}", "AssetLoader");
+                LoggingSystem.Info($"Successfully loaded asset bundle: {actualResourceName}", "AssetLoader");
                 return bundle;
             }
             catch (global::System.Exception ex)
             {
-                LoggingSystem.Error($"Exception loading asset bundle from embedded resource: {ex.Message}", "AssetLoader");
+                LoggingSystem.Error($"Exception loading asset bundle: {ex.Message}", "AssetLoader");
                 return null;
             }
         }
@@ -131,8 +92,6 @@ namespace BackSpeakerMod.Core.Common.Loaders
                     return null;
                 }
 
-                LoggingSystem.Debug($"Loading asset '{assetName}' of type {typeof(T).Name}", "AssetLoader");
-                
                 var asset = bundle.LoadAsset<T>(assetName);
                 if (asset == null)
                 {

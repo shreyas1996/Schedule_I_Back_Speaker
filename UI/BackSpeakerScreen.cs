@@ -168,7 +168,7 @@ namespace BackSpeakerMod.UI
                 progressBar?.UpdateProgress();
                 musicControlPanel?.UpdateButtonText();
                 volumeControl?.UpdateVolume();
-                headphoneControlPanel?.UpdateButtonText();
+                headphoneControlPanel?.UpdateStatus();
                 playlistPanel?.UpdatePlaylist();
             }
             catch (System.Exception _)

@@ -111,5 +111,6 @@ namespace BackSpeakerMod.Core
         /// Shutdown all systems
         /// </summary>
         public void Shutdown() => coordinator.Shutdown();
+
     }
 }

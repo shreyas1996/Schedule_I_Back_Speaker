@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.Core.System;
+using System.Threading.Tasks;
 
 namespace BackSpeakerMod.Core.System
 {
@@ -15,6 +16,7 @@ namespace BackSpeakerMod.Core.System
         private readonly SystemComponents components;
         private readonly SystemInitializer initializer;
         private readonly APIManager apiManager;
+        private bool useAsyncInitialization = true;
 
         /// <summary>
         /// Event to notify UI when tracks are reloaded
@@ -31,7 +33,7 @@ namespace BackSpeakerMod.Core.System
         public bool IsInitialized => initializer.IsInitialized;
 
         /// <summary>
-        /// Initialize system coordinator
+        /// Initialize system coordinator with async support
         /// </summary>
         public SystemCoordinator()
         {
@@ -44,8 +46,25 @@ namespace BackSpeakerMod.Core.System
             initializer = new SystemInitializer(components);
             apiManager = new APIManager(components);
 
-            // Start initialization
-            initializer.Initialize();
+            // Start async initialization
+            _ = InitializeAsync();
+        }
+
+        /// <summary>
+        /// Async initialization for better asset loading
+        /// </summary>
+        private async Task InitializeAsync()
+        {
+            if (useAsyncInitialization)
+            {
+                LoggingSystem.Info("Starting async initialization", "System");
+                await initializer.InitializeAsync();
+            }
+            else
+            {
+                LoggingSystem.Info("Falling back to sync initialization", "System");
+                initializer.Initialize();
+            }
         }
 
         /// <summary>

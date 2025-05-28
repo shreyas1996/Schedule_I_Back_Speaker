@@ -10,6 +10,7 @@
 # References
 my_references/
 .DS_Store
+*.zip
 
 # Build results
 [Dd]ebug/
