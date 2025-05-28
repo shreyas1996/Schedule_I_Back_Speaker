@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
+    <!-- <EmbeddedResource Include="EmbeddedResources\playerwithheadphones" />
+    <EmbeddedResource Include="EmbeddedResources\headphones" /> -->
+    <EmbeddedResource Include="EmbeddedResources\cleanheadphones" />
   </ItemGroup>
   
   <ItemGroup>
@@ -33,6 +36,12 @@
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
       <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Il2CppAssetBundleManager.dll">
+      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/net6/UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
 			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.UnityWebRequestTextureModule.dll</HintPath>

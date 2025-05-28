@@ -2,7 +2,7 @@ using MelonLoader;
 using UnityEngine;
 using Il2CppInterop.Runtime.Injection;
 using BackSpeakerMod.Core;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI;
 
 [assembly: MelonInfo(typeof(BackSpeakerMod.BackSpeakerModMain), "Back Speaker Mod", "1.0.0", "Shreyas")]
@@ -13,88 +13,110 @@ namespace BackSpeakerMod
 {
     public class BackSpeakerModMain : MelonMod
     {
-        public static BackSpeakerManager SpeakerManager;
-        public static BackSpeakerApp SpeakerApp;
+        public static BackSpeakerManager? SpeakerManager { get; private set; }
+        public static BackSpeakerApp? SpeakerApp { get; private set; }
 
         public override void OnInitializeMelon()
         {
-            LoggerUtil.Info("Back Speaker Mod initialized!");
-            SpeakerManager = new BackSpeakerManager();
+            LoggingSystem.Info("Back Speaker Mod initialized!", "Mod");
+            SpeakerManager = BackSpeakerManager.Instance;
         }
 
         public override void OnLateInitializeMelon()
         {
-            LoggerUtil.Info("Starting Il2Cpp type registration...");
+            LoggingSystem.Info("Starting Il2Cpp type registration...", "Mod");
             
             // Register each component individually with detailed error reporting
             // Note: The "Assembly not registered" warning is normal and benign
             try
             {
-                LoggerUtil.Info("Registering BackSpeakerScreen...");
+                LoggingSystem.Info("Registering BackSpeakerScreen...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<BackSpeakerScreen>();
-                LoggerUtil.Info("✓ BackSpeakerScreen registered successfully");
+                LoggingSystem.Info("✓ BackSpeakerScreen registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register BackSpeakerScreen: {ex}");
+                LoggingSystem.Error($"✗ Failed to register BackSpeakerScreen: {ex}", "Mod");
             }
             
             try
             {
-                LoggerUtil.Info("Registering DisplayPanel...");
+                LoggingSystem.Info("Registering DisplayPanel...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<UI.Components.DisplayPanel>();
-                LoggerUtil.Info("✓ DisplayPanel registered successfully");
+                LoggingSystem.Info("✓ DisplayPanel registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register DisplayPanel: {ex}");
+                LoggingSystem.Error($"✗ Failed to register DisplayPanel: {ex}", "Mod");
             }
             
             try
             {
-                LoggerUtil.Info("Registering MusicControlPanel...");
+                LoggingSystem.Info("Registering MusicControlPanel...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<UI.Components.MusicControlPanel>();
-                LoggerUtil.Info("✓ MusicControlPanel registered successfully");
+                LoggingSystem.Info("✓ MusicControlPanel registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register MusicControlPanel: {ex}");
+                LoggingSystem.Error($"✗ Failed to register MusicControlPanel: {ex}", "Mod");
             }
             
             try
             {
-                LoggerUtil.Info("Registering VolumeControl...");
+                LoggingSystem.Info("Registering VolumeControl...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<UI.Components.VolumeControl>();
-                LoggerUtil.Info("✓ VolumeControl registered successfully");
+                LoggingSystem.Info("✓ VolumeControl registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register VolumeControl: {ex}");
+                LoggingSystem.Error($"✗ Failed to register VolumeControl: {ex}", "Mod");
             }
             
             try
             {
-                LoggerUtil.Info("Registering ProgressBar...");
+                LoggingSystem.Info("Registering ProgressBar...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ProgressBar>();
-                LoggerUtil.Info("✓ ProgressBar registered successfully");
+                LoggingSystem.Info("✓ ProgressBar registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register ProgressBar: {ex}");
+                LoggingSystem.Error($"✗ Failed to register ProgressBar: {ex}", "Mod");
             }
             
             try
             {
-                LoggerUtil.Info("Registering PlaylistPanel...");
+                LoggingSystem.Info("Registering PlaylistPanel...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<UI.Components.PlaylistPanel>();
-                LoggerUtil.Info("✓ PlaylistPanel registered successfully");
+                LoggingSystem.Info("✓ PlaylistPanel registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"✗ Failed to register PlaylistPanel: {ex}");
+                LoggingSystem.Error($"✗ Failed to register PlaylistPanel: {ex}", "Mod");
             }
             
-            LoggerUtil.Info("Il2Cpp type registration completed");
+            try
+            {
+                LoggingSystem.Info("Registering HeadphoneControlPanel...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.HeadphoneControlPanel>();
+                LoggingSystem.Info("✓ HeadphoneControlPanel registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register HeadphoneControlPanel: {ex}", "Mod");
+            }
+            
+            try
+            {
+                LoggingSystem.Info("Registering TestSphereRotator...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<Core.Features.Testing.Components.TestSphereRotator>();
+                LoggingSystem.Info("✓ TestSphereRotator registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register TestSphereRotator: {ex}", "Mod");
+            }
+            
+            LoggingSystem.Info("Il2Cpp type registration completed", "Mod");
         }
 
         public override void OnUpdate()

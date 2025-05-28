@@ -9,11 +9,11 @@ namespace BackSpeakerMod.UI.Components
     public class DisplayPanel : MonoBehaviour
     {
         // IL2CPP compatibility - explicit field initialization
-        private BackSpeakerManager manager = null;
-        private Text trackNameText = null;
-        private Text artistText = null;
-        private Image albumArt = null;
-        private GameObject albumArtContainer = null;
+        private BackSpeakerManager? manager = null;
+        private Text? trackNameText = null;
+        private Text? artistText = null;
+        private Image? albumArt = null;
+        private GameObject? albumArtContainer = null;
 
         // IL2CPP compatibility - explicit parameterless constructor
         public DisplayPanel() : base() { }
@@ -23,7 +23,7 @@ namespace BackSpeakerMod.UI.Components
             try
             {
                 this.manager = manager;
-                LoggerUtil.Info("DisplayPanel: Setting up modern track display with album art");
+                // LoggerUtil.Info("DisplayPanel: Setting up modern track display with album art");
                 
                 // Create album art container with modern styling - top of the container
                 CreateAlbumArtDisplay(parent);
@@ -40,7 +40,7 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Apply Spotify-style text color
                 trackNameText.color = new Color(1f, 1f, 1f, 1f); // Pure white for primary text
-                LoggerUtil.Info("DisplayPanel: Track name text created");
+                // LoggerUtil.Info("DisplayPanel: Track name text created");
                 
                 // Artist/source info - smaller, below track name with Spotify styling
                 artistText = UIFactory.CreateText(
@@ -54,13 +54,13 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Apply Spotify-style secondary text color
                 artistText.color = new Color(0.7f, 0.7f, 0.7f, 1f); // Light gray for secondary text
-                LoggerUtil.Info("DisplayPanel: Artist text created");
+                // LoggerUtil.Info("DisplayPanel: Artist text created");
                 
-                LoggerUtil.Info("DisplayPanel: Modern setup with album art completed");
+                // LoggerUtil.Info("DisplayPanel: Modern setup with album art completed");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"DisplayPanel: Setup failed: {ex}");
+                // LoggerUtil.Error($"DisplayPanel: Setup failed: {ex}");
                 throw;
             }
         }
@@ -100,7 +100,7 @@ namespace BackSpeakerMod.UI.Components
             // Create default "no album art" display
             CreateDefaultAlbumArt();
             
-            LoggerUtil.Info("DisplayPanel: Album art container created with modern visual depth");
+            // LoggerUtil.Info("DisplayPanel: Album art container created with modern visual depth");
         }
 
         private void CreateDefaultAlbumArt()
@@ -204,9 +204,9 @@ namespace BackSpeakerMod.UI.Components
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"DisplayPanel: UpdateDisplay failed: {ex}");
+                // LoggerUtil.Error($"DisplayPanel: UpdateDisplay failed: {ex}");
             }
         }
 

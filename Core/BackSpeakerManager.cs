@@ -1,109 +1,115 @@
-using UnityEngine;
-using MelonLoader;
-using Il2CppScheduleOne.PlayerScripts;
+using System;
 using System.Collections.Generic;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
 
 namespace BackSpeakerMod.Core
 {
+    /// <summary>
+    /// Backward compatibility wrapper for BackSpeaker mod
+    /// Delegates all functionality to the new granular SystemCoordinator
+    /// </summary>
     public class BackSpeakerManager
     {
-        private PlayerAttachment playerAttachment;
-        private AudioController audioController;
-        private TrackLoader trackLoader;
+        private static BackSpeakerManager _instance;
+        public static BackSpeakerManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    _instance = new BackSpeakerManager();
+                return _instance;
+            }
+        }
         
-        // Event to notify UI when tracks are reloaded
-        public System.Action OnTracksReloaded;
+        private readonly SystemCoordinator coordinator;
 
+        /// <summary>
+        /// Event to notify UI when tracks are reloaded
+        /// </summary>
+        public Action OnTracksReloaded
+        {
+            get => coordinator.OnTracksReloaded;
+            set => coordinator.OnTracksReloaded = value;
+        }
+
+        /// <summary>
+        /// Initialize BackSpeaker manager using new granular architecture
+        /// </summary>
         public BackSpeakerManager()
         {
-            LoggerUtil.Info("BackSpeakerManager: Initializing with modular architecture");
-            
-            // Initialize modules
-            playerAttachment = new PlayerAttachment();
-            audioController = new AudioController();
-            trackLoader = new TrackLoader();
-            
-            // Wire up module events
-            playerAttachment.OnSpeakerAttached += OnSpeakerAttached;
-            trackLoader.OnTracksLoaded += OnTracksLoaded;
-            audioController.OnTracksChanged += () => OnTracksReloaded?.Invoke();
-            
-            // Start the attachment process
-            playerAttachment.Initialize();
+            LoggingSystem.Info("BackSpeakerManager: Initializing with SystemCoordinator", "Core");
+            coordinator = new SystemCoordinator();
         }
 
-        private void OnSpeakerAttached(AudioSource audioSource)
+        /// <summary>
+        /// Update all systems
+        /// </summary>
+        public void Update() => coordinator.Update();
+
+        // Public API - Audio Control
+        public void Play() => coordinator.Play();
+        public void Pause() => coordinator.Pause();
+        public void TogglePlayPause() => coordinator.TogglePlayPause();
+        public void SetVolume(float volume) => coordinator.SetVolume(volume);
+        public void NextTrack() => coordinator.NextTrack();
+        public void PreviousTrack() => coordinator.PreviousTrack();
+        public void PlayTrack(int index) => coordinator.PlayTrack(index);
+        public void SeekToTime(float time) => coordinator.SeekToTime(time);
+        public void SeekToProgress(float progress) => coordinator.SeekToProgress(progress);
+        public void ReloadTracks() => coordinator.ReloadTracks();
+
+        // Public API - Audio Properties
+        public bool IsPlaying => coordinator.IsPlaying;
+        public float CurrentVolume => coordinator.CurrentVolume;
+        public int GetTrackCount() => coordinator.GetTrackCount();
+        public bool IsAudioReady() => coordinator.IsAudioReady();
+        public float CurrentTime => coordinator.CurrentTime;
+        public float TotalTime => coordinator.TotalTime;
+        public float Progress => coordinator.Progress;
+        public int CurrentTrackIndex => coordinator.CurrentTrackIndex;
+        public string GetCurrentTrackInfo() => coordinator.GetCurrentTrackInfo();
+        public string GetCurrentArtistInfo() => coordinator.GetCurrentArtistInfo();
+        public List<(string title, string artist)> GetAllTracks() => coordinator.GetAllTracks();
+
+        public RepeatMode RepeatMode
         {
-            LoggerUtil.Info("BackSpeakerManager: Speaker attached, initializing audio controller");
-            audioController.Initialize(audioSource);
-            LoadJukeboxTracksAfterAttachment();
+            get => coordinator.RepeatMode;
+            set => coordinator.RepeatMode = value;
         }
 
-        private void OnTracksLoaded(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
-        {
-            audioController.SetTracks(tracks, trackInfo);
-            LoggerUtil.Info($"BackSpeakerManager: Loaded {tracks.Count} tracks");
-        }
+        // Public API - Player Attachment
+        public void TriggerManualAttachment() => coordinator.TriggerManualAttachment();
+        public string GetAttachmentStatus() => coordinator.GetAttachmentStatus();
 
-        private void LoadJukeboxTracksAfterAttachment()
-        {
-            if (playerAttachment.IsAudioReady())
-            {
-                LoggerUtil.Info("BackSpeakerManager: Audio ready, loading tracks");
-                trackLoader.LoadJukeboxTracks();
-            }
-            else
-            {
-                LoggerUtil.Info("BackSpeakerManager: Audio not ready, will retry track loading");
-                MelonCoroutines.Start(RetryTrackLoading());
-            }
-        }
+        // Public API - Headphones
+        public bool AttachHeadphones() => coordinator.AttachHeadphones();
+        public void RemoveHeadphones() => coordinator.RemoveHeadphones();
+        public bool ToggleHeadphones() => coordinator.ToggleHeadphones();
+        public bool AreHeadphonesAttached() => coordinator.AreHeadphonesAttached();
+        public string GetHeadphoneStatus() => coordinator.GetHeadphoneStatus();
 
-        private System.Collections.IEnumerator RetryTrackLoading()
-        {
-            yield return new WaitForSeconds(2f);
-            LoadJukeboxTracksAfterAttachment();
-        }
+        // Public API - Testing
+        public bool AttachTestCube() => coordinator.AttachTestCube();
+        public bool AttachGlowingSphere() => coordinator.AttachGlowingSphere();
+        public bool ToggleGlowingSphere() => coordinator.ToggleGlowingSphere();
+        public bool ToggleTestCube() => coordinator.ToggleTestCube();
+        public void DestroyAllTestObjects() => coordinator.DestroyAllTestObjects();
+        public string GetTestingStatus() => coordinator.GetTestingStatus();
 
-        public void Update()
-        {
-            audioController?.Update();
-        }
-
-        // Public API - delegate to modules
-        public void Play() => audioController?.Play();
-        public void Pause() => audioController?.Pause();
-        public void TogglePlayPause() => audioController?.TogglePlayPause();
-        public void SetVolume(float volume) => audioController?.SetVolume(volume);
-        public void NextTrack() => audioController?.NextTrack();
-        public void PreviousTrack() => audioController?.PreviousTrack();
-        public void PlayTrack(int index) => audioController?.PlayTrack(index);
-        public void SeekToTime(float time) => audioController?.SeekToTime(time);
-        public void SeekToProgress(float progress) => audioController?.SeekToProgress(progress);
-        public void ReloadTracks() => trackLoader?.LoadJukeboxTracks();
-        public void TriggerManualAttachment() => playerAttachment?.TriggerManualAttachment();
+        // Public API - Placement
+        public void TogglePlacementMode() => coordinator.TogglePlacementMode();
+        public bool IsInPlacementMode() => coordinator.IsInPlacementMode();
+        public string GetPlacementStatus() => coordinator.GetPlacementStatus();
         
-        // Properties - delegate to modules
-        public bool IsPlaying => audioController?.IsPlaying ?? false;
-        public float CurrentVolume => audioController?.CurrentVolume ?? 0.5f;
-        public int GetTrackCount() => audioController?.GetTrackCount() ?? 0;
-        public bool IsAudioReady() => playerAttachment?.IsAudioReady() ?? false;
-        public float CurrentTime => audioController?.CurrentTime ?? 0f;
-        public float TotalTime => audioController?.TotalTime ?? 0f;
-        public float Progress => audioController?.Progress ?? 0f;
-        public int CurrentTrackIndex => audioController?.CurrentTrackIndex ?? 0;
-        public string GetAttachmentStatus() => playerAttachment?.GetAttachmentStatus() ?? "Initializing...";
+        /// <summary>
+        /// Get overall system status
+        /// </summary>
+        public string GetSystemStatus() => coordinator.GetSystemStatus();
         
-        public RepeatMode RepeatMode 
-        { 
-            get => audioController?.RepeatMode ?? RepeatMode.None;
-            set { if (audioController != null) audioController.RepeatMode = value; }
-        }
-
-        public string GetCurrentTrackInfo() => audioController?.GetCurrentTrackInfo() ?? "No Track";
-        public string GetCurrentArtistInfo() => audioController?.GetCurrentArtistInfo() ?? "Unknown Artist";
-        public List<(string title, string artist)> GetAllTracks() => audioController?.GetAllTracks() ?? new List<(string, string)>();
+        /// <summary>
+        /// Shutdown all systems
+        /// </summary>
+        public void Shutdown() => coordinator.Shutdown();
     }
 }

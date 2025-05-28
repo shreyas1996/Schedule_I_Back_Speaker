@@ -9,9 +9,9 @@ namespace BackSpeakerMod.UI.Components
     public class ProgressBar : MonoBehaviour
     {
         // IL2CPP compatibility - explicit field initialization
-        private BackSpeakerManager manager = null;
-        private Slider progressSlider = null;
-        private Text timeText = null;
+        private BackSpeakerManager? manager = null;
+        private Slider? progressSlider = null;
+        private Text? timeText = null;
         private bool isDragging = false;
 
         // IL2CPP compatibility - explicit parameterless constructor
@@ -22,7 +22,7 @@ namespace BackSpeakerMod.UI.Components
             try
             {
                 this.manager = manager;
-                LoggerUtil.Info("ProgressBar: Setting up modern Spotify-style progress bar");
+                // LoggerUtil.Info("ProgressBar: Setting up modern Spotify-style progress bar");
                 
                 // Modern progress bar with Spotify styling - positioned below display area
                 progressSlider = UIFactory.CreateSlider(
@@ -54,7 +54,7 @@ namespace BackSpeakerMod.UI.Components
                 pointerUpEntry.callback.AddListener((UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData>)OnPointerUp);
                 eventTrigger.triggers.Add(pointerUpEntry);
                 
-                LoggerUtil.Info("ProgressBar: Progress slider created with seeking functionality");
+                // LoggerUtil.Info("ProgressBar: Progress slider created with seeking functionality");
                 
                 // Time display with Spotify styling - shows current time / total time, clearly visible
                 timeText = UIFactory.CreateText(
@@ -70,13 +70,13 @@ namespace BackSpeakerMod.UI.Components
                 timeText.color = new Color(0.9f, 0.9f, 0.9f, 1f); // Bright gray for better visibility
                 timeText.fontStyle = FontStyle.Normal;
                 
-                LoggerUtil.Info("ProgressBar: Time display created with enhanced visibility");
+                // LoggerUtil.Info("ProgressBar: Time display created with enhanced visibility");
                 
-                LoggerUtil.Info("ProgressBar: Modern Spotify-style setup completed");
+                // LoggerUtil.Info("ProgressBar: Modern Spotify-style setup completed");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"ProgressBar: Setup failed: {ex}");
+                // LoggerUtil.Error($"ProgressBar: Setup failed: {ex}");
                 throw;
             }
         }
@@ -135,11 +135,11 @@ namespace BackSpeakerMod.UI.Components
                     }
                 }
                 
-                LoggerUtil.Info("ProgressBar: Spotify styling applied to progress slider");
+                // LoggerUtil.Info("ProgressBar: Spotify styling applied to progress slider");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"ProgressBar: Failed to apply Spotify styling: {ex}");
+                // LoggerUtil.Error($"ProgressBar: Failed to apply Spotify styling: {ex}");
             }
         }
 
@@ -159,7 +159,7 @@ namespace BackSpeakerMod.UI.Components
             if (isDragging && manager != null)
             {
                 manager.SeekToProgress(value);
-                LoggerUtil.Info($"ProgressBar: User seeked to {value:P0}");
+                // LoggerUtil.Info($"ProgressBar: User seeked to {value:P0}");
             }
         }
 
@@ -187,9 +187,9 @@ namespace BackSpeakerMod.UI.Components
                     timeText.text = $"{currentTimeStr} / {totalTimeStr}";
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"ProgressBar: UpdateProgress failed: {ex}");
+                // LoggerUtil.Error($"ProgressBar: UpdateProgress failed: {ex}");
             }
         }
 

@@ -4,7 +4,7 @@ using MelonLoader;
 using UnityEngine;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Utils;
-
+using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Initialization
 {
     [HarmonyPatch(typeof(Player))]
@@ -13,7 +13,7 @@ namespace BackSpeakerMod.Initialization
         private static int retryAppCreateDelay = 60;
         private static int appCreateRetries = 0;
         private static bool appCreated = false;
-        public static BackSpeakerApp AppInstance;
+        public static BackSpeakerApp? AppInstance { get; private set; }
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -23,7 +23,7 @@ namespace BackSpeakerMod.Initialization
             {
                 if (appCreateRetries == 10)
                 {
-                    LoggerUtil.Error("Tried to create BackSpeaker app 10 times, but failed. AppIcons doesn't exist or UI creation failed?");
+                    // LoggerUtil.Error("Tried to create BackSpeaker app 10 times, but failed. AppIcons doesn't exist or UI creation failed?");
                     appCreateRetries = -1;
                     appCreated = true;
                 }
@@ -33,24 +33,25 @@ namespace BackSpeakerMod.Initialization
                     appCreateRetries++;
                     if (GameObject.Find("AppIcons") != null)
                     {
-                        LoggerUtil.Info($"Attempt {appCreateRetries}: Trying to create BackSpeakerApp");
+                        // LoggerUtil.Info($"Attempt {appCreateRetries}: Trying to create BackSpeakerApp");
                         try
                         {
                             AppInstance = new BackSpeakerApp(BackSpeakerModMain.SpeakerManager);
                             if (AppInstance != null && AppInstance.Create())
                             {
                                 appCreated = true;
-                                LoggerUtil.Info("BackSpeakerApp successfully created.");
+                                // LoggerUtil.Info("BackSpeakerApp successfully created.");
                             }
                             else
                             {
-                                LoggerUtil.Warn("BackSpeakerApp creation failed. Will retry.");
+                                // LoggerUtil.Warn("BackSpeakerApp creation failed. Will retry.");
                                 AppInstance = null;
                             }
                         }
-                        catch (System.Exception ex)
+                        catch (global::System.Exception ex)
                         {
-                            LoggerUtil.Error($"Exception during BackSpeakerApp creation: {ex}");
+                            LoggingSystem.Error($"Failed to initialize BackSpeaker app: {ex.Message}", "Initialization");
+                            // Just continue without returning anything since this is a void method
                         }
                     }
                 }

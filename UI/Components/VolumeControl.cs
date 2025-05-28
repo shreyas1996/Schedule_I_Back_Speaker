@@ -9,8 +9,8 @@ namespace BackSpeakerMod.UI.Components
     public class VolumeControl : MonoBehaviour
     {
         // IL2CPP compatibility - explicit field initialization
-        private BackSpeakerManager manager = null;
-        private Slider volumeSlider = null;
+        private BackSpeakerManager? manager = null;
+        private Slider? volumeSlider = null;
 
         // IL2CPP compatibility - explicit parameterless constructor
         public VolumeControl() : base() { }
@@ -20,7 +20,7 @@ namespace BackSpeakerMod.UI.Components
             try
             {
                 this.manager = manager;
-                LoggerUtil.Info("VolumeControl: Setting up modern Spotify-style volume control");
+                // LoggerUtil.Info("VolumeControl: Setting up modern Spotify-style volume control");
                 
                 // Modern compact volume control with Spotify styling - positioned below repeat button
                 volumeSlider = UIFactory.CreateSlider(
@@ -38,11 +38,11 @@ namespace BackSpeakerMod.UI.Components
                 // Apply Spotify-style colors to the volume slider
                 ApplySpotifySliderStyling(volumeSlider);
                 
-                LoggerUtil.Info("VolumeControl: Modern Spotify-style setup completed");
+                // LoggerUtil.Info("VolumeControl: Modern Spotify-style setup completed");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"VolumeControl: Setup failed: {ex}");
+                // LoggerUtil.Error($"VolumeControl: Setup failed: {ex}");
                 throw;
             }
         }
@@ -101,11 +101,11 @@ namespace BackSpeakerMod.UI.Components
                     }
                 }
                 
-                LoggerUtil.Info("VolumeControl: Spotify styling applied to slider");
+                // LoggerUtil.Info("VolumeControl: Spotify styling applied to slider");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"VolumeControl: Failed to apply Spotify styling: {ex}");
+                // LoggerUtil.Error($"VolumeControl: Failed to apply Spotify styling: {ex}");
             }
         }
 

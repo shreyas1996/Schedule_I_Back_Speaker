@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
+using BackSpeakerMod.Configuration;
+using System;
 
 namespace BackSpeakerMod.Core.Modules
 {
@@ -20,12 +22,12 @@ namespace BackSpeakerMod.Core.Modules
         private bool isPlaying = false;
         private RepeatMode repeatMode = RepeatMode.None;
         
-        public System.Action OnTracksChanged;
+        public Action OnTracksChanged;
 
         public void Initialize(AudioSource audioSource)
         {
             this.audioSource = audioSource;
-            LoggerUtil.Info("AudioController: Initialized");
+            LoggingSystem.Info("AudioController initialized", "Audio");
         }
 
         public void SetTracks(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
@@ -41,7 +43,7 @@ namespace BackSpeakerMod.Core.Modules
             }
             
             OnTracksChanged?.Invoke();
-            LoggerUtil.Info($"AudioController: Set {tracks.Count} tracks");
+            LoggingSystem.Info($"Set {tracks.Count} tracks", "Audio");
         }
 
         public void Play()
@@ -50,7 +52,7 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.Play();
                 isPlaying = true;
-                LoggerUtil.Info($"AudioController: Playing '{GetCurrentTrackInfo()}'");
+                LoggingSystem.Info($"Playing '{GetCurrentTrackInfo()}'", "Audio");
             }
         }
 
@@ -60,7 +62,7 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.Pause();
                 isPlaying = false;
-                LoggerUtil.Info("AudioController: Paused");
+                LoggingSystem.Info("Paused", "Audio");
             }
         }
 
@@ -76,7 +78,7 @@ namespace BackSpeakerMod.Core.Modules
             if (audioSource != null)
             {
                 audioSource.volume = volume;
-                LoggerUtil.Info($"AudioController: Volume set to {volume:P0}");
+                LoggingSystem.Info($"Volume set to {volume:P0}", "Audio");
             }
         }
 
@@ -140,7 +142,7 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.clip = tracks[index];
                 currentTrackIndex = index;
-                LoggerUtil.Info($"AudioController: Set track {index}: '{GetCurrentTrackInfo()}'");
+                LoggingSystem.Debug($"Set track {index}: '{GetCurrentTrackInfo()}'", "Audio");
             }
         }
 

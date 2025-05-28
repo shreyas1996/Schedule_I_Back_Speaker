@@ -3,32 +3,32 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
+using BackSpeakerMod.UI.Components.Playlist;
 
 namespace BackSpeakerMod.UI.Components
 {
     public class PlaylistPanel : MonoBehaviour
     {
-        // IL2CPP compatibility - explicit field initialization
+        // Core dependencies
         private BackSpeakerManager manager = null;
+        private BackSpeakerScreen mainScreen = null;
+        private RectTransform canvasRect = null;
+        
+        // UI Components
         private Button toggleButton = null;
         private GameObject playlistContainer = null;
         private ScrollRect scrollRect = null;
         private Transform contentParent = null;
         private bool isVisible = false;
-        private List<Button> trackButtons = new List<Button>();
         
-        // Search functionality
-        private InputField searchInput = null;
-        private string currentSearchQuery = "";
-        private Button clearSearchButton = null;
+        // Extracted functionality
+        private PlaylistSearch searchComponent;
+        private PlaylistRenderer renderComponent;
         
-        // Layout management
-        private BackSpeakerScreen mainScreen = null;
-        private RectTransform canvasRect = null;
-        
-        // Track list change detection to prevent constant recreation
+        // Change detection to prevent constant recreation
         private int lastTrackCount = -1;
         private int lastCurrentTrackIndex = -1;
         private string lastSearchQuery = "";
@@ -44,21 +44,31 @@ namespace BackSpeakerMod.UI.Components
                 this.manager = manager;
                 this.canvasRect = canvasRect;
                 this.mainScreen = mainScreen;
-                LoggerUtil.Info("PlaylistPanel: Setting up responsive playlist interface");
+                
+                // Initialize extracted components
+                InitializeComponents();
                 
                 // Create playlist container first (but keep it hidden)
                 CreatePlaylistContainer();
-                
-                // Note: Playlist toggle button will be created by the main screen 
-                // in the controls container so it shifts with other controls
-                
-                LoggerUtil.Info("PlaylistPanel: Responsive playlist setup completed");
             }
             catch (System.Exception ex)
             {
-                LoggerUtil.Error($"PlaylistPanel: Setup failed: {ex}");
+                LoggingSystem.Error($"PlaylistPanel: Setup failed: {ex.Message}", "UI");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Initialize extracted components
+        /// </summary>
+        private void InitializeComponents()
+        {
+            searchComponent = new PlaylistSearch();
+            renderComponent = new PlaylistRenderer();
+            
+            // Wire up events
+            searchComponent.OnSearchChanged += OnSearchChanged;
+            renderComponent.OnTrackSelected += OnTrackSelected;
         }
 
         private void CreatePlaylistContainer()
@@ -89,7 +99,7 @@ namespace BackSpeakerMod.UI.Components
                 }
             }
             
-            LoggerUtil.Info("PlaylistPanel: PlaylistContainer created with NO background components");
+            // LoggerUtil.Info("PlaylistPanel: PlaylistContainer created with NO background components");
             
             // Create title at the TOP of the playlist container - fix positioning
             var titleText = UIFactory.CreateText(
@@ -109,119 +119,19 @@ namespace BackSpeakerMod.UI.Components
             titleRect.offsetMin = new Vector2(0f, -35f);
             titleRect.offsetMax = new Vector2(0f, -5f);
             
-            // Create search functionality
-            CreateSearchInterface();
+            // Create search functionality using extracted component
+            searchComponent.CreateSearchInterface(playlistContainer.transform);
             
             // Create scroll view for track list
             CreateScrollView();
+            
+            // Initialize render component
+            renderComponent.Initialize(contentParent, scrollRect);
             
             // Start completely hidden
             playlistContainer.SetActive(false);
             isVisible = false;
             
-            LoggerUtil.Info("PlaylistPanel: Playlist setup completed");
-        }
-
-        private void CreateSearchInterface()
-        {
-            // Create search container
-            var searchContainer = new GameObject("SearchContainer");
-            searchContainer.transform.SetParent(playlistContainer.transform, false);
-            
-            var searchRect = searchContainer.AddComponent<RectTransform>();
-            searchRect.anchorMin = new Vector2(0f, 1f);
-            searchRect.anchorMax = new Vector2(1f, 1f);
-            searchRect.offsetMin = new Vector2(15f, -75f); // Below title (was -70f)
-            searchRect.offsetMax = new Vector2(-15f, -45f); // 30px height for search
-            
-            // Create search input field background
-            var searchBg = searchContainer.AddComponent<Image>();
-            searchBg.color = new Color(0.15f, 0.15f, 0.15f, 0.9f); // Dark input background
-            
-            // Create search input field
-            var inputObj = new GameObject("SearchInput");
-            inputObj.transform.SetParent(searchContainer.transform, false);
-            
-            var inputRect = inputObj.AddComponent<RectTransform>();
-            inputRect.anchorMin = Vector2.zero;
-            inputRect.anchorMax = new Vector2(0.8f, 1f);
-            inputRect.offsetMin = new Vector2(8f, 3f); // Better padding
-            inputRect.offsetMax = new Vector2(-8f, -3f);
-            
-            searchInput = inputObj.AddComponent<InputField>();
-            
-            // Create placeholder text
-            var placeholderObj = new GameObject("Placeholder");
-            placeholderObj.transform.SetParent(inputObj.transform, false);
-            
-            var placeholderRect = placeholderObj.AddComponent<RectTransform>();
-            placeholderRect.anchorMin = Vector2.zero;
-            placeholderRect.anchorMax = Vector2.one;
-            placeholderRect.offsetMin = Vector2.zero;
-            placeholderRect.offsetMax = Vector2.zero;
-            
-            var placeholderText = placeholderObj.AddComponent<Text>();
-            placeholderText.text = "Search tracks...";
-            placeholderText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            placeholderText.fontSize = 11;
-            placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f); // Gray placeholder
-            placeholderText.alignment = TextAnchor.MiddleLeft;
-            
-            // Create input text
-            var textObj = new GameObject("Text");
-            textObj.transform.SetParent(inputObj.transform, false);
-            
-            var textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            
-            var inputText = textObj.AddComponent<Text>();
-            inputText.text = "";
-            inputText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            inputText.fontSize = 11;
-            inputText.color = new Color(1f, 1f, 1f, 1f); // White input text
-            inputText.alignment = TextAnchor.MiddleLeft;
-            
-            // Setup InputField component
-            searchInput.textComponent = inputText;
-            searchInput.placeholder = placeholderText;
-            searchInput.onValueChanged.AddListener((UnityEngine.Events.UnityAction<string>)OnSearchChanged);
-            
-            // Create clear search button
-            clearSearchButton = UIFactory.CreateButton(
-                searchContainer.transform,
-                "✕",
-                new Vector2(0f, 0f),
-                new Vector2(25f, 16f)
-            );
-            
-            var clearRect = clearSearchButton.GetComponent<RectTransform>();
-            clearRect.anchorMin = new Vector2(0.8f, 0f);
-            clearRect.anchorMax = new Vector2(1f, 1f);
-            clearRect.offsetMin = new Vector2(5f, 2f);
-            clearRect.offsetMax = new Vector2(-5f, -2f);
-            
-            clearSearchButton.onClick.AddListener((UnityEngine.Events.UnityAction)ClearSearch);
-            
-            // Style the clear button
-            var clearImage = clearSearchButton.GetComponent<Image>();
-            if (clearImage != null)
-            {
-                clearImage.color = new Color(0.4f, 0.4f, 0.4f, 0.8f);
-            }
-            
-            // Make sure the clear button text is visible
-            var clearTextComponent = clearSearchButton.GetComponentInChildren<Text>();
-            if (clearTextComponent != null)
-            {
-                clearTextComponent.color = new Color(1f, 1f, 1f, 1f);
-                clearTextComponent.fontSize = 12;
-                clearTextComponent.fontStyle = FontStyle.Bold;
-            }
-            
-            LoggerUtil.Info("PlaylistPanel: Search interface created");
         }
 
         private void CreateScrollView()
@@ -274,18 +184,22 @@ namespace BackSpeakerMod.UI.Components
             }
         }
 
+        /// <summary>
+        /// Handle search changes from search component
+        /// </summary>
         private void OnSearchChanged(string query)
         {
-            currentSearchQuery = query.ToLower();
             needsPlaylistRefresh = true;
         }
 
-        private void ClearSearch()
+        /// <summary>
+        /// Handle track selection from render component
+        /// </summary>
+        private void OnTrackSelected(int trackIndex)
         {
-            if (searchInput != null)
+            if (manager != null)
             {
-                searchInput.text = "";
-                currentSearchQuery = "";
+                manager.PlayTrack(trackIndex);
                 needsPlaylistRefresh = true;
             }
         }
@@ -293,7 +207,7 @@ namespace BackSpeakerMod.UI.Components
         private void TogglePlaylist()
         {
             isVisible = !isVisible;
-            LoggerUtil.Info($"PlaylistPanel: Playlist {(isVisible ? "opened" : "closed")}");
+            // LoggerUtil.Info($"PlaylistPanel: Playlist {(isVisible ? "opened" : "closed")}");
             
             if (playlistContainer != null)
             {
@@ -397,11 +311,12 @@ namespace BackSpeakerMod.UI.Components
             // Only update if playlist is visible AND something actually changed
             if (!isVisible) return;
             
-            if (manager == null) return;
+            if (manager == null || renderComponent == null || searchComponent == null) return;
             
             // Check if anything actually changed
             var allTracks = manager.GetAllTracks();
             int currentTrackIndex = manager.CurrentTrackIndex;
+            string currentSearchQuery = searchComponent.CurrentQuery;
             
             bool hasChanges = needsPlaylistRefresh ||
                              allTracks.Count != lastTrackCount ||
@@ -416,163 +331,11 @@ namespace BackSpeakerMod.UI.Components
             lastSearchQuery = currentSearchQuery;
             needsPlaylistRefresh = false;
             
-            FilterAndUpdatePlaylist();
+            // Use render component to update the playlist
+            renderComponent.RenderTracks(allTracks, currentTrackIndex, searchComponent);
         }
 
-        private void FilterAndUpdatePlaylist()
-        {
-            if (manager == null || contentParent == null) return;
-            
-            try
-            {
-                // Clear existing buttons
-                foreach (var button in trackButtons)
-                {
-                    if (button != null)
-                        GameObject.Destroy(button.gameObject);
-                }
-                trackButtons.Clear();
-                
-                var allTracks = manager.GetAllTracks();
-                int currentTrackIndex = manager.CurrentTrackIndex;
-                
-                if (allTracks.Count == 0)
-                {
-                    // Create "no tracks" message
-                    var noTracksText = UIFactory.CreateText(
-                        contentParent,
-                        "NoTracks",
-                        "No music loaded yet.\nUse 'RELOAD' to find music.",
-                        new Vector2(0f, -30f),
-                        new Vector2(250f, 60f),
-                        12
-                    );
-                    noTracksText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
-                    return;
-                }
-                
-                // Filter tracks based on search query
-                var filteredTracks = new List<(int originalIndex, (string title, string artist) track)>();
-                
-                for (int i = 0; i < allTracks.Count; i++)
-                {
-                    var track = allTracks[i];
-                    bool matchesSearch = string.IsNullOrEmpty(currentSearchQuery) ||
-                                       track.title.ToLower().Contains(currentSearchQuery) ||
-                                       track.artist.ToLower().Contains(currentSearchQuery);
-                    
-                    if (matchesSearch)
-                    {
-                        filteredTracks.Add((i, track));
-                    }
-                }
-                
-                if (filteredTracks.Count == 0 && !string.IsNullOrEmpty(currentSearchQuery))
-                {
-                    // Create "no matches" message
-                    var noMatchText = UIFactory.CreateText(
-                        contentParent,
-                        "NoMatches",
-                        $"No tracks found for '{currentSearchQuery}'",
-                        new Vector2(0f, -30f),
-                        new Vector2(250f, 40f),
-                        12
-                    );
-                    noMatchText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
-                    return;
-                }
-                
-                // Create button for each filtered track
-                float yPosition = -20f;
-                for (int i = 0; i < filteredTracks.Count; i++)
-                {
-                    var (originalIndex, track) = filteredTracks[i];
-                    
-                    // Highlight current track
-                    string buttonText = $"{originalIndex + 1}. {track.title}";
-                    if (originalIndex == currentTrackIndex)
-                    {
-                        buttonText = $"♪ {buttonText} ♪";
-                    }
-                    
-                    var trackButton = UIFactory.CreateButton(
-                        contentParent,
-                        buttonText,
-                        new Vector2(0f, yPosition),
-                        new Vector2(260f, 35f)
-                    );
-                    
-                    // Apply styling
-                    var buttonImage = trackButton.GetComponent<Image>();
-                    var buttonText_comp = trackButton.GetComponentInChildren<Text>();
-                    
-                    if (originalIndex == currentTrackIndex)
-                    {
-                        // Current track styling - Spotify green
-                        if (buttonImage != null)
-                            buttonImage.color = new Color(0.11f, 0.73f, 0.33f, 0.8f);
-                        if (buttonText_comp != null)
-                        {
-                            buttonText_comp.color = new Color(0f, 0f, 0f, 1f);
-                            buttonText_comp.fontSize = 11;
-                            buttonText_comp.alignment = TextAnchor.MiddleLeft;
-                        }
-                    }
-                    else
-                    {
-                        // Regular track styling
-                        if (buttonImage != null)
-                            buttonImage.color = new Color(0.25f, 0.25f, 0.25f, 0.6f);
-                        if (buttonText_comp != null)
-                        {
-                            buttonText_comp.color = new Color(1f, 1f, 1f, 0.9f);
-                            buttonText_comp.fontSize = 11;
-                            buttonText_comp.alignment = TextAnchor.MiddleLeft;
-                        }
-                    }
-                    
-                    // Add click handler
-                    int capturedIndex = originalIndex;
-                    trackButton.onClick.AddListener((UnityEngine.Events.UnityAction)(() => {
-                        OnTrackSelected(capturedIndex);
-                    }));
-                    
-                    trackButtons.Add(trackButton);
-                    yPosition -= 38f;
-                }
-                
-                // Resize content area to fit all buttons
-                if (scrollRect?.content != null)
-                {
-                    float contentHeight = Mathf.Max(100f, filteredTracks.Count * 38f + 40f);
-                    scrollRect.content.sizeDelta = new Vector2(0f, contentHeight);
-                }
-                
-                // Log only important information
-                if (!string.IsNullOrEmpty(currentSearchQuery))
-                {
-                    LoggerUtil.Info($"PlaylistPanel: Filtered {filteredTracks.Count} of {allTracks.Count} tracks for '{currentSearchQuery}'");
-                }
-                else
-                {
-                    LoggerUtil.Info($"PlaylistPanel: Updated with {allTracks.Count} tracks");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                LoggerUtil.Error($"PlaylistPanel: FilterAndUpdatePlaylist failed: {ex}");
-            }
-        }
 
-        private void OnTrackSelected(int trackIndex)
-        {
-            if (manager != null)
-            {
-                LoggerUtil.Info($"PlaylistPanel: Track {trackIndex + 1} selected");
-                manager.PlayTrack(trackIndex);
-                needsPlaylistRefresh = true;
-            }
-        }
 
         public void CreateToggleButton(Transform parentTransform)
         {

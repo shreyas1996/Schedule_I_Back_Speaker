@@ -10,13 +10,13 @@ namespace BackSpeakerMod.UI.Components
     public class MusicControlPanel : MonoBehaviour
     {
         // IL2CPP compatibility - explicit field initialization
-        private BackSpeakerManager manager = null;
-        private Button playPauseButton = null;
-        private Button nextTrackButton = null;
-        private Button prevTrackButton = null;
-        private Button repeatButton = null;
-        private Button reloadButton = null;
-        private Button statusButton = null;
+        private BackSpeakerManager? manager = null;
+        private Button? playPauseButton = null;
+        private Button? nextTrackButton = null;
+        private Button? prevTrackButton = null;
+        private Button? repeatButton = null;
+        private Button? reloadButton = null;
+        private Button? statusButton = null;
 
         // IL2CPP compatibility - explicit parameterless constructor
         public MusicControlPanel() : base() { }
@@ -26,7 +26,7 @@ namespace BackSpeakerMod.UI.Components
             try 
             {
                 this.manager = manager;
-                LoggerUtil.Info("MusicControlPanel: Setting up modern Spotify-style controls");
+                // LoggerUtil.Info("MusicControlPanel: Setting up modern Spotify-style controls");
                 
                 // Main control row - positioned below progress bar with proper spacing
                 prevTrackButton = UIFactory.CreateButton(
@@ -37,7 +37,7 @@ namespace BackSpeakerMod.UI.Components
                 );
                 prevTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPreviousTrack);
                 ApplySecondaryButtonStyling(prevTrackButton);
-                LoggerUtil.Info("MusicControlPanel: Previous button created");
+                // LoggerUtil.Info("MusicControlPanel: Previous button created");
                 
                 // Create Play/Pause button (center) - largest, most prominent with Spotify green
                 playPauseButton = UIFactory.CreateButton(
@@ -48,7 +48,7 @@ namespace BackSpeakerMod.UI.Components
                 );
                 playPauseButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnPlayPause);
                 ApplyPrimaryButtonStyling(playPauseButton);
-                LoggerUtil.Info("MusicControlPanel: Play/Pause button created");
+                // LoggerUtil.Info("MusicControlPanel: Play/Pause button created");
                 
                 // Create Next button (right) - main control row
                 nextTrackButton = UIFactory.CreateButton(
@@ -59,7 +59,7 @@ namespace BackSpeakerMod.UI.Components
                 );
                 nextTrackButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnNextTrack);
                 ApplySecondaryButtonStyling(nextTrackButton);
-                LoggerUtil.Info("MusicControlPanel: Next button created");
+                // LoggerUtil.Info("MusicControlPanel: Next button created");
                 
                 // Repeat mode control - centered below main controls with proper spacing
                 repeatButton = UIFactory.CreateButton(
@@ -70,7 +70,7 @@ namespace BackSpeakerMod.UI.Components
                 );
                 repeatButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnToggleRepeat);
                 ApplyTertiaryButtonStyling(repeatButton);
-                LoggerUtil.Info("MusicControlPanel: Repeat button created");
+                // LoggerUtil.Info("MusicControlPanel: Repeat button created");
                 
                 // Essential fallback controls - bottom row with more spacing from volume control
                 reloadButton = UIFactory.CreateButton(
@@ -81,7 +81,7 @@ namespace BackSpeakerMod.UI.Components
                 );
                 reloadButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnReload);
                 ApplyUtilityButtonStyling(reloadButton);
-                LoggerUtil.Info("MusicControlPanel: Reload button created");
+                // LoggerUtil.Info("MusicControlPanel: Reload button created");
                 
                 // Status button (shows status + manual trigger if needed)
                 statusButton = UIFactory.CreateButton(
@@ -92,13 +92,13 @@ namespace BackSpeakerMod.UI.Components
                 );
                 statusButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnStatusButtonClick);
                 ApplyStatusButtonStyling(statusButton);
-                LoggerUtil.Info("MusicControlPanel: Status button created");
+                // LoggerUtil.Info("MusicControlPanel: Status button created");
                 
-                LoggerUtil.Info("MusicControlPanel: Modern Spotify-style setup completed");
+                // LoggerUtil.Info("MusicControlPanel: Modern Spotify-style setup completed");
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"MusicControlPanel: Setup failed: {ex}");
+                // LoggerUtil.Error($"MusicControlPanel: Setup failed: {ex}");
                 throw;
             }
         }
@@ -227,32 +227,32 @@ namespace BackSpeakerMod.UI.Components
 
         private void OnReload()
         {
-            LoggerUtil.Info("Reload button clicked - reloading music tracks");
+            // LoggerUtil.Info("Reload button clicked - reloading music tracks");
             manager?.ReloadTracks();
-            LoggerUtil.Info($"Reload complete - now have {manager?.GetTrackCount() ?? 0} tracks");
+            // LoggerUtil.Info($"Reload complete - now have {manager?.GetTrackCount() ?? 0} tracks");
         }
 
         private void OnStatusButtonClick()
         {
             string status = manager?.GetAttachmentStatus() ?? "Unknown";
-            LoggerUtil.Info($"Status button clicked. Current status: {status}");
+            // LoggerUtil.Info($"Status button clicked. Current status: {status}");
             
             if (status.Contains("Waiting for player"))
             {
-                LoggerUtil.Info("Status: Player needs to spawn in game first");
+                // LoggerUtil.Info("Status: Player needs to spawn in game first");
             }
             else if (status.Contains("Player found"))
             {
-                LoggerUtil.Info("Status: Manually triggering attachment...");
+                // LoggerUtil.Info("Status: Manually triggering attachment...");
                 manager?.TriggerManualAttachment();
             }
             else if (status.Contains("Ready"))
             {
-                LoggerUtil.Info("Status: System already attached and working");
+                // LoggerUtil.Info("Status: System already attached and working");
             }
             else
             {
-                LoggerUtil.Info($"Status: Current state is {status}");
+                // LoggerUtil.Info($"Status: Current state is {status}");
             }
         }
 
@@ -274,7 +274,7 @@ namespace BackSpeakerMod.UI.Components
                     break;
             }
             UpdateRepeatButtonText();
-            LoggerUtil.Info($"Repeat mode toggled to: {manager.RepeatMode}");
+            // LoggerUtil.Info($"Repeat mode toggled to: {manager.RepeatMode}");
         }
 
         public void UpdateButtonText()
