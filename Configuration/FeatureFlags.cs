@@ -8,33 +8,29 @@ namespace BackSpeakerMod.Configuration
     public static class FeatureFlags
     {
         /// <summary>
-        /// Headphone-related features
+        /// Headphone attachment system features
+        /// DEPRECATED: Being replaced by spheres
         /// </summary>
         public static class Headphones
         {
-            public static bool Enabled 
-            { 
-                get => FeatureToggleSystem.Headphones.Enabled; 
-                set => FeatureToggleSystem.Headphones.Enabled = value; 
-            }
-            
-            public static bool AutoAttachOnSpawn 
-            { 
-                get => FeatureToggleSystem.Headphones.AutoAttachOnSpawn; 
-                set => FeatureToggleSystem.Headphones.AutoAttachOnSpawn = value; 
-            }
-            
-            public static bool ShowDebugInfo 
-            { 
-                get => FeatureToggleSystem.Headphones.ShowDebugInfo; 
-                set => FeatureToggleSystem.Headphones.ShowDebugInfo = value; 
-            }
-            
-            public static bool EnableVisibilityDebugging 
-            { 
-                get => FeatureToggleSystem.Headphones.EnableVisibilityDebugging; 
-                set => FeatureToggleSystem.Headphones.EnableVisibilityDebugging = value; 
-            }
+            public static bool Enabled = false; // Disabled - replaced by spheres
+            public static bool ShowDebugInfo = false;
+            public static bool EnablePhysics = false;
+            public static bool AutoAttachOnSpawn = false;
+            public static bool EnableVisibilityDebugging = false; // Deprecated
+        }
+
+        /// <summary>
+        /// Sphere attachment system features
+        /// This replaces the headphone system
+        /// </summary>
+        public static class Spheres
+        {
+            public static bool Enabled = true; // Main feature - enabled by default
+            public static bool ShowDebugInfo = false;
+            public static bool EnableGlowEffect = true; // Spheres glow by default
+            public static bool AutoAttachOnSpawn = false;
+            public static bool EnableRotation = true; // Spheres rotate by default
         }
 
         /// <summary>

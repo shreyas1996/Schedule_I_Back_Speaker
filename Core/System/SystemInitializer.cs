@@ -155,6 +155,9 @@ namespace BackSpeakerMod.Core.System
                 await components.HeadphoneManager.InitializeAsync();
             }
 
+            // Initialize sphere manager
+            components.SphereManager?.Initialize();
+
             // Initialize other managers synchronously
             components.PlacementManager?.Initialize();
             components.TestingManager?.Initialize();
@@ -170,6 +173,7 @@ namespace BackSpeakerMod.Core.System
             LoggingSystem.Info("Initializing feature managers", "System");
 
             components.HeadphoneManager?.Initialize();
+            components.SphereManager?.Initialize();
             components.PlacementManager?.Initialize();
             components.TestingManager?.Initialize();
 

@@ -129,6 +129,13 @@ namespace BackSpeakerMod.Core.System
         public bool AreHeadphonesAttached() => apiManager.AreHeadphonesAttached();
         public string GetHeadphoneStatus() => apiManager.GetHeadphoneStatus();
 
+        // Public API - Spheres
+        public bool AttachSphere() => apiManager.AttachSphere();
+        public bool DetachSphere() => apiManager.DetachSphere();
+        public bool ToggleSphere() => apiManager.ToggleSphere();
+        public bool IsSphereAttached() => apiManager.IsSphereAttached();
+        public string GetSphereStatus() => apiManager.GetSphereStatus();
+
         // Public API - Testing
         public bool AttachTestCube() => apiManager.AttachTestCube();
         public bool AttachGlowingSphere() => apiManager.AttachGlowingSphere();
@@ -139,6 +146,7 @@ namespace BackSpeakerMod.Core.System
 
         // Public API - Placement
         public void TogglePlacementMode() => apiManager.TogglePlacementMode();
+        public void ToggleSpherePlacementMode() => apiManager.ToggleSpherePlacementMode();
         public bool IsInPlacementMode() => apiManager.IsInPlacementMode();
         public string GetPlacementStatus() => apiManager.GetPlacementStatus();
 
@@ -152,7 +160,7 @@ namespace BackSpeakerMod.Core.System
 
             var statuses = new List<string>();
 
-            if (!FeatureFlags.Headphones.Enabled && !FeatureFlags.Testing.Enabled && 
+            if (!FeatureFlags.Headphones.Enabled && !FeatureFlags.Spheres.Enabled && !FeatureFlags.Testing.Enabled && 
                 !FeatureFlags.Placement.Enabled && !FeatureFlags.Audio.Enabled)
             {
                 statuses.Add("All features disabled");
@@ -164,6 +172,9 @@ namespace BackSpeakerMod.Core.System
 
                 if (FeatureFlags.Headphones.Enabled)
                     statuses.Add($"Headphones: {GetHeadphoneStatus()}");
+
+                if (FeatureFlags.Spheres.Enabled)
+                    statuses.Add($"Spheres: {GetSphereStatus()}");
 
                 if (FeatureFlags.Testing.Enabled)
                     statuses.Add($"Testing: {GetTestingStatus()}");
@@ -196,5 +207,10 @@ namespace BackSpeakerMod.Core.System
                 LoggingSystem.Error($"Exception during shutdown: {ex.Message}", "System");
             }
         }
+
+        /// <summary>
+        /// Get sphere manager instance
+        /// </summary>
+        public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => components.SphereManager;
     }
 } 

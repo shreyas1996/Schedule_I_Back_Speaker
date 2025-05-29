@@ -66,6 +66,14 @@ namespace BackSpeakerMod.Core.System
         public bool AreHeadphonesAttached() => components.HeadphoneManager?.AreHeadphonesAttached ?? false;
         public string GetHeadphoneStatus() => components.HeadphoneManager?.GetStatus() ?? "Headphone system not initialized";
 
+        // Sphere API
+        public bool AttachSphere() => components.SphereManager?.AttachSphereToPlayer() ?? false;
+        public bool DetachSphere() => components.SphereManager?.DetachSphere() ?? false;
+        public bool ToggleSphere() => components.SphereManager?.ToggleSphereAttachment() ?? false;
+        public bool IsSphereAttached() => components.SphereManager?.IsAttached ?? false;
+        public string GetSphereStatus() => components.SphereManager?.GetStatus() ?? "Sphere system not initialized";
+        public bool PlaceSphereAt(UnityEngine.Vector3 position, UnityEngine.Vector3 normal) => components.SphereManager?.PlaceSphereAt(position, normal) ?? false;
+
         // Testing API
         public bool AttachTestCube() => components.TestingManager?.CreateTestCube() ?? false;
         public bool AttachGlowingSphere() => components.TestingManager?.CreateGlowingSphere() ?? false;
@@ -116,6 +124,28 @@ namespace BackSpeakerMod.Core.System
             catch (global::System.Exception ex)
             {
                 LoggingSystem.Error($"Error during placement toggle: {ex.Message}", "API");
+            }
+        }
+
+        /// <summary>
+        /// Toggle placement mode specifically for spheres
+        /// </summary>
+        public void ToggleSpherePlacementMode()
+        {
+            if (components.PlacementManager == null || components.SphereManager == null)
+            {
+                LoggingSystem.Warning("Placement or sphere manager not available", "API");
+                return;
+            }
+
+            try
+            {
+                LoggingSystem.Info("Starting sphere placement mode", "API");
+                components.SphereManager.StartSphereePlacement();
+            }
+            catch (global::System.Exception ex)
+            {
+                LoggingSystem.Error($"Error during sphere placement toggle: {ex.Message}", "API");
             }
         }
     }

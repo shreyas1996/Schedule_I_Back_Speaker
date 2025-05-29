@@ -1,6 +1,7 @@
 using System;
 using BackSpeakerMod.Core.Features.Player.Attachment;
 using BackSpeakerMod.Core.Features.Headphones.Managers;
+using BackSpeakerMod.Core.Features.Spheres.Managers;
 using BackSpeakerMod.Core.Features.Placement.Managers;
 using BackSpeakerMod.Core.Features.Testing.Managers;
 using BackSpeakerMod.Core.Features.Audio.Managers;
@@ -21,6 +22,11 @@ namespace BackSpeakerMod.Core.System
         /// Headphone management system
         /// </summary>
         public HeadphoneManager HeadphoneManager { get; set; }
+
+        /// <summary>
+        /// Sphere management system
+        /// </summary>
+        public SphereManager SphereManager { get; set; }
 
         /// <summary>
         /// Placement management system
@@ -56,6 +62,7 @@ namespace BackSpeakerMod.Core.System
                 // Create feature managers
                 components.HeadphoneManager = new HeadphoneManager();
                 components.PlacementManager = new PlacementManager();
+                components.SphereManager = new SphereManager(null, components.PlacementManager);
                 components.TestingManager = new TestingManager();
                 components.AudioManager = new AudioManager();
 
@@ -83,6 +90,7 @@ namespace BackSpeakerMod.Core.System
             {
                 // Shutdown feature managers
                 HeadphoneManager?.Shutdown();
+                SphereManager?.Shutdown();
                 PlacementManager?.Shutdown();
                 TestingManager?.Shutdown();
                 AudioManager?.Shutdown();

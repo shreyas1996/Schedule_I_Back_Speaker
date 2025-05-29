@@ -96,13 +96,13 @@ namespace BackSpeakerMod
             
             try
             {
-                LoggingSystem.Info("Registering HeadphoneControlPanel...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.HeadphoneControlPanel>();
-                LoggingSystem.Info("✓ HeadphoneControlPanel registered successfully", "Mod");
+                LoggingSystem.Info("Registering SphereControlPanel...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.SphereControlPanel>();
+                LoggingSystem.Info("✓ SphereControlPanel registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register HeadphoneControlPanel: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register SphereControlPanel: {ex}", "Mod");
             }
             
             try
@@ -114,6 +114,17 @@ namespace BackSpeakerMod
             catch (System.Exception ex)
             {
                 LoggingSystem.Error($"✗ Failed to register TestSphereRotator: {ex}", "Mod");
+            }
+            
+            try
+            {
+                LoggingSystem.Info("Registering SphereRotator...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<Core.Features.Spheres.Components.SphereRotator>();
+                LoggingSystem.Info("✓ SphereRotator registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register SphereRotator: {ex}", "Mod");
             }
             
             LoggingSystem.Info("Il2Cpp type registration completed", "Mod");

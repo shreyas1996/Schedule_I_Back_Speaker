@@ -89,6 +89,13 @@ namespace BackSpeakerMod.Core
         public bool AreHeadphonesAttached() => coordinator.AreHeadphonesAttached();
         public string GetHeadphoneStatus() => coordinator.GetHeadphoneStatus();
 
+        // Public API - Spheres
+        public bool AttachSphere() => coordinator.AttachSphere();
+        public bool DetachSphere() => coordinator.DetachSphere();
+        public bool ToggleSphere() => coordinator.ToggleSphere();
+        public bool IsSphereAttached() => coordinator.IsSphereAttached();
+        public string GetSphereStatus() => coordinator.GetSphereStatus();
+
         // Public API - Testing
         public bool AttachTestCube() => coordinator.AttachTestCube();
         public bool AttachGlowingSphere() => coordinator.AttachGlowingSphere();
@@ -99,6 +106,7 @@ namespace BackSpeakerMod.Core
 
         // Public API - Placement
         public void TogglePlacementMode() => coordinator.TogglePlacementMode();
+        public void ToggleSpherePlacementMode() => coordinator.ToggleSpherePlacementMode();
         public bool IsInPlacementMode() => coordinator.IsInPlacementMode();
         public string GetPlacementStatus() => coordinator.GetPlacementStatus();
         
@@ -112,5 +120,7 @@ namespace BackSpeakerMod.Core
         /// </summary>
         public void Shutdown() => coordinator.Shutdown();
 
+        // Public API - Sphere Control
+        public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => coordinator.GetSphereManager();
     }
 }

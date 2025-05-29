@@ -2,6 +2,7 @@ using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Features.Headphones.Data;
+using BackSpeakerMod.Core.Common.Helpers;
 using System;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Attachment
@@ -58,7 +59,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
 
                 // Find attachment point using detector
                 var attachmentPoint = PlayerHeadDetector.FindAttachmentPoint(player);
-                if (!PlayerHeadDetector.ValidateAttachmentPoint(attachmentPoint))
+                if (!PlayerHeadDetector.IsValidAttachmentPoint(attachmentPoint))
                 {
                     LoggingSystem.Warning("No valid attachment point found on player", "Headphones");
                     HeadphoneEvents.FireAttachmentFailed("No valid attachment point found");

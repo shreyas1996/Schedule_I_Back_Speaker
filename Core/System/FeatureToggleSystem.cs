@@ -19,6 +19,18 @@ namespace BackSpeakerMod.Core.System
         }
 
         /// <summary>
+        /// Sphere attachment features
+        /// </summary>
+        public static class Spheres
+        {
+            public static bool Enabled = true;
+            public static bool AutoAttachOnSpawn = false;
+            public static bool ShowDebugInfo = false;
+            public static bool EnableGlowEffect = true;
+            public static bool EnableRotation = true;
+        }
+
+        /// <summary>
         /// Placement system features
         /// </summary>
         public static class Placement
@@ -66,7 +78,7 @@ namespace BackSpeakerMod.Core.System
         /// Check if any feature is enabled
         /// </summary>
         public static bool AnyFeatureEnabled => 
-            Headphones.Enabled || Placement.Enabled || Testing.Enabled || Audio.Enabled;
+            Headphones.Enabled || Spheres.Enabled || Placement.Enabled || Testing.Enabled || Audio.Enabled;
 
         /// <summary>
         /// Quick disable all features for performance testing
@@ -74,6 +86,7 @@ namespace BackSpeakerMod.Core.System
         public static void DisableAll()
         {
             Headphones.Enabled = false;
+            Spheres.Enabled = false;
             Placement.Enabled = false;
             Testing.Enabled = false;
             Audio.Enabled = false;
@@ -86,6 +99,7 @@ namespace BackSpeakerMod.Core.System
         {
             DisableAll();
             Headphones.Enabled = true;
+            Spheres.Enabled = true;
             Audio.Enabled = true;
         }
     }
