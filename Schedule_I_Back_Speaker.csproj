@@ -18,6 +18,11 @@
   
   <ItemGroup>
       <Compile Remove="my_references\**\*.cs" />
+      <!-- Exclude all sphere-related files since we're focusing on headphones -->
+      <Compile Remove="**/*Sphere*.cs" />
+      <Compile Remove="Core/Features/Spheres/**/*.cs" />
+      <Compile Remove="UI/Components/SphereControlPanel.cs" />
+      <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
 
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/Assembly-CSharp-firstpass.dll</HintPath>

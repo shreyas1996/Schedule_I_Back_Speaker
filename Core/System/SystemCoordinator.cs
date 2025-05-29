@@ -210,7 +210,8 @@ namespace BackSpeakerMod.Core.System
 
         /// <summary>
         /// Get sphere manager instance
+        /// NOTE: Disabled - sphere functionality excluded from compilation
         /// </summary>
-        public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => components.SphereManager;
+        // public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => components.SphereManager;
     }
 } 

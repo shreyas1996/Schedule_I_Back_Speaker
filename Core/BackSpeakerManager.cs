@@ -120,7 +120,7 @@ namespace BackSpeakerMod.Core
         /// </summary>
         public void Shutdown() => coordinator.Shutdown();
 
-        // Public API - Sphere Control
-        public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => coordinator.GetSphereManager();
+        // Remove sphere-specific API - focusing on headphones
+        // public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => coordinator.GetSphereManager();
     }
 }

@@ -20,7 +20,7 @@ namespace BackSpeakerMod.UI
         private MusicControlPanel? musicControlPanel = null;
         private VolumeControl? volumeControl = null;
         private PlaylistPanel? playlistPanel = null;
-        private SphereControlPanel? sphereControlPanel = null;
+        private HeadphoneControlPanel? headphoneControlPanel = null;
         
         // Layout management
         private RectTransform? controlsContainer = null;
@@ -129,9 +129,9 @@ namespace BackSpeakerMod.UI
             volumeControl = gameObject.AddComponent<VolumeControl>();
             volumeControl.Setup(manager, controlsContainer);
             
-            // Setup sphere control panel - below volume control
-            sphereControlPanel = gameObject.AddComponent<SphereControlPanel>();
-            sphereControlPanel.Setup(manager, controlsContainer);
+            // Setup headphone control panel - below volume control
+            headphoneControlPanel = gameObject.AddComponent<HeadphoneControlPanel>();
+            headphoneControlPanel.Setup(manager, controlsContainer);
             
             // Setup playlist panel - uses the parent container for full screen management
             playlistPanel = gameObject.AddComponent<PlaylistPanel>();
@@ -168,7 +168,7 @@ namespace BackSpeakerMod.UI
                 progressBar?.UpdateProgress();
                 musicControlPanel?.UpdateButtonText();
                 volumeControl?.UpdateVolume();
-                sphereControlPanel?.UpdateStatus();
+                headphoneControlPanel?.UpdateStatus();
                 playlistPanel?.UpdatePlaylist();
             }
             catch (System.Exception _)

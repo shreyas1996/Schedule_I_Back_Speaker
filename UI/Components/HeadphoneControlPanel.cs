@@ -39,13 +39,13 @@ namespace BackSpeakerMod.UI.Components
             bg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
             
             // Toggle button
-            toggleButton = CreateButton(panel, "Toggle", new Vector2(0f, 0.5f), new Vector2(0.5f, 1f),(Action)OnToggleClicked);
+            toggleButton = CreateButton(panel, "Toggle Headphones", new Vector2(0f, 0.5f), new Vector2(0.5f, 1f), (UnityEngine.Events.UnityAction)OnToggleClicked);
             
             // Placement button
-            placementButton = CreateButton(panel, "Placement", new Vector2(0.5f, 0.5f), new Vector2(1f, 1f), (Action)OnPlacementClicked);
+            placementButton = CreateButton(panel, "Placement Mode", new Vector2(0.5f, 0.5f), new Vector2(1f, 1f), (UnityEngine.Events.UnityAction)OnPlacementClicked);
             
             // Status text
-            statusText = CreateText(panel, "Loading...", new Vector2(0f, 0f), new Vector2(1f, 0.5f));
+            statusText = CreateText(panel, "Headphones ready", new Vector2(0f, 0f), new Vector2(1f, 0.5f));
         }
 
         private Button CreateButton(RectTransform parent, string text, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
@@ -75,7 +75,7 @@ namespace BackSpeakerMod.UI.Components
             textComponent.color = Color.white;
             textComponent.alignment = TextAnchor.MiddleCenter;
             
-            button.onClick.AddListener(onClick);
+            button.onClick.AddListener((UnityEngine.Events.UnityAction)onClick);
             return button;
         }
 

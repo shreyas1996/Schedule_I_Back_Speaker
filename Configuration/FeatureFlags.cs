@@ -9,28 +9,28 @@ namespace BackSpeakerMod.Configuration
     {
         /// <summary>
         /// Headphone attachment system features
-        /// DEPRECATED: Being replaced by spheres
+        /// PRIMARY FEATURE - enabled and active
         /// </summary>
         public static class Headphones
         {
-            public static bool Enabled = false; // Disabled - replaced by spheres
+            public static bool Enabled = true; // Primary feature - enabled
             public static bool ShowDebugInfo = false;
             public static bool EnablePhysics = false;
-            public static bool AutoAttachOnSpawn = false;
-            public static bool EnableVisibilityDebugging = false; // Deprecated
+            public static bool AutoAttachOnSpawn = true; // Auto-attach headphones
+            public static bool EnableVisibilityDebugging = false;
         }
 
         /// <summary>
         /// Sphere attachment system features
-        /// This replaces the headphone system
+        /// DISABLED: Switching focus back to headphones
         /// </summary>
         public static class Spheres
         {
-            public static bool Enabled = true; // Main feature - enabled by default
+            public static bool Enabled = false; // Disabled - focusing on headphones
             public static bool ShowDebugInfo = false;
-            public static bool EnableGlowEffect = true; // Spheres glow by default
+            public static bool EnableGlowEffect = true;
             public static bool AutoAttachOnSpawn = false;
-            public static bool EnableRotation = true; // Spheres rotate by default
+            public static bool EnableRotation = true;
         }
 
         /// <summary>

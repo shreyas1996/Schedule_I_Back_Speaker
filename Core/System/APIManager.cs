@@ -66,13 +66,34 @@ namespace BackSpeakerMod.Core.System
         public bool AreHeadphonesAttached() => components.HeadphoneManager?.AreHeadphonesAttached ?? false;
         public string GetHeadphoneStatus() => components.HeadphoneManager?.GetStatus() ?? "Headphone system not initialized";
 
-        // Sphere API
-        public bool AttachSphere() => components.SphereManager?.AttachSphereToPlayer() ?? false;
-        public bool DetachSphere() => components.SphereManager?.DetachSphere() ?? false;
-        public bool ToggleSphere() => components.SphereManager?.ToggleSphereAttachment() ?? false;
-        public bool IsSphereAttached() => components.SphereManager?.IsAttached ?? false;
-        public string GetSphereStatus() => components.SphereManager?.GetStatus() ?? "Sphere system not initialized";
-        public bool PlaceSphereAt(UnityEngine.Vector3 position, UnityEngine.Vector3 normal) => components.SphereManager?.PlaceSphereAt(position, normal) ?? false;
+        // Sphere API - stub implementations since SphereManager is excluded from compilation
+        public bool AttachSphere() 
+        {
+            LoggingSystem.Warning("Sphere functionality disabled - focusing on headphones", "API");
+            return false;
+        }
+        
+        public bool DetachSphere() 
+        {
+            LoggingSystem.Warning("Sphere functionality disabled - focusing on headphones", "API");
+            return false;
+        }
+        
+        public bool ToggleSphere() 
+        {
+            LoggingSystem.Warning("Sphere functionality disabled - focusing on headphones", "API");
+            return false;
+        }
+        
+        public bool IsSphereAttached() => false;
+        
+        public string GetSphereStatus() => "Sphere system disabled - focusing on headphones";
+        
+        public bool PlaceSphereAt(UnityEngine.Vector3 position, UnityEngine.Vector3 normal) 
+        {
+            LoggingSystem.Warning("Sphere functionality disabled - focusing on headphones", "API");
+            return false;
+        }
 
         // Testing API
         public bool AttachTestCube() => components.TestingManager?.CreateTestCube() ?? false;
@@ -129,24 +150,27 @@ namespace BackSpeakerMod.Core.System
 
         /// <summary>
         /// Toggle placement mode specifically for spheres
+        /// DISABLED: sphere functionality excluded from compilation
         /// </summary>
         public void ToggleSpherePlacementMode()
         {
-            if (components.PlacementManager == null || components.SphereManager == null)
-            {
-                LoggingSystem.Warning("Placement or sphere manager not available", "API");
-                return;
-            }
+            LoggingSystem.Warning("Sphere placement disabled - focusing on headphones", "API");
+            
+            // if (components.PlacementManager == null || components.SphereManager == null)
+            // {
+            //     LoggingSystem.Warning("Placement or sphere manager not available", "API");
+            //     return;
+            // }
 
-            try
-            {
-                LoggingSystem.Info("Starting sphere placement mode", "API");
-                components.SphereManager.StartSphereePlacement();
-            }
-            catch (global::System.Exception ex)
-            {
-                LoggingSystem.Error($"Error during sphere placement toggle: {ex.Message}", "API");
-            }
+            // try
+            // {
+            //     LoggingSystem.Info("Starting sphere placement mode", "API");
+            //     components.SphereManager.StartSphereePlacement();
+            // }
+            // catch (Exception ex)
+            // {
+            //     LoggingSystem.Error($"Error during sphere placement toggle: {ex.Message}", "API");
+            // }
         }
     }
 } 

@@ -149,14 +149,11 @@ namespace BackSpeakerMod.Core.System
         {
             LoggingSystem.Info("Initializing feature managers with async support", "System");
 
-            // Initialize headphones with async loading first
-            if (components.HeadphoneManager != null)
-            {
-                await components.HeadphoneManager.InitializeAsync();
-            }
+            // Initialize headphones synchronously (simplified loading)
+            components.HeadphoneManager?.Initialize();
 
-            // Initialize sphere manager
-            components.SphereManager?.Initialize();
+            // Initialize sphere manager - DISABLED: sphere files excluded from compilation
+            // components.SphereManager?.Initialize();
 
             // Initialize other managers synchronously
             components.PlacementManager?.Initialize();
@@ -173,7 +170,8 @@ namespace BackSpeakerMod.Core.System
             LoggingSystem.Info("Initializing feature managers", "System");
 
             components.HeadphoneManager?.Initialize();
-            components.SphereManager?.Initialize();
+            // Initialize sphere manager - DISABLED: sphere files excluded from compilation
+            // components.SphereManager?.Initialize();
             components.PlacementManager?.Initialize();
             components.TestingManager?.Initialize();
 
