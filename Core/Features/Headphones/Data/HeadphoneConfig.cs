@@ -10,17 +10,17 @@ namespace BackSpeakerMod.Core.Features.Headphones.Data
         /// <summary>
         /// Asset bundle name containing headphone assets
         /// </summary>
-        public string AssetBundleName { get; set; } = "cleanheadphones";
+        public string AssetBundleName { get; set; } = "scheduleoneheadphones";
 
         /// <summary>
         /// Embedded resource name for headphone assets
         /// </summary>
-        public string EmbeddedResourceName { get; set; } = "cleanheadphones";
+        public string EmbeddedResourceName { get; set; } = "scheduleoneheadphones";
 
         /// <summary>
         /// Asset name within the bundle
         /// </summary>
-        public string AssetName { get; set; } = "CleanHeadphones";
+        public string AssetName { get; set; } = "ScheduleOneHeadphones";
 
         /// <summary>
         /// Position offset from player head

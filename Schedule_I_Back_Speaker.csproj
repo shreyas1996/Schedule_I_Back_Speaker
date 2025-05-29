@@ -13,7 +13,8 @@
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
     <!-- <EmbeddedResource Include="EmbeddedResources\playerwithheadphones" />
     <EmbeddedResource Include="EmbeddedResources\headphones" /> -->
-    <EmbeddedResource Include="EmbeddedResources\cleanheadphones" />
+    <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" /> -->
+    <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
   </ItemGroup>
   
   <ItemGroup>
