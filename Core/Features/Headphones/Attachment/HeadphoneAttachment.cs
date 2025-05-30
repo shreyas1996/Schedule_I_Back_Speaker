@@ -75,7 +75,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 LoggingSystem.Debug($"Created persistent headphone instance: {currentHeadphoneInstance.name}", "Headphones");
 
                 // Position and attach to player
-                var headTransform = PlayerHeadDetector.FindAttachmentPoint(player);
+                var headTransform = PlayerHeadDetector.FindHeadphoneAttachmentPoint(player);
                 if (headTransform != null)
                 {
                     // Use static methods from HeadphonePositioner

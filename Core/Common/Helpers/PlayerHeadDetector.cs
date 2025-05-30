@@ -132,6 +132,88 @@ namespace BackSpeakerMod.Core.Common.Helpers
             return true;
         }
 
+        /// <summary>
+        /// Find the best attachment point specifically for headphones
+        /// </summary>
+        public static Transform FindHeadphoneAttachmentPoint(Il2CppScheduleOne.PlayerScripts.Player player)
+        {
+            if (player == null)
+            {
+                LoggingSystem.Error("Player is null - cannot find headphone attachment point", "PlayerHeadDetector");
+                return null;
+            }
+
+            try
+            {
+                LoggingSystem.Debug("Searching for headphone-specific attachment point", "PlayerHeadDetector");
+
+                // Method 1: Try to get avatar head bone (most reliable)
+                var avatar = player.Avatar;
+                if (avatar != null)
+                {
+                    var headBone = avatar.HeadBone;
+                    if (headBone != null)
+                    {
+                        LoggingSystem.Info($"Found Avatar.HeadBone: {headBone.name}", "PlayerHeadDetector");
+                        
+                        // Check if the head bone has children that might be better for headphones
+                        var earChild = FindEarChildBone(headBone);
+                        if (earChild != null)
+                        {
+                            LoggingSystem.Info($"Found better ear attachment point: {earChild.name}", "PlayerHeadDetector");
+                            return earChild;
+                        }
+
+                        // HeadBone is good enough - it's the actual head bone from the avatar system
+                        LoggingSystem.Info($"Using Avatar.HeadBone for headphones: {headBone.name}", "PlayerHeadDetector");
+                        return headBone;
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning("Avatar found but HeadBone is null", "PlayerHeadDetector");
+                    }
+                }
+                else
+                {
+                    LoggingSystem.Warning("Player avatar not found", "PlayerHeadDetector");
+                }
+
+                // Method 2: Search for head-like bones in the player hierarchy (fallback)
+                var headTransform = FindHeadByName(player.transform);
+                if (headTransform != null)
+                {
+                    LoggingSystem.Info($"Found head by name search: {headTransform.name}", "PlayerHeadDetector");
+                    
+                    // Check if this head has ear children
+                    var earChild = FindEarChildBone(headTransform);
+                    if (earChild != null)
+                    {
+                        LoggingSystem.Info($"Found ear child from head search: {earChild.name}", "PlayerHeadDetector");
+                        return earChild;
+                    }
+
+                    return headTransform;
+                }
+
+                // Method 3: Try to find any head/ear specific bones by name
+                var earAttachment = FindEarAttachmentPoint(player.transform);
+                if (earAttachment != null)
+                {
+                    LoggingSystem.Info($"Found ear attachment point by name: {earAttachment.name}", "PlayerHeadDetector");
+                    return earAttachment;
+                }
+
+                // Method 4: Final fallback to player transform
+                LoggingSystem.Warning("No suitable headphone attachment point found, using player transform", "PlayerHeadDetector");
+                return player.transform;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error finding headphone attachment point: {ex.Message}", "PlayerHeadDetector");
+                return player.transform; // Final fallback
+            }
+        }
+
         #endregion
 
         #region Private Helper Methods
@@ -141,7 +223,17 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// </summary>
         private static Transform FindHeadByName(Transform root)
         {
-            string[] headNames = { "Head", "head", "HEAD", "Bip01_Head", "mixamorig:Head" };
+            // Common Unity/Mixamo head bone naming patterns
+            string[] headNames = { 
+                // Mixamo standard naming
+                "mixamorig:Head", 
+                // Standard Unity naming
+                "Head", "head", 
+                // Common variations
+                "Head_01", "head_01", "Head1", "head1",
+                // Humanoid rig standard
+                "Bip01_Head", "bip01_head"
+            };
 
             foreach (var headName in headNames)
             {
@@ -167,6 +259,106 @@ namespace BackSpeakerMod.Core.Common.Helpers
             for (int i = 0; i < parent.childCount; i++)
             {
                 var result = FindChildByName(parent.GetChild(i), name);
+                if (result != null)
+                    return result;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Find ear-specific attachment points
+        /// </summary>
+        private static Transform FindEarAttachmentPoint(Transform root)
+        {
+            // Common Unity/Mixamo bone naming patterns for heads and ears
+            string[] headEarNames = { 
+                // Head end points (common in Mixamo rigs)
+                "mixamorig:HeadTop_End", "HeadTop_End", "Head_End", 
+                // Actual ear bones (less common but possible)
+                "mixamorig:LeftEar", "mixamorig:RightEar", 
+                "LeftEar", "RightEar", "Ear_L", "Ear_R",
+                // Head variations that might be closer to ears
+                "mixamorig:Head1", "Head1", "head1"
+            };
+
+            foreach (var boneName in headEarNames)
+            {
+                var found = FindChildByName(root, boneName);
+                if (found != null)
+                {
+                    LoggingSystem.Debug($"Found head/ear bone by name pattern: {boneName}", "PlayerHeadDetector");
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Find ear child bones from a head bone
+        /// </summary>
+        private static Transform FindEarChildBone(Transform headBone)
+        {
+            if (headBone == null) return null;
+
+            LoggingSystem.Debug($"Searching for ear bones in HeadBone children. HeadBone: {headBone.name}, Child count: {headBone.childCount}", "PlayerHeadDetector");
+
+            // Look for children with ear-like names
+            for (int i = 0; i < headBone.childCount; i++)
+            {
+                var child = headBone.GetChild(i);
+                var childName = child.name.ToLower();
+                
+                LoggingSystem.Debug($"  Child {i}: {child.name}", "PlayerHeadDetector");
+                
+                // Look for common ear bone patterns
+                if (childName.Contains("ear") || 
+                    childName.Contains("end") || 
+                    childName.Contains("top"))
+                {
+                    LoggingSystem.Info($"Found ear child bone: {child.name}", "PlayerHeadDetector");
+                    return child;
+                }
+            }
+
+            // If no specific ear bones, look for the highest positioned child
+            // (ears are typically higher on the head than other features)
+            Transform highestChild = null;
+            float highestY = float.MinValue;
+
+            for (int i = 0; i < headBone.childCount; i++)
+            {
+                var child = headBone.GetChild(i);
+                var worldPos = child.position;
+                
+                if (worldPos.y > highestY)
+                {
+                    highestY = worldPos.y;
+                    highestChild = child;
+                }
+            }
+
+            if (highestChild != null)
+            {
+                LoggingSystem.Debug($"Using highest positioned child as ear candidate: {highestChild.name} (Y: {highestY})", "PlayerHeadDetector");
+                return highestChild;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Find child with partial name match
+        /// </summary>
+        private static Transform FindChildWithPartialName(Transform parent, string partialName)
+        {
+            if (parent.name.ToLower().Contains(partialName.ToLower()))
+                return parent;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var result = FindChildWithPartialName(parent.GetChild(i), partialName);
                 if (result != null)
                     return result;
             }
