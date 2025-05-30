@@ -18,6 +18,9 @@ namespace BackSpeakerMod.Configuration
             public static bool EnablePhysics = false;
             public static bool AutoAttachOnSpawn = true; // Auto-attach headphones
             public static bool EnableVisibilityDebugging = false;
+            public static bool ApplyCustomMaterials = true; // Enable URP material application
+            public static bool EnableMaterialDebugging = false; // Debug material properties
+            public static bool ValidateMaterialShaders = true; // Validate URP shader compatibility
         }
 
         /// <summary>
@@ -38,33 +41,14 @@ namespace BackSpeakerMod.Configuration
         /// </summary>
         public static class Placement
         {
-            public static bool Enabled 
-            { 
-                get => FeatureToggleSystem.Placement.Enabled; 
-                set => FeatureToggleSystem.Placement.Enabled = value; 
-            }
-            
-            public static bool ShowPreview 
-            { 
-                get => FeatureToggleSystem.Placement.ShowPreview; 
-                set => FeatureToggleSystem.Placement.ShowPreview = value; 
-            }
-            
-            public static bool EnableRaycastDebugging 
-            { 
-                get => FeatureToggleSystem.Placement.EnableRaycastDebugging; 
-                set => FeatureToggleSystem.Placement.EnableRaycastDebugging = value; 
-            }
-            
-            public static bool ShowPlacementInstructions 
-            { 
-                get => FeatureToggleSystem.Placement.ShowPlacementInstructions; 
-                set => FeatureToggleSystem.Placement.ShowPlacementInstructions = value; 
-            }
+            public static bool Enabled = true;
+            public static bool ShowPreview = true;
+            public static bool EnableRaycastDebugging = false;
+            public static bool ShowPlacementInstructions = true;
         }
 
         /// <summary>
-        /// Testing and debug features
+        /// Testing features - backward compatibility wrapper
         /// </summary>
         public static class Testing
         {
@@ -134,38 +118,36 @@ namespace BackSpeakerMod.Configuration
         /// </summary>
         public static class UI
         {
-            public static bool ShowFeatureToggles 
-            { 
-                get => FeatureToggleSystem.UI.ShowFeatureToggles; 
-                set => FeatureToggleSystem.UI.ShowFeatureToggles = value; 
-            }
-            
-            public static bool ShowDebugPanels 
-            { 
-                get => FeatureToggleSystem.UI.ShowDebugPanels; 
-                set => FeatureToggleSystem.UI.ShowDebugPanels = value; 
-            }
-            
-            public static bool ShowStatusInformation 
-            { 
-                get => FeatureToggleSystem.UI.ShowStatusInformation; 
-                set => FeatureToggleSystem.UI.ShowStatusInformation = value; 
-            }
+            public static bool ShowFeatureToggles = true;
+            public static bool ShowDebugPanels = false;
+            public static bool ShowStatusInformation = true;
         }
 
         /// <summary>
         /// Check if any feature is enabled
         /// </summary>
-        public static bool AnyFeatureEnabled => FeatureToggleSystem.AnyFeatureEnabled;
+        public static bool AnyFeatureEnabled => 
+            Headphones.Enabled || Spheres.Enabled || Placement.Enabled || Testing.Enabled || Audio.Enabled;
 
         /// <summary>
-        /// Quick disable all features for performance testing
+        /// Enable material debugging for troubleshooting
         /// </summary>
-        public static void DisableAll() => FeatureToggleSystem.DisableAll();
+        public static void EnableMaterialDebugging()
+        {
+            Headphones.ShowDebugInfo = true;
+            Headphones.EnableMaterialDebugging = true;
+            Headphones.ValidateMaterialShaders = true;
+            LoggingSystem.Info("Material debugging enabled", "FeatureFlags");
+        }
 
         /// <summary>
-        /// Quick enable only essential features
+        /// Disable material debugging for performance
         /// </summary>
-        public static void EnableEssentialOnly() => FeatureToggleSystem.EnableEssentialOnly();
+        public static void DisableMaterialDebugging()
+        {
+            Headphones.EnableMaterialDebugging = false;
+            // Keep ShowDebugInfo as-is since it controls other things too
+            LoggingSystem.Info("Material debugging disabled", "FeatureFlags");
+        }
     }
 } 
