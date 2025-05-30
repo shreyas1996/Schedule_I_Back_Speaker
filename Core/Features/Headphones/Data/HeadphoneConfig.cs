@@ -154,7 +154,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Data
         /// <summary>
         /// Position offset from player head
         /// </summary>
-        public Vector3 PositionOffset { get; set; } = Vector3.zero;
+        public Vector3 PositionOffset { get; set; } = new Vector3(0f, 0.0011f, 0.0005f);
 
         /// <summary>
         /// Rotation offset from player head

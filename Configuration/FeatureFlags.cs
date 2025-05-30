@@ -21,6 +21,7 @@ namespace BackSpeakerMod.Configuration
             public static bool ApplyCustomMaterials = true; // Enable URP material application
             public static bool EnableMaterialDebugging = false; // Debug material properties
             public static bool ValidateMaterialShaders = true; // Validate URP shader compatibility
+            public static bool EnableBoneDiscovery = true; // Enable runtime bone discovery for debugging
         }
 
         /// <summary>

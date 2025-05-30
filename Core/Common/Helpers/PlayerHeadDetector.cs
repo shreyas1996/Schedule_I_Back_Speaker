@@ -1,6 +1,7 @@
 using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Common.Managers;
+using BackSpeakerMod.Configuration;
 using System;
 
 namespace BackSpeakerMod.Core.Common.Helpers
@@ -147,6 +148,12 @@ namespace BackSpeakerMod.Core.Common.Helpers
             {
                 LoggingSystem.Debug("Searching for headphone-specific attachment point", "PlayerHeadDetector");
 
+                // RUNTIME BONE DISCOVERY - Log all available bones first
+                if (FeatureFlags.Headphones.EnableBoneDiscovery)
+                {
+                    DiscoverAndLogAllBones(player);
+                }
+
                 // Method 1: Try to get avatar head bone (most reliable)
                 var avatar = player.Avatar;
                 if (avatar != null)
@@ -211,6 +218,73 @@ namespace BackSpeakerMod.Core.Common.Helpers
             {
                 LoggingSystem.Error($"Error finding headphone attachment point: {ex.Message}", "PlayerHeadDetector");
                 return player.transform; // Final fallback
+            }
+        }
+
+        /// <summary>
+        /// Discover and log all bones in the player hierarchy for debugging
+        /// </summary>
+        private static void DiscoverAndLogAllBones(Il2CppScheduleOne.PlayerScripts.Player player)
+        {
+            try
+            {
+                LoggingSystem.Info("=== RUNTIME BONE DISCOVERY ===", "PlayerHeadDetector");
+                LoggingSystem.Info($"Player: {player.name}", "PlayerHeadDetector");
+
+                // Check Avatar bones first
+                var avatar = player.Avatar;
+                if (avatar != null)
+                {
+                    LoggingSystem.Info("Avatar bone structure:", "PlayerHeadDetector");
+                    LoggingSystem.Info($"  HeadBone: {(avatar.HeadBone != null ? avatar.HeadBone.name : "NULL")}", "PlayerHeadDetector");
+                    
+                    // Log other avatar bones if they exist
+                    try
+                    {
+                        // These might exist in the Avatar class
+                        var avatarType = avatar.GetType();
+                        var fields = avatarType.GetFields();
+                        
+                        foreach (var field in fields)
+                        {
+                            if (field.FieldType == typeof(Transform) && field.Name.Contains("Bone"))
+                            {
+                                var boneTransform = field.GetValue(avatar) as Transform;
+                                LoggingSystem.Info($"  {field.Name}: {(boneTransform != null ? boneTransform.name : "NULL")}", "PlayerHeadDetector");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingSystem.Debug($"Could not inspect avatar fields: {ex.Message}", "PlayerHeadDetector");
+                    }
+                }
+
+                // Discover all transforms in hierarchy
+                LoggingSystem.Info("Full transform hierarchy:", "PlayerHeadDetector");
+                LogAllTransforms(player.transform, 0);
+
+                LoggingSystem.Info("=== END BONE DISCOVERY ===", "PlayerHeadDetector");
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to discover bones: {ex.Message}", "PlayerHeadDetector");
+            }
+        }
+
+        /// <summary>
+        /// Recursively log all transforms in hierarchy with indentation
+        /// </summary>
+        private static void LogAllTransforms(Transform parent, int depth)
+        {
+            if (depth > 10) return; // Prevent infinite recursion
+            
+            string indent = new string(' ', depth * 2);
+            LoggingSystem.Info($"{indent}- {parent.name} (Position: {parent.localPosition}, Children: {parent.childCount})", "PlayerHeadDetector");
+            
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                LogAllTransforms(parent.GetChild(i), depth + 1);
             }
         }
 
