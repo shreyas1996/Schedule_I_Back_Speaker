@@ -33,7 +33,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 ApplyVisibilityConfiguration(instance);
                 
                 // Apply URP materials at runtime
-                // ApplyMaterialConfiguration(instance, config);
+                ApplyMaterialConfiguration(instance, config);
 
                 LoggingSystem.Debug($"Created and positioned headphones: {instance.name}", "Headphones");
                 return instance;
@@ -65,59 +65,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
 
             transform.localScale = Vector3.Scale(transform.localScale, config.ScaleMultiplier);
 
-            // // Ensure headphones inherit the layer from their parent (usually player)
-            // if (transform.parent != null)
-            // {
-            //     // Try to find the actual player GameObject by traversing up the hierarchy
-            //     int targetLayer = FindPlayerLayer(transform);
-            //     SetLayerRecursively(instance, targetLayer);
-            //     LoggingSystem.Debug($"Set headphone layer to: {targetLayer} (Player layer should be 6)", "Headphones");
-            // }
-
             LoggingSystem.Debug($"Applied transform config - Pos: {transform.localPosition}, Rot: {transform.localRotation.eulerAngles}, Scale: {transform.localScale}", "Headphones");
-        }
-
-        /// <summary>
-        /// Set layer recursively for GameObject and all children
-        /// </summary>
-        private static void SetLayerRecursively(GameObject obj, int layer)
-        {
-            if (obj == null) return;
-            
-            LoggingSystem.Debug($"Setting layer {layer} on GameObject: {obj.name} (was layer {obj.layer})", "Headphones");
-            obj.layer = layer;
-            
-            // Apply to all children as well
-            for (int i = 0; i < obj.transform.childCount; i++)
-            {
-                SetLayerRecursively(obj.transform.GetChild(i).gameObject, layer);
-            }
-        }
-
-        /// <summary>
-        /// Find the player layer by traversing up the transform hierarchy
-        /// </summary>
-        private static int FindPlayerLayer(Transform transform)
-        {
-            // Player layer is typically layer 6
-            const int PLAYER_LAYER = 6;
-            
-            Transform current = transform;
-            while (current != null)
-            {
-                // Check if this transform is the player (has Player component or is named with "Player")
-                if (current.GetComponent<Il2CppScheduleOne.PlayerScripts.Player>() != null ||
-                    current.name.ToLower().Contains("player"))
-                {
-                    LoggingSystem.Debug($"Found player GameObject '{current.name}' on layer {current.gameObject.layer}", "Headphones");
-                    return current.gameObject.layer;
-                }
-                current = current.parent;
-            }
-            
-            // Fallback: Use the known player layer
-            LoggingSystem.Warning($"Could not find player GameObject in hierarchy, using default player layer {PLAYER_LAYER}", "Headphones");
-            return PLAYER_LAYER;
         }
 
         /// <summary>

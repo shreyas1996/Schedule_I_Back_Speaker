@@ -97,15 +97,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 {
                     LoggingSystem.Warning("Could not find player head - attaching to player root", "Headphones");
                     currentHeadphoneInstance.transform.SetParent(player.transform);
-                    currentHeadphoneInstance.transform.localPosition = config.PositionOffset;
-                    currentHeadphoneInstance.transform.localRotation = Quaternion.Euler(config.RotationOffset);
-                    currentHeadphoneInstance.transform.localScale = Vector3.Scale(currentHeadphoneInstance.transform.localScale, config.ScaleMultiplier);
-                    
-                    // Ensure headphones inherit the player's layer for proper visibility
-                    int playerLayer = FindPlayerLayer(player);
-                    SetLayerRecursively(currentHeadphoneInstance, playerLayer);
-                    
-                    LoggingSystem.Debug($"Applied fallback transform - Pos: {config.PositionOffset}, Rot: {config.RotationOffset}, Scale: {config.ScaleMultiplier}, Layer: {playerLayer}", "Headphones");
                     
                     // Apply URP materials when attached to player root (fallback case)
                     ApplyMaterialConfiguration(currentHeadphoneInstance);
@@ -114,11 +105,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 // Always apply materials to ensure they're correct regardless of attachment method
                 if (currentHeadphoneInstance != null)
                 {
-                    LoggingSystem.Debug("currentHeadphoneInstance is not Null! Applying URP materials to headphones", "HeadphoneAttachment");
                     ApplyMaterialConfiguration(currentHeadphoneInstance);
-                    // Ensure headphones inherit the player's layer for proper visibility
-                    int playerLayer = FindPlayerLayer(player);
-                    SetLayerRecursively(currentHeadphoneInstance, playerLayer);
                 }
 
                 // Update state
@@ -221,52 +208,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
             {
                 LoggingSystem.Error($"Failed to log material debug info: {ex.Message}", "Headphones");
             }
-        }
-
-        /// <summary>
-        /// Set layer recursively for GameObject and all children
-        /// </summary>
-        private static void SetLayerRecursively(GameObject obj, int layer)
-        {
-            if (obj == null) return;
-            
-            LoggingSystem.Debug($"Setting layer {layer} on GameObject: {obj.name} (was layer {obj.layer})", "Headphones");
-            obj.layer = layer;
-            
-            // Apply to all children as well
-            for (int i = 0; i < obj.transform.childCount; i++)
-            {
-                SetLayerRecursively(obj.transform.GetChild(i).gameObject, layer);
-            }
-        }
-
-        /// <summary>
-        /// Find the player layer, ensuring we use layer 6 for proper visibility
-        /// </summary>
-        private static int FindPlayerLayer(Il2CppScheduleOne.PlayerScripts.Player player)
-        {
-            // Player layer is typically layer 6
-            const int PLAYER_LAYER = 6;
-            
-            if (player != null)
-            {
-                LoggingSystem.Debug($"Player GameObject '{player.name}' is on layer {player.gameObject.layer}", "Headphones");
-                
-                // If player is on layer 6, use it, otherwise force layer 6
-                if (player.gameObject.layer == PLAYER_LAYER)
-                {
-                    return player.gameObject.layer;
-                }
-                else
-                {
-                    LoggingSystem.Warning($"Player is on unexpected layer {player.gameObject.layer}, forcing layer {PLAYER_LAYER}", "Headphones");
-                    return PLAYER_LAYER;
-                }
-            }
-            
-            // Fallback: Use the known player layer
-            LoggingSystem.Warning($"Player reference is null, using default player layer {PLAYER_LAYER}", "Headphones");
-            return PLAYER_LAYER;
         }
 
         /// <summary>
