@@ -7,77 +7,93 @@
     <RootNamespace>BackSpeakerMod</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ScheduleOnePath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/</ScheduleOnePath>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
+    <!-- <EmbeddedResource Include="EmbeddedResources\playerwithheadphones" />
+    <EmbeddedResource Include="EmbeddedResources\headphones" /> -->
+    <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" /> -->
+    <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
   </ItemGroup>
   
   <ItemGroup>
       <Compile Remove="my_references\**\*.cs" />
+      <!-- Exclude all sphere-related files since we're focusing on headphones -->
+      <Compile Remove="**/*Sphere*.cs" />
+      <Compile Remove="Core/Features/Spheres/**/*.cs" />
+      <Compile Remove="UI/Components/SphereControlPanel.cs" />
+      <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
 
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/Assembly-CSharp-firstpass.dll</HintPath>
+      <Reference Include="Assembly-CSharp-firstpass">
+        <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Il2CppFishNet.Runtime">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/Il2CppFishNet.Runtime.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2CppFishNet.Runtime.dll</HintPath>
 		</Reference>
     <Reference Include="Il2Cppmscorlib">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/Il2Cppmscorlib.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Il2CppAssetBundleManager.dll">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.TextRenderingModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.TextRenderingModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.UI.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIElementsModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.UIElementsModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UIElementsModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.UIModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UIModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.ImageConversionModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.ImageConversionModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.IMGUIModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.IMGUIModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.IMGUIModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.InputLegacyModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.InputLegacyModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.InputModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.InputModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.InputModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.JSONSerializeModule">
-			<HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/Il2CppAssemblies/UnityEngine.JSONSerializeModule.dll</HintPath>
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.JSONSerializeModule.dll</HintPath>
 		</Reference>
     <Reference Include="MelonLoader">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/net6/MelonLoader.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\MelonLoader.dll</HintPath>
     </Reference>
     <Reference Include="0Harmony">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/net6/0Harmony.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Il2CppInterop.Runtime">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/net6/Il2CppInterop.Runtime.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Il2CppInterop.Common">
-      <HintPath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/MelonLoader/net6/Il2CppInterop.Common.dll</HintPath>
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
 

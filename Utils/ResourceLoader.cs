@@ -15,7 +15,7 @@ namespace BackSpeakerMod.Utils
             {
                 if (stream == null)
                 {
-                    LoggerUtil.Error($"Resource {resourceName} not found!");
+                    // LoggerUtil.Error($"Resource {resourceName} not found!");
                     return null;
                 }
                 byte[] buffer = new byte[stream.Length];

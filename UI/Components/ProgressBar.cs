@@ -8,94 +8,158 @@ namespace BackSpeakerMod.UI.Components
 {
     public class ProgressBar : MonoBehaviour
     {
-        private BackSpeakerManager manager;
-        private Slider progressSlider;
-        private Text currentTimeText;
-        private Text totalTimeText;
+        // IL2CPP compatibility - explicit field initialization
+        private BackSpeakerManager? manager = null;
+        private Slider? progressSlider = null;
+        private Text? timeText = null;
         private bool isDragging = false;
+
+        // IL2CPP compatibility - explicit parameterless constructor
+        public ProgressBar() : base() { }
 
         public void Setup(BackSpeakerManager manager, RectTransform parent)
         {
-            this.manager = manager;
-            LoggerUtil.Info("ProgressBar: Setting up progress controls");
-            
-            // Modern progress bar layout - positioned between song info and controls
-            
-            // Create current time text (left)
-            currentTimeText = UIFactory.CreateText(
-                parent,
-                "CurrentTime",
-                "0:00",
-                new Vector2(-140f, 35f), // Better positioning for modern layout
-                new Vector2(60f, 20f),
-                14 // Smaller, cleaner font
-            );
-            currentTimeText.alignment = TextAnchor.MiddleLeft;
-            
-            // Create progress slider (center) - Spotify-style
-            progressSlider = UIFactory.CreateSlider(
-                parent,
-                "ProgressSlider",
-                new Vector2(0f, 35f), // Positioned between song info and main controls
-                new Vector2(280f, 20f), // Wider for better interaction
-                0f, 1f, 0f
-            );
-            
-            // Add event listeners for seeking
-            progressSlider.onValueChanged.AddListener((UnityEngine.Events.UnityAction<float>)OnProgressChanged);
-            
-            // We need to detect when user starts/stops dragging
-            var eventTrigger = progressSlider.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-            
-            // Pointer down - start dragging
-            var pointerDown = new UnityEngine.EventSystems.EventTrigger.Entry();
-            pointerDown.eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown;
-            pointerDown.callback.AddListener((UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData>)OnDragStart);
-            eventTrigger.triggers.Add(pointerDown);
-            
-            // Pointer up - stop dragging
-            var pointerUp = new UnityEngine.EventSystems.EventTrigger.Entry();
-            pointerUp.eventID = UnityEngine.EventSystems.EventTriggerType.PointerUp;
-            pointerUp.callback.AddListener((UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData>)OnDragEnd);
-            eventTrigger.triggers.Add(pointerUp);
-            
-            // Create total time text (right)
-            totalTimeText = UIFactory.CreateText(
-                parent,
-                "TotalTime",
-                "0:00",
-                new Vector2(140f, 35f), // Positioned to the right
-                new Vector2(60f, 20f),
-                14 // Smaller, cleaner font
-            );
-            totalTimeText.alignment = TextAnchor.MiddleRight;
-            
-            LoggerUtil.Info("ProgressBar: Setup completed");
+            try
+            {
+                this.manager = manager;
+                // LoggerUtil.Info("ProgressBar: Setting up modern Spotify-style progress bar");
+                
+                // Modern progress bar with Spotify styling - positioned below display area
+                progressSlider = UIFactory.CreateSlider(
+                    parent.transform,
+                    "ProgressSlider",
+                    new Vector2(0f, -10f), // Clear spacing below artist info
+                    new Vector2(300f, 20f), // Wide for easy seeking
+                    0f,
+                    1f,
+                    0f
+                );
+                
+                // Make progress slider interactive for seeking
+                progressSlider.onValueChanged.AddListener((UnityEngine.Events.UnityAction<float>)OnProgressChanged);
+                
+                // Apply Spotify-style colors to the progress slider
+                ApplySpotifyProgressStyling(progressSlider);
+                
+                // Add event handlers for dragging detection
+                var eventTrigger = progressSlider.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+                
+                var pointerDownEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
+                pointerDownEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown;
+                pointerDownEntry.callback.AddListener((UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData>)OnPointerDown);
+                eventTrigger.triggers.Add(pointerDownEntry);
+                
+                var pointerUpEntry = new UnityEngine.EventSystems.EventTrigger.Entry();
+                pointerUpEntry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerUp;
+                pointerUpEntry.callback.AddListener((UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData>)OnPointerUp);
+                eventTrigger.triggers.Add(pointerUpEntry);
+                
+                // LoggerUtil.Info("ProgressBar: Progress slider created with seeking functionality");
+                
+                // Time display with Spotify styling - shows current time / total time, clearly visible
+                timeText = UIFactory.CreateText(
+                    parent.transform,
+                    "TimeDisplay",
+                    "0:00 / 0:00",
+                    new Vector2(0f, -40f), // Well below progress bar, clear of controls
+                    new Vector2(200f, 25f),
+                    14 // Readable font for time info
+                );
+                
+                // Apply Spotify-style text color - make it more visible
+                timeText.color = new Color(0.9f, 0.9f, 0.9f, 1f); // Bright gray for better visibility
+                timeText.fontStyle = FontStyle.Normal;
+                
+                // LoggerUtil.Info("ProgressBar: Time display created with enhanced visibility");
+                
+                // LoggerUtil.Info("ProgressBar: Modern Spotify-style setup completed");
+            }
+            catch (System.Exception _)
+            {
+                // LoggerUtil.Error($"ProgressBar: Setup failed: {ex}");
+                throw;
+            }
         }
 
-        private void OnDragStart(UnityEngine.EventSystems.BaseEventData eventData)
+        private void ApplySpotifyProgressStyling(Slider slider)
+        {
+            if (slider == null) return;
+            
+            try
+            {
+                // Style the background track (darker gray for progress)
+                var backgroundRect = slider.transform.Find("Background");
+                if (backgroundRect != null)
+                {
+                    var backgroundImage = backgroundRect.GetComponent<Image>();
+                    if (backgroundImage != null)
+                    {
+                        backgroundImage.color = new Color(0.25f, 0.25f, 0.25f, 0.6f); // Medium gray track
+                    }
+                }
+                
+                // Style the fill area (brighter Spotify green for progress)
+                var fillAreaRect = slider.transform.Find("Fill Area");
+                if (fillAreaRect != null)
+                {
+                    var fillRect = fillAreaRect.Find("Fill");
+                    if (fillRect != null)
+                    {
+                        var fillImage = fillRect.GetComponent<Image>();
+                        if (fillImage != null)
+                        {
+                            fillImage.color = new Color(0.11f, 0.73f, 0.33f, 1f); // Bright Spotify green
+                        }
+                    }
+                }
+                
+                // Style the handle (white with good contrast)
+                var handleSlideAreaRect = slider.transform.Find("Handle Slide Area");
+                if (handleSlideAreaRect != null)
+                {
+                    var handleRect = handleSlideAreaRect.Find("Handle");
+                    if (handleRect != null)
+                    {
+                        var handleImage = handleRect.GetComponent<Image>();
+                        if (handleImage != null)
+                        {
+                            handleImage.color = new Color(1f, 1f, 1f, 1f); // Pure white handle
+                        }
+                        
+                        // Make the handle appropriately sized for progress seeking
+                        var handleRectTransform = handleRect.GetComponent<RectTransform>();
+                        if (handleRectTransform != null)
+                        {
+                            handleRectTransform.sizeDelta = new Vector2(12f, 12f); // Compact but usable handle
+                        }
+                    }
+                }
+                
+                // LoggerUtil.Info("ProgressBar: Spotify styling applied to progress slider");
+            }
+            catch (System.Exception _)
+            {
+                // LoggerUtil.Error($"ProgressBar: Failed to apply Spotify styling: {ex}");
+            }
+        }
+
+        private void OnPointerDown(UnityEngine.EventSystems.BaseEventData eventData)
         {
             isDragging = true;
-            LoggerUtil.Info("ProgressBar: Started dragging");
         }
 
-        private void OnDragEnd(UnityEngine.EventSystems.BaseEventData eventData)
+        private void OnPointerUp(UnityEngine.EventSystems.BaseEventData eventData)
         {
             isDragging = false;
-            LoggerUtil.Info($"ProgressBar: Stopped dragging at {progressSlider.value:F2}");
-            // Seek to the new position
-            manager.SeekToProgress(progressSlider.value);
         }
 
         private void OnProgressChanged(float value)
         {
-            // Only seek if user is actively dragging (not during automatic updates)
-            if (isDragging)
+            // Only seek when user is actively dragging (not when we're updating programmatically)
+            if (isDragging && manager != null)
             {
-                // Don't seek on every frame while dragging, wait for drag end
-                // But update the time display
-                float targetTime = value * manager.TotalTime;
-                currentTimeText.text = FormatTime(targetTime);
+                manager.SeekToProgress(value);
+                // LoggerUtil.Info($"ProgressBar: User seeked to {value:P0}");
             }
         }
 
@@ -105,48 +169,38 @@ namespace BackSpeakerMod.UI.Components
             
             try
             {
-                // Update slider position (but not while user is dragging)
-                if (progressSlider != null && !isDragging)
+                // Only update slider if user isn't dragging it
+                if (!isDragging && progressSlider != null)
                 {
-                    float progress = manager.Progress;
-                    if (!float.IsNaN(progress) && !float.IsInfinity(progress))
-                    {
-                        progressSlider.value = progress;
-                    }
+                    progressSlider.value = manager.Progress;
                 }
                 
-                // Always update time displays (even while dragging for real-time feedback)
-                if (currentTimeText != null)
+                // Always update time display
+                if (timeText != null)
                 {
-                    float currentTime = isDragging ? (progressSlider.value * manager.TotalTime) : manager.CurrentTime;
-                    currentTimeText.text = FormatTime(currentTime);
-                }
-                
-                if (totalTimeText != null)
-                {
-                    totalTimeText.text = FormatTime(manager.TotalTime);
+                    float currentTime = manager.CurrentTime;
+                    float totalTime = manager.TotalTime;
+                    
+                    string currentTimeStr = FormatTime(currentTime);
+                    string totalTimeStr = FormatTime(totalTime);
+                    
+                    timeText.text = $"{currentTimeStr} / {totalTimeStr}";
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception _)
             {
-                LoggerUtil.Error($"ProgressBar: UpdateProgress failed: {ex}");
+                // LoggerUtil.Error($"ProgressBar: UpdateProgress failed: {ex}");
             }
-        }
-        
-        // Call this every frame for smooth updates
-        void Update()
-        {
-            UpdateProgress();
         }
 
-        private string FormatTime(float seconds)
+        private string FormatTime(float timeInSeconds)
         {
-            if (float.IsNaN(seconds) || float.IsInfinity(seconds))
+            if (float.IsNaN(timeInSeconds) || timeInSeconds < 0)
                 return "0:00";
                 
-            int minutes = Mathf.FloorToInt(seconds / 60f);
-            int secs = Mathf.FloorToInt(seconds % 60f);
-            return $"{minutes}:{secs:D2}";
+            int minutes = Mathf.FloorToInt(timeInSeconds / 60f);
+            int seconds = Mathf.FloorToInt(timeInSeconds % 60f);
+            return $"{minutes}:{seconds:D2}";
         }
     }
 } 

@@ -2,185 +2,171 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Components;
+using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.UI
 {
     public class BackSpeakerScreen : MonoBehaviour
     {
-        private BackSpeakerManager manager;
-        private DisplayPanel displayPanel;
-        private MusicControlPanel controlPanel;
-        private VolumeControl volumeControl;
-        private ProgressBar progressBar;
-        private PlaylistPanel playlistPanel;
+        // IL2CPP compatibility - explicit field initialization
+        private BackSpeakerManager? manager = null;
+        private RectTransform? parentContainer = null;
+        
+        // UI Components
+        private DisplayPanel? displayPanel = null;
+        private ProgressBar? progressBar = null;
+        private MusicControlPanel? musicControlPanel = null;
+        private VolumeControl? volumeControl = null;
+        private PlaylistPanel? playlistPanel = null;
+        private HeadphoneControlPanel? headphoneControlPanel = null;
+        
+        // Layout management
+        private RectTransform? controlsContainer = null;
+        private bool isPlaylistOpen = false;
+        private Vector2 controlsClosedPosition = Vector2.zero;
+        private Vector2 controlsOpenPosition = new Vector2(-200f, 0f); // Center in left 50% area (25% from original center)
+        
+        // IL2CPP compatibility - explicit parameterless constructor
+        public BackSpeakerScreen() : base() { }
 
-        public void Setup(BackSpeakerManager manager, Image imgBackground)
+        public void Setup(BackSpeakerManager manager)
         {
             try
             {
-                LoggerUtil.Info("BackSpeakerScreen: Starting setup");
-                
-                if (imgBackground == null)
-                {
-                    LoggerUtil.Error("BackSpeakerScreen: imgBackground is null!");
-                    return;
-                }
-                
-                if (manager == null)
-                {
-                    LoggerUtil.Error("BackSpeakerScreen: manager is null!");
-                    return;
-                }
-                
                 this.manager = manager;
                 
-                // Subscribe to tracks reload event
-                manager.OnTracksReloaded += UpdateDisplay;
+                // Find the parent container (should be the app's main container)
+                FindParentContainer();
+                CreateControlsContainer();
+                SetupUIComponents();
                 
-                // Get the transforms we need - CRITICAL: Use container like Drones does
-                Transform canvasTransform = imgBackground.GetComponentInParent<Canvas>().transform;
-                RectTransform bgRectTransform = imgBackground.rectTransform;
-                
-                LoggerUtil.Info("BackSpeakerScreen: Setting up components");
-                LoggerUtil.Info($"BackSpeakerScreen: Canvas transform: {canvasTransform?.name}, Background: {bgRectTransform?.name}");
-                
-                // IMPORTANT: All UI elements should be children of imgBackground, not canvas level
-                // This prevents UI bleeding to other apps
-                
-                // Modern music app layout - vertical sections with proper spacing
-                
-                // Set up display panel (song info - larger, centered)
-                var displayObj = new GameObject("DisplayPanel");
-                displayObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    displayPanel = displayObj.AddComponent<DisplayPanel>();
-                    displayPanel.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("DisplayPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create DisplayPanel: {ex}");
-                    throw;
-                }
-                
-                // Set up progress bar (above main controls)
-                var progressObj = new GameObject("ProgressBar");
-                progressObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    progressBar = progressObj.AddComponent<ProgressBar>();
-                    progressBar.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("ProgressBar created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create ProgressBar: {ex}");
-                    throw;
-                }
-                
-                // Set up control panel (main playback controls)
-                var controlObj = new GameObject("MusicControlPanel");
-                controlObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    controlPanel = controlObj.AddComponent<MusicControlPanel>();
-                    controlPanel.Setup(manager, imgBackground.transform);
-                    LoggerUtil.Info("MusicControlPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create MusicControlPanel: {ex}");
-                    throw;
-                }
-                
-                // Set up volume control (part of secondary controls)
-                var volumeObj = new GameObject("VolumeControl");
-                volumeObj.transform.SetParent(imgBackground.transform, false);
-                try
-                {
-                    volumeControl = volumeObj.AddComponent<VolumeControl>();
-                    volumeControl.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("VolumeControl created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create VolumeControl: {ex}");
-                    throw;
-                }
-                
-                // Set up playlist panel (hidden by default, toggle to show)
-                var playlistObj = new GameObject("PlaylistPanel");
-                playlistObj.transform.SetParent(imgBackground.transform, false); // Keep within bounds
-                try
-                {
-                    playlistPanel = playlistObj.AddComponent<PlaylistPanel>();
-                    playlistPanel.Setup(manager, bgRectTransform);
-                    LoggerUtil.Info("PlaylistPanel created successfully");
-                }
-                catch (System.Exception ex)
-                {
-                    LoggerUtil.Error($"Failed to create PlaylistPanel: {ex}");
-                    throw;
-                }
-                
-                // Note: Playlist integration temporarily removed for stability
-                
-                // Initial display update
-                UpdateDisplay();
-                
-                LoggerUtil.Info("BackSpeakerScreen: Setup completed successfully");
+                LoggingSystem.Info("BackSpeaker UI initialized", "UI");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                LoggerUtil.Error($"BackSpeakerScreen: Setup failed with exception: {ex}");
+                LoggingSystem.Error($"BackSpeaker UI setup failed: {ex.Message}", "UI");
+                throw;
             }
         }
 
-        public void UpdateDisplay()
+        private void FindParentContainer()
+        {
+            // The BackSpeakerScreen is created as a child of the app canvas
+            // We need to find the appropriate container to work within
+            Transform current = this.transform;
+            
+            // Look for the Container or similar structure
+            while (current != null)
+            {
+                var container = current.FindChild("Container");
+                if (container != null)
+                {
+                    parentContainer = container.GetComponent<RectTransform>();
+                    break;
+                }
+                current = current.parent;
+            }
+            
+            // Fallback to using this transform if no container found
+            if (parentContainer == null)
+            {
+                parentContainer = this.GetComponent<RectTransform>();
+                if (parentContainer == null)
+                {
+                    parentContainer = this.gameObject.AddComponent<RectTransform>();
+                }
+            }
+            
+            // Set up this object's RectTransform to fill the parent
+            var myRect = this.GetComponent<RectTransform>();
+            if (myRect == null)
+            {
+                myRect = this.gameObject.AddComponent<RectTransform>();
+            }
+            
+            myRect.anchorMin = Vector2.zero;
+            myRect.anchorMax = Vector2.one;
+            myRect.offsetMin = Vector2.zero;
+            myRect.offsetMax = Vector2.zero;
+        }
+
+        private void CreateControlsContainer()
+        {
+            // Create a container for all the music controls so we can move them as a group
+            var containerObj = new GameObject("ControlsContainer");
+            containerObj.transform.SetParent(this.transform, false);
+            
+            controlsContainer = containerObj.AddComponent<RectTransform>();
+            controlsContainer.anchorMin = new Vector2(0.5f, 0.5f);
+            controlsContainer.anchorMax = new Vector2(0.5f, 0.5f);
+            controlsContainer.pivot = new Vector2(0.5f, 0.5f);
+            controlsContainer.anchoredPosition = controlsClosedPosition;
+            controlsContainer.sizeDelta = new Vector2(400f, 600f);
+        }
+
+        private void SetupUIComponents()
+        {
+            // Setup display panel (album art, track info) - top section
+            displayPanel = gameObject.AddComponent<DisplayPanel>();
+            displayPanel.Setup(manager, controlsContainer);
+            
+            // Setup progress bar - below display, proper spacing
+            progressBar = gameObject.AddComponent<ProgressBar>();
+            progressBar.Setup(manager, controlsContainer);
+            
+            // Setup music controls - below progress bar, proper spacing  
+            musicControlPanel = gameObject.AddComponent<MusicControlPanel>();
+            musicControlPanel.Setup(manager, controlsContainer);
+            
+            // Setup volume control - below music controls, proper spacing
+            volumeControl = gameObject.AddComponent<VolumeControl>();
+            volumeControl.Setup(manager, controlsContainer);
+            
+            // Setup headphone control panel - below volume control with extra spacing
+            headphoneControlPanel = gameObject.AddComponent<HeadphoneControlPanel>();
+            headphoneControlPanel.Setup(manager, controlsContainer);
+            
+            // Setup playlist panel - uses the parent container for full screen management
+            playlistPanel = gameObject.AddComponent<PlaylistPanel>();
+            playlistPanel.Setup(manager, parentContainer, this);
+            
+            // Create playlist toggle button in the controls container so it shifts with other controls
+            playlistPanel.CreateToggleButton(controlsContainer);
+        }
+
+        public void OnPlaylistToggle(bool isOpen)
+        {
+            isPlaylistOpen = isOpen;
+            
+            // Animate the controls container position
+            if (controlsContainer != null)
+            {
+                Vector2 targetPosition = isOpen ? controlsOpenPosition : controlsClosedPosition;
+                controlsContainer.anchoredPosition = targetPosition;
+            }
+        }
+
+        public void Update()
         {
             try
             {
-                displayPanel?.UpdateDisplay();
-                controlPanel?.UpdateButtonText();
-                volumeControl?.UpdateVolume();
-                progressBar?.UpdateProgress();
-                playlistPanel?.UpdatePlaylist();
-                LoggerUtil.Info("BackSpeakerScreen: Display updated");
-            }
-            catch (Exception ex)
-            {
-                LoggerUtil.Error($"BackSpeakerScreen: UpdateDisplay failed: {ex}");
-            }
-        }
-        
-        private float lastUIUpdate = 0f;
-        
-        void Update()
-        {
-            if (manager != null)
-            {
-                manager.Update();
+                if (manager == null) return;
                 
-                // Update UI components at 10fps instead of every frame to reduce overhead
-                if (Time.time - lastUIUpdate > 0.1f)
-                {
-                    displayPanel?.UpdateDisplay();
-                    progressBar?.UpdateProgress();
-                    volumeControl?.UpdateVolume();
-                    controlPanel?.UpdateButtonText();
-                    lastUIUpdate = Time.time;
-                }
+                // Update all UI components
+                displayPanel?.UpdateDisplay();
+                progressBar?.UpdateProgress();
+                musicControlPanel?.UpdateButtonText();
+                volumeControl?.UpdateVolume();
+                headphoneControlPanel?.UpdateStatus();
+                playlistPanel?.UpdatePlaylist();
             }
-        }
-        
-        void OnDestroy()
-        {
-            // Unsubscribe from events to prevent memory leaks
-            if (manager != null)
-                manager.OnTracksReloaded -= UpdateDisplay;
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"BackSpeaker UI update failed: {ex.Message}", "UI");
+            }
         }
     }
 } 

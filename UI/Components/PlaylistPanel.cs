@@ -1,227 +1,397 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using System.Linq;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
-using System.Collections.Generic;
+using BackSpeakerMod.UI.Components.Playlist;
 
 namespace BackSpeakerMod.UI.Components
 {
     public class PlaylistPanel : MonoBehaviour
     {
-        private BackSpeakerManager manager;
-        private ScrollRect scrollRect;
-        private RectTransform contentRect;
-        private List<Button> trackButtons = new List<Button>();
-        private List<Text> trackTexts = new List<Text>();
+        // Core dependencies
+        private BackSpeakerManager manager = null;
+        private BackSpeakerScreen mainScreen = null;
+        private RectTransform canvasRect = null;
+        
+        // UI Components
+        private Button toggleButton = null;
+        private GameObject playlistContainer = null;
+        private ScrollRect scrollRect = null;
+        private Transform contentParent = null;
+        private bool isVisible = false;
+        
+        // Extracted functionality
+        private PlaylistSearch searchComponent;
+        private PlaylistRenderer renderComponent;
+        
+        // Change detection to prevent constant recreation
+        private int lastTrackCount = -1;
+        private int lastCurrentTrackIndex = -1;
+        private string lastSearchQuery = "";
+        private bool needsPlaylistRefresh = false;
 
-        public void Setup(BackSpeakerManager manager, RectTransform parent)
+        // IL2CPP compatibility - explicit parameterless constructor
+        public PlaylistPanel() : base() { }
+
+        public void Setup(BackSpeakerManager manager, RectTransform canvasRect, BackSpeakerScreen mainScreen)
         {
-            this.manager = manager;
-            LoggerUtil.Info("PlaylistPanel: Setting up overlay playlist");
+            try
+            {
+                this.manager = manager;
+                this.canvasRect = canvasRect;
+                this.mainScreen = mainScreen;
+                
+                // Initialize extracted components
+                InitializeComponents();
+                
+                // Create playlist container first (but keep it hidden)
+                CreatePlaylistContainer();
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"PlaylistPanel: Setup failed: {ex.Message}", "UI");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Initialize extracted components
+        /// </summary>
+        private void InitializeComponents()
+        {
+            searchComponent = new PlaylistSearch();
+            renderComponent = new PlaylistRenderer();
             
-            // Create overlay playlist that covers the main UI when visible
-            var playlistObj = new GameObject("PlaylistPanel");
-            var playlistRect = playlistObj.AddComponent<RectTransform>();
-            playlistObj.transform.SetParent(parent, false);
+            // Wire up events
+            searchComponent.OnSearchChanged += OnSearchChanged;
+            renderComponent.OnTrackSelected += OnTrackSelected;
+        }
+
+        private void CreatePlaylistContainer()
+        {
+            // PROTECTION: Don't create multiple containers
+            if (playlistContainer != null)
+            {
+                return;
+            }
             
-            // Cover the entire UI area when shown
-            playlistRect.anchorMin = Vector2.zero;
-            playlistRect.anchorMax = Vector2.one;
-            playlistRect.pivot = new Vector2(0.5f, 0.5f);
-            playlistRect.anchoredPosition = Vector2.zero;
-            playlistRect.sizeDelta = Vector2.zero; // Fill parent
+            playlistContainer = new GameObject("PlaylistContainer");
+            playlistContainer.transform.SetParent(canvasRect.transform, false);
             
-            // Add semi-transparent background
-            var bgImage = playlistObj.AddComponent<Image>();
-            bgImage.color = new Color(0.0f, 0.0f, 0.0f, 0.9f); // Dark overlay background
+            var containerRect = playlistContainer.AddComponent<RectTransform>();
+            // Position on the right side with proper 50/50 split
+            containerRect.anchorMin = new Vector2(0.5f, 0f);
+            containerRect.anchorMax = new Vector2(1f, 1f);
+            containerRect.offsetMin = new Vector2(10f, 10f);
+            containerRect.offsetMax = new Vector2(-10f, -10f);
             
-            // Start hidden
-            playlistObj.SetActive(false);
+            // Ensure NO background image when container is created
+            var existingImages = playlistContainer.GetComponents<Image>();
+            for (int i = existingImages.Length - 1; i >= 0; i--)
+            {
+                if (existingImages[i] != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(existingImages[i]);
+                }
+            }
             
-            // Create title
+            // LoggerUtil.Info("PlaylistPanel: PlaylistContainer created with NO background components");
+            
+            // Create title at the TOP of the playlist container - fix positioning
             var titleText = UIFactory.CreateText(
-                playlistRect,
+                playlistContainer.transform,
                 "PlaylistTitle",
-                "PLAYLIST",
-                new Vector2(0f, -15f),
-                new Vector2(180f, 20f),
-                16
+                "♫ Music Playlist ♫",
+                new Vector2(0f, 0f),
+                new Vector2(220f, 30f),
+                18
             );
-            titleText.alignment = TextAnchor.MiddleCenter;
-            titleText.fontStyle = FontStyle.Bold;
+            titleText.color = new Color(1f, 1f, 1f, 1f);
             
-            // Create scroll rect
-            var scrollObj = new GameObject("ScrollArea");
+            // Position title at the TOP of the container
+            var titleRect = titleText.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.offsetMin = new Vector2(0f, -35f);
+            titleRect.offsetMax = new Vector2(0f, -5f);
+            
+            // Create search functionality using extracted component
+            searchComponent.CreateSearchInterface(playlistContainer.transform);
+            
+            // Create scroll view for track list
+            CreateScrollView();
+            
+            // Initialize render component
+            renderComponent.Initialize(contentParent, scrollRect);
+            
+            // Start completely hidden
+            playlistContainer.SetActive(false);
+            isVisible = false;
+            
+        }
+
+        private void CreateScrollView()
+        {
+            var scrollObj = new GameObject("ScrollView");
+            scrollObj.transform.SetParent(playlistContainer.transform, false);
+            
             var scrollRectTransform = scrollObj.AddComponent<RectTransform>();
-            scrollObj.transform.SetParent(playlistRect, false);
-            
             scrollRectTransform.anchorMin = new Vector2(0f, 0f);
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
-            scrollRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            scrollRectTransform.anchoredPosition = new Vector2(0f, -15f); // Below title
-            scrollRectTransform.sizeDelta = new Vector2(-10f, -40f); // Margins
+            scrollRectTransform.offsetMin = new Vector2(15f, 15f); // Bottom margin
+            scrollRectTransform.offsetMax = new Vector2(-15f, -85f); // Leave space for title (35px) + search (30px) + margin (20px)
             
             scrollRect = scrollObj.AddComponent<ScrollRect>();
             scrollRect.horizontal = false;
             scrollRect.vertical = true;
             
-            // Create content area
+            // Create content area for track buttons
             var contentObj = new GameObject("Content");
-            contentRect = contentObj.AddComponent<RectTransform>();
-            contentObj.transform.SetParent(scrollRectTransform, false);
+            contentObj.transform.SetParent(scrollObj.transform, false);
             
+            var contentRect = contentObj.AddComponent<RectTransform>();
             contentRect.anchorMin = new Vector2(0f, 1f);
             contentRect.anchorMax = new Vector2(1f, 1f);
             contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.sizeDelta = new Vector2(0f, 100f); // Will resize based on content
             contentRect.anchoredPosition = Vector2.zero;
-            contentRect.sizeDelta = new Vector2(0f, 0f); // Will be resized based on content
             
+            contentParent = contentObj.transform;
             scrollRect.content = contentRect;
+        }
+
+        private void ApplyToggleButtonStyling(Button button)
+        {
+            if (button == null) return;
             
-            // Add vertical layout group to content
-            var layoutGroup = contentObj.AddComponent<VerticalLayoutGroup>();
-            layoutGroup.spacing = 2f;
-            layoutGroup.padding = new RectOffset(5, 5, 5, 5);
-            layoutGroup.childAlignment = TextAnchor.UpperCenter;
-            layoutGroup.childControlHeight = false;
-            layoutGroup.childControlWidth = true;
-            layoutGroup.childForceExpandHeight = false;
-            layoutGroup.childForceExpandWidth = true;
+            // Purple accent for playlist button
+            var buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.4f, 0.2f, 0.8f, 0.8f); // Purple accent
+            }
             
-            // Add content size fitter
-            var contentSizeFitter = contentObj.AddComponent<ContentSizeFitter>();
-            contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var textComponent = button.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                textComponent.color = new Color(1f, 1f, 1f, 1f); // White text
+                textComponent.fontSize = 10;
+                textComponent.fontStyle = FontStyle.Normal;
+            }
+        }
+
+        /// <summary>
+        /// Handle search changes from search component
+        /// </summary>
+        private void OnSearchChanged(string query)
+        {
+            needsPlaylistRefresh = true;
+        }
+
+        /// <summary>
+        /// Handle track selection from render component
+        /// </summary>
+        private void OnTrackSelected(int trackIndex)
+        {
+            if (manager != null)
+            {
+                manager.PlayTrack(trackIndex);
+                needsPlaylistRefresh = true;
+            }
+        }
+
+        private void TogglePlaylist()
+        {
+            isVisible = !isVisible;
+            // LoggerUtil.Info($"PlaylistPanel: Playlist {(isVisible ? "opened" : "closed")}");
             
-            LoggerUtil.Info("PlaylistPanel: Setup completed");
+            if (playlistContainer != null)
+            {
+                if (isVisible)
+                {
+                    playlistContainer.SetActive(true);
+                    
+                    // Add background and styling when opening
+                    var background = playlistContainer.GetComponent<Image>();
+                    if (background == null)
+                    {
+                        background = playlistContainer.AddComponent<Image>();
+                        background.color = new Color(0.05f, 0.05f, 0.05f, 0.95f);
+                        UIFactory.ApplyModernBorder(playlistContainer, new Color(0.3f, 0.3f, 0.3f, 0.8f), 2f);
+                    }
+                    
+                    needsPlaylistRefresh = true;
+                }
+                else
+                {
+                    // Clean up all visual components
+                    var allImages = playlistContainer.GetComponents<Image>();
+                    for (int i = allImages.Length - 1; i >= 0; i--)
+                    {
+                        if (allImages[i] != null)
+                        {
+                            allImages[i].enabled = false;
+                            allImages[i].color = new Color(0f, 0f, 0f, 0f);
+                            UnityEngine.Object.Destroy(allImages[i]);
+                        }
+                    }
+                    
+                    // Clean up border objects created by ApplyModernBorder
+                    if (playlistContainer.transform.parent != null)
+                    {
+                        var parentTransform = playlistContainer.transform.parent;
+                        for (int i = 0; i < parentTransform.childCount; i++)
+                        {
+                            var child = parentTransform.GetChild(i);
+                            if (child.name.Contains("PlaylistContainer_Border"))
+                            {
+                                var borderImages = child.GetComponents<Image>();
+                                foreach (var img in borderImages)
+                                {
+                                    if (img != null)
+                                    {
+                                        img.enabled = false;
+                                        img.color = new Color(0f, 0f, 0f, 0f);
+                                        UnityEngine.Object.Destroy(img);
+                                    }
+                                }
+                                UnityEngine.Object.Destroy(child.gameObject);
+                            }
+                        }
+                    }
+                    
+                    // Clean up other components
+                    var outlines = playlistContainer.GetComponents<UnityEngine.UI.Outline>();
+                    for (int i = outlines.Length - 1; i >= 0; i--)
+                    {
+                        if (outlines[i] != null)
+                        {
+                            outlines[i].enabled = false;
+                            UnityEngine.Object.Destroy(outlines[i]);
+                        }
+                    }
+                    
+                    var shadows = playlistContainer.GetComponents<UnityEngine.UI.Shadow>();
+                    for (int i = shadows.Length - 1; i >= 0; i--)
+                    {
+                        if (shadows[i] != null)
+                        {
+                            shadows[i].enabled = false;
+                            UnityEngine.Object.Destroy(shadows[i]);
+                        }
+                    }
+                    
+                    playlistContainer.SetActive(false);
+                }
+            }
+            
+            // Notify main screen about layout change
+            if (mainScreen != null)
+            {
+                mainScreen.OnPlaylistToggle(isVisible);
+            }
+            
+            // Update button text
+            if (toggleButton != null)
+            {
+                var textComponent = toggleButton.GetComponentInChildren<Text>();
+                if (textComponent != null)
+                {
+                    textComponent.text = isVisible ? "✕ Close" : "♫ Playlist";
+                }
+            }
         }
 
         public void UpdatePlaylist()
         {
-            try
-            {
-                LoggerUtil.Info("PlaylistPanel: Updating playlist");
-                
-                // Clear existing buttons
-                foreach (var button in trackButtons)
-                {
-                    if (button != null && button.gameObject != null)
-                        DestroyImmediate(button.gameObject);
-                }
-                trackButtons.Clear();
-                trackTexts.Clear();
-                
-                // Get all tracks
-                var tracks = manager.GetAllTracks();
-                int currentIndex = manager.CurrentTrackIndex;
-                
-                LoggerUtil.Info($"PlaylistPanel: Creating {tracks.Count} track buttons");
-                
-                // Create button for each track
-                for (int i = 0; i < tracks.Count; i++)
-                {
-                    var track = tracks[i];
-                    var trackIndex = i; // Capture for closure
-                    
-                    // Create track button
-                    var buttonObj = new GameObject($"Track_{i}");
-                    var buttonRect = buttonObj.AddComponent<RectTransform>();
-                    buttonObj.transform.SetParent(contentRect, false);
-                    
-                    buttonRect.sizeDelta = new Vector2(0f, 30f); // 30px tall
-                    
-                    var button = buttonObj.AddComponent<Button>();
-                    var buttonImage = buttonObj.AddComponent<Image>();
-                    
-                    // Set button colors based on whether it's currently playing
-                    bool isCurrentTrack = (i == currentIndex);
-                    if (isCurrentTrack)
-                    {
-                        buttonImage.color = new Color(0.3f, 0.6f, 0.9f, 0.8f); // Blue for current track
-                    }
-                    else
-                    {
-                        buttonImage.color = new Color(0.2f, 0.2f, 0.2f, 0.6f); // Dark gray for others
-                    }
-                    
-                    // Create text for track name
-                    var textObj = new GameObject("Text");
-                    var textRect = textObj.AddComponent<RectTransform>();
-                    textObj.transform.SetParent(buttonRect, false);
-                    
-                    textRect.anchorMin = Vector2.zero;
-                    textRect.anchorMax = Vector2.one;
-                    textRect.sizeDelta = Vector2.zero;
-                    textRect.anchoredPosition = Vector2.zero;
-                    
-                    var text = textObj.AddComponent<Text>();
-                    text.text = $"{i + 1}. {track.title}";
-                    text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                    text.fontSize = 12;
-                    text.color = Color.white;
-                    text.alignment = TextAnchor.MiddleLeft;
-                    
-                    // Make text overflow properly
-                    text.horizontalOverflow = HorizontalWrapMode.Wrap;
-                    text.verticalOverflow = VerticalWrapMode.Truncate;
-                    
-                    // Add padding
-                    textRect.offsetMin = new Vector2(5f, 0f);
-                    textRect.offsetMax = new Vector2(-5f, 0f);
-                    
-                    // Add click handler
-                    button.onClick.AddListener((UnityEngine.Events.UnityAction)(() => OnTrackClicked(trackIndex)));
-                    
-                    trackButtons.Add(button);
-                    trackTexts.Add(text);
-                }
-                
-                LoggerUtil.Info($"PlaylistPanel: Created {trackButtons.Count} track buttons");
-            }
-            catch (System.Exception ex)
-            {
-                LoggerUtil.Error($"PlaylistPanel: UpdatePlaylist failed: {ex}");
-            }
+            // Only update if playlist is visible AND something actually changed
+            if (!isVisible) return;
+            
+            if (manager == null || renderComponent == null || searchComponent == null) return;
+            
+            // Check if anything actually changed
+            var allTracks = manager.GetAllTracks();
+            int currentTrackIndex = manager.CurrentTrackIndex;
+            string currentSearchQuery = searchComponent.CurrentQuery;
+            
+            bool hasChanges = needsPlaylistRefresh ||
+                             allTracks.Count != lastTrackCount ||
+                             currentTrackIndex != lastCurrentTrackIndex ||
+                             currentSearchQuery != lastSearchQuery;
+            
+            if (!hasChanges) return; // No changes, don't recreate buttons
+            
+            // Update tracking variables
+            lastTrackCount = allTracks.Count;
+            lastCurrentTrackIndex = currentTrackIndex;
+            lastSearchQuery = currentSearchQuery;
+            needsPlaylistRefresh = false;
+            
+            // Use render component to update the playlist
+            renderComponent.RenderTracks(allTracks, currentTrackIndex, searchComponent);
         }
 
-        private void OnTrackClicked(int trackIndex)
+        public void CreateToggleButton(Transform parentTransform)
         {
-            LoggerUtil.Info($"PlaylistPanel: Track {trackIndex} clicked");
-            manager.PlayTrack(trackIndex);
+            // Find the HeadphonePanel that was created by HeadphoneControlPanel
+            var headphonePanel = parentTransform.Find("HeadphonePanel");
+            if (headphonePanel == null)
+            {
+                LoggingSystem.Warning("Could not find HeadphonePanel - creating playlist button with fallback positioning", "UI");
+                // Fallback to old positioning if HeadphonePanel not found
+                toggleButton = UIFactory.CreateButton(
+                    parentTransform,
+                    "♫ Playlist",
+                    new Vector2(0f, -250f),
+                    new Vector2(80f, 30f)
+                );
+            }
+            else
+            {
+                // Position playlist button in RIGHT SIDE of the HeadphonePanel (70% to 95% width, same height as headphone button)
+                toggleButton = CreateButton(headphonePanel, "♫ Playlist", new Vector2(0.7f, 0.5f), new Vector2(0.95f, 1f), (UnityEngine.Events.UnityAction)TogglePlaylist);
+                LoggingSystem.Info("Playlist button positioned alongside headphone button", "UI");
+                ApplyToggleButtonStyling(toggleButton);
+                return; // Return early since we already applied styling
+            }
             
-            // Hide playlist after selection (like modern music apps)
-            Hide();
+            toggleButton.onClick.AddListener((UnityEngine.Events.UnityAction)TogglePlaylist);
+            ApplyToggleButtonStyling(toggleButton);
         }
-        
-        public void Show()
+
+        private Button CreateButton(Transform parent, string text, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
         {
-            if (this.gameObject != null)
-            {
-                this.gameObject.SetActive(true);
-                UpdatePlaylist(); // Refresh when showing
-                LoggerUtil.Info("PlaylistPanel: Shown");
-            }
-        }
-        
-        public void Hide()
-        {
-            if (this.gameObject != null)
-            {
-                this.gameObject.SetActive(false);
-                LoggerUtil.Info("PlaylistPanel: Hidden");
-            }
-        }
-        
-        public void Toggle()
-        {
-            if (this.gameObject != null)
-            {
-                bool isActive = this.gameObject.activeSelf;
-                if (isActive)
-                    Hide();
-                else
-                    Show();
-            }
+            var buttonObj = new GameObject($"{text}Button").AddComponent<RectTransform>();
+            buttonObj.SetParent(parent, false);
+            buttonObj.anchorMin = anchorMin;
+            buttonObj.anchorMax = anchorMax;
+            buttonObj.offsetMin = new Vector2(2f, 2f); // Small margins
+            buttonObj.offsetMax = new Vector2(-2f, -2f);
+            
+            var button = buttonObj.gameObject.AddComponent<Button>();
+            var image = buttonObj.gameObject.AddComponent<Image>();
+            image.color = new Color(0.4f, 0.2f, 0.8f, 0.8f); // Purple accent for playlist
+            
+            var textObj = new GameObject("Text").AddComponent<RectTransform>();
+            textObj.SetParent(buttonObj, false);
+            textObj.anchorMin = Vector2.zero;
+            textObj.anchorMax = Vector2.one;
+            textObj.offsetMin = Vector2.zero;
+            textObj.offsetMax = Vector2.zero;
+            
+            var textComponent = textObj.gameObject.AddComponent<Text>();
+            textComponent.text = text;
+            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            textComponent.fontSize = 10;
+            textComponent.color = Color.white;
+            textComponent.alignment = TextAnchor.MiddleCenter;
+            
+            button.onClick.AddListener(onClick);
+            return button;
         }
     }
 } 
