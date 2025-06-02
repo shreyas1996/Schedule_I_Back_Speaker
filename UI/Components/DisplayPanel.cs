@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
 
@@ -34,12 +35,14 @@ namespace BackSpeakerMod.UI.Components
                     "TrackName",
                     "♪ No Track Selected ♪",
                     new Vector2(0f, 60f), // Increased spacing from album art
-                    new Vector2(320f, 40f), // Wider for better text display
-                    20 // Large, readable text
+                    new Vector2(400f, 45f), // Much wider for better text display
+                    18 // Readable text size
                 );
                 
-                // Apply Spotify-style text color
+                // Apply Spotify-style text color and configure for text wrapping
                 trackNameText.color = new Color(1f, 1f, 1f, 1f); // Pure white for primary text
+                trackNameText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                trackNameText.verticalOverflow = VerticalWrapMode.Truncate;
                 // LoggerUtil.Info("DisplayPanel: Track name text created");
                 
                 // Artist/source info - smaller, below track name with Spotify styling
@@ -176,14 +179,18 @@ namespace BackSpeakerMod.UI.Components
                 if (trackNameText != null)
                 {
                     string trackInfo = manager.GetCurrentTrackInfo();
-                    if (string.IsNullOrEmpty(trackInfo) || trackInfo == "No Track")
+                    
+                    // Better handling of track info
+                    if (string.IsNullOrEmpty(trackInfo) || trackInfo == "No Track" || trackInfo.Trim() == "")
                     {
                         trackNameText.text = "♪ No Track Selected ♪";
                         UpdateAlbumArtForEmptyState();
                     }
                     else
                     {
-                        trackNameText.text = $"♪ {trackInfo} ♪";
+                        // Truncate long track names for display
+                        string displayName = TruncateTrackName(trackInfo, 35);
+                        trackNameText.text = $"♪ {displayName} ♪";
                         UpdateAlbumArtForTrack();
                     }
                 }
@@ -200,14 +207,38 @@ namespace BackSpeakerMod.UI.Components
                     }
                     else
                     {
-                        artistText.text = $"{artistInfo} • Track {currentIndex + 1} of {trackCount}";
+                        // Handle empty artist info better
+                        if (string.IsNullOrEmpty(artistInfo) || artistInfo == "Unknown Artist" || artistInfo.Trim() == "")
+                        {
+                            artistText.text = $"Track {currentIndex + 1} of {trackCount}";
+                        }
+                        else
+                        {
+                            // Truncate artist name if too long
+                            string displayArtist = TruncateTrackName(artistInfo, 25);
+                            artistText.text = $"{displayArtist} • Track {currentIndex + 1} of {trackCount}";
+                        }
                     }
                 }
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"DisplayPanel: UpdateDisplay failed: {ex}");
+                LoggingSystem.Error($"DisplayPanel UpdateDisplay failed: {ex.Message}", "UI");
             }
+        }
+
+        /// <summary>
+        /// Truncate track name with ellipsis if too long
+        /// </summary>
+        private string TruncateTrackName(string text, int maxLength)
+        {
+            if (string.IsNullOrEmpty(text))
+                return "";
+                
+            if (text.Length <= maxLength)
+                return text;
+                
+            return text.Substring(0, maxLength - 3) + "...";
         }
 
         private void UpdateAlbumArtForEmptyState()

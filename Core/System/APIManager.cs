@@ -21,14 +21,56 @@ namespace BackSpeakerMod.Core.System
             LoggingSystem.Info("APIManager initialized", "System");
         }
 
-        // Audio Control API
-        public void Play() => components.AudioManager?.Play();
+        // Audio Control API - with headphone dependency
+        public void Play()
+        {
+            if (!AreHeadphonesAttached())
+            {
+                return;
+            }
+            components.AudioManager?.Play();
+        }
+        
         public void Pause() => components.AudioManager?.Pause();
-        public void TogglePlayPause() => components.AudioManager?.TogglePlayPause();
+        
+        public void TogglePlayPause()
+        {
+            if (!AreHeadphonesAttached())
+            {
+                return;
+            }
+            components.AudioManager?.TogglePlayPause();
+        }
+        
         public void SetVolume(float volume) => components.AudioManager?.SetVolume(volume);
-        public void NextTrack() => components.AudioManager?.NextTrack();
-        public void PreviousTrack() => components.AudioManager?.PreviousTrack();
-        public void PlayTrack(int index) => components.AudioManager?.PlayTrack(index);
+        
+        public void NextTrack()
+        {
+            if (!AreHeadphonesAttached())
+            {
+                return;
+            }
+            components.AudioManager?.NextTrack();
+        }
+        
+        public void PreviousTrack()
+        {
+            if (!AreHeadphonesAttached())
+            {
+                return;
+            }
+            components.AudioManager?.PreviousTrack();
+        }
+        
+        public void PlayTrack(int index)
+        {
+            if (!AreHeadphonesAttached())
+            {
+                return;
+            }
+            components.AudioManager?.PlayTrack(index);
+        }
+        
         public void SeekToTime(float time) => components.AudioManager?.SeekToTime(time);
         public void SeekToProgress(float progress) => components.AudioManager?.SeekToProgress(progress);
         public void ReloadTracks() => components.AudioManager?.LoadTracks();
@@ -60,9 +102,53 @@ namespace BackSpeakerMod.Core.System
         public string GetAttachmentStatus() => components.PlayerAttachment?.GetAttachmentStatus() ?? "Initializing...";
 
         // Headphone API
-        public bool AttachHeadphones() => components.HeadphoneManager?.AttachHeadphones() ?? false;
-        public void RemoveHeadphones() => components.HeadphoneManager?.RemoveHeadphones();
-        public bool ToggleHeadphones() => components.HeadphoneManager?.ToggleHeadphones() ?? false;
+        public bool AttachHeadphones()
+        {
+            bool success = components.HeadphoneManager?.AttachHeadphones() ?? false;
+            if (success)
+            {
+                components.PlayerAttachment?.TriggerManualAttachment();
+                components.AudioManager?.LoadTracks();
+            }
+            return success;
+        }
+        
+        public void RemoveHeadphones()
+        {
+            if (IsPlaying)
+            {
+                components.AudioManager?.Pause();
+            }
+            components.PlayerAttachment?.DetachSpeaker();
+            components.HeadphoneManager?.RemoveHeadphones();
+        }
+        
+        public bool ToggleHeadphones()
+        {
+            bool wasAttached = AreHeadphonesAttached();
+            bool success = components.HeadphoneManager?.ToggleHeadphones() ?? false;
+            
+            if (success)
+            {
+                bool nowAttached = AreHeadphonesAttached();
+                if (nowAttached && !wasAttached)
+                {
+                    components.PlayerAttachment?.TriggerManualAttachment();
+                    components.AudioManager?.LoadTracks();
+                }
+                else if (!nowAttached && wasAttached)
+                {
+                    if (IsPlaying)
+                    {
+                        components.AudioManager?.Pause();
+                    }
+                    components.PlayerAttachment?.DetachSpeaker();
+                }
+            }
+            
+            return success;
+        }
+        
         public bool AreHeadphonesAttached() => components.HeadphoneManager?.AreHeadphonesAttached ?? false;
         public string GetHeadphoneStatus() => components.HeadphoneManager?.GetStatus() ?? "Headphone system not initialized";
 

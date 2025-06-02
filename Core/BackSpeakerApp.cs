@@ -4,6 +4,7 @@ using MelonLoader;
 using System.Reflection;
 using UnityEngine.Events;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Utils;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI;
@@ -31,6 +32,7 @@ namespace BackSpeakerMod.Core
         
         // App state tracking like Drones
         public static bool appActive = false;
+        public static bool appBecameActive = false;
 
         public BackSpeakerApp(BackSpeakerManager manager)
         {
@@ -48,7 +50,6 @@ namespace BackSpeakerMod.Core
             // Check if our app canvas already exists
             if (GameObject.Find("BackSpeakerApp") != null)
             {
-                // LoggerUtil.Warn("BackSpeakerApp canvas already exists. Aborting creation.");
                 return false;
             }
             // Check if our app icon already exists
@@ -61,7 +62,6 @@ namespace BackSpeakerMod.Core
                     var label = icon.FindChild("Label")?.GetComponent<Text>();
                     if (label != null && label.text == AppLabel)
                     {
-                        // LoggerUtil.Warn("BackSpeaker app icon already exists. Aborting creation.");
                         return false;
                     }
                 }
@@ -71,11 +71,10 @@ namespace BackSpeakerMod.Core
             homeScreen = GameObject.Find("HomeScreen");
             if (appsCanvas == null || homeScreen == null)
             {
-                // LoggerUtil.Error("AppsCanvas or HomeScreen not found!");
                 return false;
             }
             
-            // ColorBlock setup - EXACTLY like Drones (even though not used)
+            // ColorBlock setup - EXACTLY like Drones
             ColorBlock colorBlock = default(ColorBlock);
             colorBlock.normalColor = new Color(0.25f, 0.25f, 0.25f, 0.1f);
             colorBlock.highlightedColor = new Color(0.25f, 0.275f, 0.35f, 0.3f);
@@ -83,26 +82,13 @@ namespace BackSpeakerMod.Core
             colorBlock.selectedColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
             colorBlock.fadeDuration = 0.1f;
             colorBlock.colorMultiplier = 1f;
-            // Find the original ProductManagerApp by name - EXACTLY like Drones does
-            // LoggerUtil.Info($"AppsCanvas children count: {appsCanvas.transform.childCount}");
-            for (int i = 0; i < appsCanvas.transform.childCount; i++)
-            {
-                // LoggerUtil.Info($"AppsCanvas child {i}: {appsCanvas.transform.GetChild(i).name}");
-            }
             
             var baseAppObj = appsCanvas.transform.FindChild("ProductManagerApp");
             if (baseAppObj == null)
             {
-                // LoggerUtil.Error("ProductManagerApp not found in AppsCanvas!");
-                // LoggerUtil.Error("Available apps:");
-                for (int i = 0; i < appsCanvas.transform.childCount; i++)
-                {
-                    // LoggerUtil.Error($"  - {appsCanvas.transform.GetChild(i).name}");
-                }
                 return false;
             }
             
-            // LoggerUtil.Info("Found ProductManagerApp, cloning it...");
             // Clone the original ProductManagerApp as our app canvas - EXACTLY like Drones does
             canvas = UnityEngine.Object.Instantiate<GameObject>(baseAppObj.gameObject, appsCanvas.transform);
             
@@ -117,21 +103,26 @@ namespace BackSpeakerMod.Core
             canvas.transform.localRotation = Quaternion.identity;
             canvas.active = false;
 
+            // CRITICAL: Set proper canvas sorting to prevent bleeding
+            var canvasComponent = canvas.GetComponent<Canvas>();
+            if (canvasComponent != null)
+            {
+                canvasComponent.sortingOrder = 0; // Keep same level as other apps
+                canvasComponent.overrideSorting = false; // Don't override phone's sorting
+            }
+
             // Get the last icon and modify it directly - EXACTLY like Drones does
             if (appIcons == null)
             {
-                // LoggerUtil.Error("AppIcons not found!");
                 UnityEngine.Object.DestroyImmediate(canvas);
                 return false;
             }
             
             // Add safety check for icon count
             int iconCount = appIcons.transform.childCount;
-            // LoggerUtil.Info($"AppIcons has {iconCount} children");
             
             if (iconCount == 0)
             {
-                // LoggerUtil.Error("AppIcons has no children! Cannot create app icon.");
                 UnityEngine.Object.DestroyImmediate(canvas);
                 return false;
             }
@@ -144,28 +135,14 @@ namespace BackSpeakerMod.Core
             if (AppLogo != null && mask != null)
                 mask.sprite = AppLogo;
             appButton = appIcon.GetComponent<Button>();
-            // appButton.onClick.RemoveAllListeners();
             appButton.onClick.AddListener((UnityEngine.Events.UnityAction)delegate()
             {
                 this.OnHomeScreenBtnClick();
             });
 
-            // Set up music app UI using cloned ProductManagerApp structure - EXACTLY like Drones
-            // LoggerUtil.Info($"Canvas children count: {canvas.transform.childCount}");
-            for (int i = 0; i < canvas.transform.childCount; i++)
-            {
-                // LoggerUtil.Info($"Canvas child {i}: {canvas.transform.GetChild(i).name}");
-            }
-            
             var container = canvas.transform.FindChild("Container");
             if (container == null)
             {
-                // LoggerUtil.Error("Container not found in BackSpeakerApp canvas!");
-                // LoggerUtil.Error("Available children:");
-                for (int i = 0; i < canvas.transform.childCount; i++)
-                {
-                    // LoggerUtil.Error($"  - {canvas.transform.GetChild(i).name}");
-                }
                 UnityEngine.Object.DestroyImmediate(canvas);
                 return false;
             }
@@ -194,13 +171,12 @@ namespace BackSpeakerMod.Core
             // --- End Drones-style cleanup ---
 
             var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
-            backSpeakerScreenObj.transform.SetParent(canvas.transform, false);
+            backSpeakerScreenObj.transform.SetParent(container, false); // Attach to Container, not canvas directly
             var backSpeakerScreen = backSpeakerScreenObj.AddComponent<BackSpeakerMod.UI.BackSpeakerScreen>();
             backSpeakerScreen.Setup(manager);
             
             // Activate the canvas like Drones does
             canvas.active = true;
-            // LoggerUtil.Info("BackSpeakerApp canvas created successfully.");
             return true;
         }
 
@@ -215,18 +191,13 @@ namespace BackSpeakerMod.Core
         // Add Update method like Drones for proper app state tracking
         public void Update()
         {
-            if (app != null)
+            if (app != null && canvas != null)
             {
-                // Track app state like Drones does
-			    Phone phone = PlayerSingleton<Phone>.instance;
+                Phone phone = PlayerSingleton<Phone>.instance;
                 bool isActive = this.app.isOpen && phone != null && phone.IsOpen;
-                appActive = isActive;
                 
-                // If app becomes inactive, ensure our UI components know
-                if (!isActive && Instance != null)
-                {
-                    // App closed - could do cleanup here if needed
-                }
+                appBecameActive = (!appActive && isActive);
+                appActive = isActive;
             }
         }
 

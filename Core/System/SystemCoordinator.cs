@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.Core.System;
-using System.Threading.Tasks;
 
 namespace BackSpeakerMod.Core.System
 {
@@ -16,7 +15,6 @@ namespace BackSpeakerMod.Core.System
         private readonly SystemComponents components;
         private readonly SystemInitializer initializer;
         private readonly APIManager apiManager;
-        private bool useAsyncInitialization = true;
 
         /// <summary>
         /// Event to notify UI when tracks are reloaded
@@ -37,34 +35,11 @@ namespace BackSpeakerMod.Core.System
         /// </summary>
         public SystemCoordinator()
         {
-            LoggingSystem.Info("SystemCoordinator: Initializing with granular architecture", "System");
-
-            // Create system components
             components = SystemComponents.Create();
-
-            // Create initializer and API manager
             initializer = new SystemInitializer(components);
             apiManager = new APIManager(components);
-
-            // Start async initialization
-            _ = InitializeAsync();
-        }
-
-        /// <summary>
-        /// Async initialization for better asset loading
-        /// </summary>
-        private async Task InitializeAsync()
-        {
-            if (useAsyncInitialization)
-            {
-                LoggingSystem.Info("Starting async initialization", "System");
-                await initializer.InitializeAsync();
-            }
-            else
-            {
-                LoggingSystem.Info("Falling back to sync initialization", "System");
-                initializer.Initialize();
-            }
+            
+            initializer.Initialize();
         }
 
         /// <summary>
@@ -75,16 +50,8 @@ namespace BackSpeakerMod.Core.System
             if (!initializer.IsInitialized)
                 return;
 
-            try
-            {
-                // Update feature managers
-                components.AudioManager?.Update();
-                components.PlacementManager?.Update();
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Exception during system update: {ex.Message}", "System");
-            }
+            components.AudioManager?.Update();
+            components.PlacementManager?.Update();
         }
 
         // Public API - Audio Control
@@ -193,18 +160,14 @@ namespace BackSpeakerMod.Core.System
         /// </summary>
         public void Shutdown()
         {
-            LoggingSystem.Info("Shutting down SystemCoordinator", "System");
-
             try
             {
                 initializer.Shutdown();
-                components.Shutdown();
-
-                LoggingSystem.Info("SystemCoordinator shutdown completed", "System");
+                components.HeadphoneManager?.Shutdown();
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Exception during shutdown: {ex.Message}", "System");
+                // Silent shutdown failure
             }
         }
 

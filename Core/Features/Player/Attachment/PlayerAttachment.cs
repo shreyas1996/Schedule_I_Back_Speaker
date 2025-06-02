@@ -27,58 +27,41 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
 
         public void Initialize()
         {
-            LoggingSystem.Info("Initializing PlayerAttachment with auto-attach enabled", "Audio");
-            
-            // Subscribe to new player manager events instead of direct player events
             PlayerManager.OnPlayerReady += OnPlayerReady;
             PlayerManager.OnPlayerLost += OnPlayerLost;
-            
-            // Try immediate attachment if player is already ready
-            if (PlayerManager.CurrentPlayer != null)
-            {
-                LoggingSystem.Info("Player already available, attaching immediately", "Audio");
-                AttachSpeakerToPlayer(PlayerManager.CurrentPlayer);
-            }
         }
 
         public void TriggerManualAttachment()
         {
-            LoggingSystem.Info("Manual attachment triggered", "Audio");
-            
             var player = PlayerManager.CurrentPlayer;
             if (player != null)
             {
                 AttachSpeakerToPlayer(player);
             }
-            else
-            {
-                LoggingSystem.Warning("No current player available for manual attachment", "Audio");
-            }
+        }
+
+        /// <summary>
+        /// Manually detach the speaker from the player
+        /// </summary>
+        public void DetachSpeaker()
+        {
+            CleanupSpeaker();
         }
 
         public string GetAttachmentStatus()
         {
-            string status;
             if (currentPlayer == null)
             {
-                status = "⚠️ Waiting for player...";
+                return "⚠️ Waiting for player...";
             }
             else if (audioSource == null)
             {
-                status = "⚠️ Player found, creating speaker...";
+                return "⚠️ Player found, creating speaker...";
             }
             else
             {
-                status = "✅ Ready - Speaker attached!";
+                return "✅ Ready - Speaker attached!";
             }
-            
-            if (status != lastStatus)
-            {
-                LoggingSystem.Debug($"Status changed to: {status}", "Audio");
-                lastStatus = status;
-            }
-            
-            return status;
         }
 
         public bool IsAudioReady() => audioSource != null && currentPlayer != null;
@@ -88,8 +71,7 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// </summary>
         private void OnPlayerReady(Il2CppScheduleOne.PlayerScripts.Player player)
         {
-            LoggingSystem.Info($"Player ready event received: {player.name}", "Audio");
-            AttachSpeakerToPlayer(player);
+            // Wait for headphones before attaching speaker
         }
 
         /// <summary>
@@ -97,7 +79,6 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// </summary>
         private void OnPlayerLost()
         {
-            LoggingSystem.Info("Player lost event received, cleaning up speaker", "Audio");
             CleanupSpeaker();
         }
 
@@ -108,6 +89,12 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         {
             try
             {
+                // Stop any playing audio first
+                if (audioSource != null && audioSource.isPlaying)
+                {
+                    audioSource.Stop();
+                }
+                
                 if (speakerObject != null)
                 {
                     GameObject.Destroy(speakerObject);
@@ -118,11 +105,10 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
                 currentPlayer = null;
                 
                 OnSpeakerDetached?.Invoke();
-                LoggingSystem.Info("Speaker cleanup completed", "Audio");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error during speaker cleanup: {ex.Message}", "Audio");
+                LoggingSystem.Error($"Failed to cleanup speaker: {ex.Message}", "Audio");
             }
         }
 
@@ -132,38 +118,43 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
             {
                 if (currentPlayer == player && audioSource != null)
                 {
-                    LoggingSystem.Debug("Speaker already attached to this player", "Audio");
                     return;
                 }
                 
                 currentPlayer = player;
-                LoggingSystem.Info($"Attaching speaker to player '{player.name}' at {player.transform.position}", "Audio");
                 
-                // Clean up existing speaker
                 if (speakerObject != null)
                 {
                     GameObject.Destroy(speakerObject);
                 }
                 
-                // Create speaker object as child of player
                 speakerObject = new GameObject("BackSpeaker");
                 speakerObject.transform.SetParent(player.transform);
                 speakerObject.transform.localPosition = Vector3.zero;
                 
-                // Add and configure AudioSource
                 audioSource = speakerObject.AddComponent<AudioSource>();
                 audioSource.volume = 0.5f;
                 audioSource.loop = false;
                 audioSource.playOnAwake = false;
-                audioSource.spatialBlend = 0f; // 2D audio for music
-                
-                LoggingSystem.Info($"✅ Speaker successfully attached! AudioSource volume: {audioSource.volume}", "Audio");
+                audioSource.spatialBlend = 0f;
                 
                 OnSpeakerAttached?.Invoke(audioSource);
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Failed to attach speaker: {ex}", "Audio");
+                // Silent attachment failure
+            }
+        }
+
+        /// <summary>
+        /// Attach speaker when headphones are confirmed (called by HeadphoneManager)
+        /// </summary>
+        public void AttachSpeakerWithHeadphones()
+        {
+            var player = PlayerManager.CurrentPlayer;
+            if (player != null)
+            {
+                AttachSpeakerToPlayer(player);
             }
         }
 

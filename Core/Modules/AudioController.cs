@@ -30,20 +30,29 @@ namespace BackSpeakerMod.Core.Modules
             LoggingSystem.Info("AudioController initialized", "Audio");
         }
 
+        public void Reset()
+        {
+            isPlaying = false;
+            audioSource = null;
+            tracks.Clear();
+            trackInfo.Clear();
+            currentTrackIndex = 0;
+        }
+
         public void SetTracks(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
         {
             this.tracks = tracks;
             this.trackInfo = trackInfo;
             
-            // Reset to first track if current index is invalid
-            if (tracks.Count > 0 && currentTrackIndex >= tracks.Count)
+            // Always set the first track when tracks are loaded
+            if (tracks.Count > 0)
             {
                 currentTrackIndex = 0;
                 SetTrack(currentTrackIndex);
             }
             
             OnTracksChanged?.Invoke();
-            LoggingSystem.Info($"Set {tracks.Count} tracks", "Audio");
+            LoggingSystem.Info($"Loaded {tracks.Count} tracks", "Audio");
         }
 
         public void Play()
@@ -52,7 +61,6 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.Play();
                 isPlaying = true;
-                LoggingSystem.Info($"Playing '{GetCurrentTrackInfo()}'", "Audio");
             }
         }
 
@@ -62,7 +70,6 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.Pause();
                 isPlaying = false;
-                LoggingSystem.Info("Paused", "Audio");
             }
         }
 
@@ -78,7 +85,6 @@ namespace BackSpeakerMod.Core.Modules
             if (audioSource != null)
             {
                 audioSource.volume = volume;
-                LoggingSystem.Info($"Volume set to {volume:P0}", "Audio");
             }
         }
 
@@ -142,7 +148,6 @@ namespace BackSpeakerMod.Core.Modules
             {
                 audioSource.clip = tracks[index];
                 currentTrackIndex = index;
-                LoggingSystem.Debug($"Set track {index}: '{GetCurrentTrackInfo()}'", "Audio");
             }
         }
 
@@ -199,16 +204,61 @@ namespace BackSpeakerMod.Core.Modules
 
         public string GetCurrentTrackInfo()
         {
-            if (currentTrackIndex >= 0 && currentTrackIndex < trackInfo.Count)
-                return trackInfo[currentTrackIndex].title;
-            return "No Track";
+            try
+            {
+                if (trackInfo == null || trackInfo.Count == 0)
+                {
+                    LoggingSystem.Warning("No track info available - trackInfo is null or empty", "Audio");
+                    return "No Track";
+                }
+                
+                if (currentTrackIndex < 0 || currentTrackIndex >= trackInfo.Count)
+                {
+                    LoggingSystem.Warning($"Invalid track index {currentTrackIndex} - valid range is 0 to {trackInfo.Count - 1}", "Audio");
+                    return "No Track";
+                }
+                
+                var track = trackInfo[currentTrackIndex];
+                string title = track.title;
+                
+                if (string.IsNullOrEmpty(title) || title.Trim().Length == 0)
+                {
+                    LoggingSystem.Warning($"Track {currentTrackIndex} has empty or null title", "Audio");
+                    return "Unknown Track";
+                }
+                
+                return title;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error getting current track info: {ex.Message}", "Audio");
+                return "Error Loading Track";
+            }
         }
 
         public string GetCurrentArtistInfo()
         {
-            if (currentTrackIndex >= 0 && currentTrackIndex < trackInfo.Count)
-                return trackInfo[currentTrackIndex].artist;
-            return "Unknown Artist";
+            try
+            {
+                if (trackInfo == null || trackInfo.Count == 0)
+                    return "Unknown Artist";
+                    
+                if (currentTrackIndex < 0 || currentTrackIndex >= trackInfo.Count)
+                    return "Unknown Artist";
+                
+                var track = trackInfo[currentTrackIndex];
+                string artist = track.artist;
+                
+                if (string.IsNullOrEmpty(artist) || artist.Trim().Length == 0)
+                    return "Unknown Artist";
+                    
+                return artist;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error getting current artist info: {ex.Message}", "Audio");
+                return "Unknown Artist";
+            }
         }
 
         public List<(string title, string artist)> GetAllTracks() => new List<(string, string)>(trackInfo);

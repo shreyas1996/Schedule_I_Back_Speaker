@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using BackSpeakerMod.Core;
+using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Components;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
@@ -36,18 +37,17 @@ namespace BackSpeakerMod.UI
             try
             {
                 this.manager = manager;
-                // LoggerUtil.Info("BackSpeakerScreen: Setting up responsive UI layout within app structure");
                 
                 // Find the parent container (should be the app's main container)
                 FindParentContainer();
                 CreateControlsContainer();
                 SetupUIComponents();
                 
-                // LoggerUtil.Info("BackSpeakerScreen: Responsive UI setup completed");
+                LoggingSystem.Info("BackSpeaker UI initialized", "UI");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"BackSpeakerScreen: Setup failed: {ex}");
+                LoggingSystem.Error($"BackSpeaker UI setup failed: {ex.Message}", "UI");
                 throw;
             }
         }
@@ -65,7 +65,6 @@ namespace BackSpeakerMod.UI
                 if (container != null)
                 {
                     parentContainer = container.GetComponent<RectTransform>();
-                    // LoggerUtil.Info($"BackSpeakerScreen: Found parent container: {container.name}");
                     break;
                 }
                 current = current.parent;
@@ -79,7 +78,6 @@ namespace BackSpeakerMod.UI
                 {
                     parentContainer = this.gameObject.AddComponent<RectTransform>();
                 }
-                // LoggerUtil.Info("BackSpeakerScreen: Using self as parent container");
             }
             
             // Set up this object's RectTransform to fill the parent
@@ -106,9 +104,7 @@ namespace BackSpeakerMod.UI
             controlsContainer.anchorMax = new Vector2(0.5f, 0.5f);
             controlsContainer.pivot = new Vector2(0.5f, 0.5f);
             controlsContainer.anchoredPosition = controlsClosedPosition;
-            controlsContainer.sizeDelta = new Vector2(400f, 600f); // Increased size to accommodate headphone controls
-            
-            // LoggerUtil.Info("BackSpeakerScreen: Controls container created with expanded size for playlist button");
+            controlsContainer.sizeDelta = new Vector2(400f, 600f);
         }
 
         private void SetupUIComponents()
@@ -129,7 +125,7 @@ namespace BackSpeakerMod.UI
             volumeControl = gameObject.AddComponent<VolumeControl>();
             volumeControl.Setup(manager, controlsContainer);
             
-            // Setup headphone control panel - below volume control
+            // Setup headphone control panel - below volume control with extra spacing
             headphoneControlPanel = gameObject.AddComponent<HeadphoneControlPanel>();
             headphoneControlPanel.Setup(manager, controlsContainer);
             
@@ -139,8 +135,6 @@ namespace BackSpeakerMod.UI
             
             // Create playlist toggle button in the controls container so it shifts with other controls
             playlistPanel.CreateToggleButton(controlsContainer);
-            
-            // LoggerUtil.Info("BackSpeakerScreen: All UI components setup with proper spacing and playlist button");
         }
 
         public void OnPlaylistToggle(bool isOpen)
@@ -152,8 +146,6 @@ namespace BackSpeakerMod.UI
             {
                 Vector2 targetPosition = isOpen ? controlsOpenPosition : controlsClosedPosition;
                 controlsContainer.anchoredPosition = targetPosition;
-                
-                // LoggerUtil.Info($"BackSpeakerScreen: Controls shifted to {(isOpen ? "left" : "center")} for playlist");
             }
         }
 
@@ -171,9 +163,9 @@ namespace BackSpeakerMod.UI
                 headphoneControlPanel?.UpdateStatus();
                 playlistPanel?.UpdatePlaylist();
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"BackSpeakerScreen: Update failed: {ex}");
+                LoggingSystem.Error($"BackSpeaker UI update failed: {ex.Message}", "UI");
             }
         }
     }

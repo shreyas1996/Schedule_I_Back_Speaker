@@ -20,6 +20,9 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         private readonly HeadphoneAttachment attachment;
         private bool isInitialized = false;
 
+        // Reference to PlayerAttachment for coordinated initialization
+        private BackSpeakerMod.Core.Features.Player.Attachment.PlayerAttachment? playerAttachment = null;
+
         /// <summary>
         /// Initialize headphone manager
         /// </summary>
@@ -29,11 +32,16 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             loader = new HeadphoneAssetLoader(config);
             attachment = new HeadphoneAttachment(config);
             
-            // Subscribe to player events
             PlayerManager.OnPlayerReady += OnPlayerReady;
             PlayerManager.OnPlayerLost += OnPlayerLost;
-            
-            LoggingSystem.Info("HeadphoneManager created", "Headphones");
+        }
+
+        /// <summary>
+        /// Set PlayerAttachment reference for coordinated initialization
+        /// </summary>
+        public void SetPlayerAttachment(BackSpeakerMod.Core.Features.Player.Attachment.PlayerAttachment playerAttachment)
+        {
+            this.playerAttachment = playerAttachment;
         }
 
         /// <summary>
@@ -43,38 +51,27 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         {
             if (!FeatureFlags.Headphones.Enabled)
             {
-                LoggingSystem.Info("Headphones feature is disabled", "Headphones");
                 return false;
             }
 
             if (isInitialized)
             {
-                LoggingSystem.Info("HeadphoneManager already initialized", "Headphones");
                 return true;
             }
 
             try
             {
-                LoggingSystem.Info("Initializing headphone system...", "Headphones");
-
-                // Load assets using simple approach
-                LoggingSystem.Debug($"Before loading - Loader status: {loader.GetDetailedStatus()}", "Headphones");
                 bool loaded = loader.LoadFromEmbeddedResource();
-                LoggingSystem.Debug($"After loading - Success: {loaded}, Loader status: {loader.GetDetailedStatus()}", "Headphones");
                 
                 if (!loaded)
                 {
-                    LoggingSystem.Error($"Failed to load headphone assets. Loader status: {loader.GetDetailedStatus()}", "Headphones");
                     return false;
                 }
 
                 isInitialized = true;
-                LoggingSystem.Info("✓ Headphone system initialized successfully", "Headphones");
 
-                // Auto-attach if enabled and player is ready
                 if (config.AutoAttachOnSpawn && PlayerManager.CurrentPlayer != null)
                 {
-                    LoggingSystem.Info("Auto-attaching headphones to current player", "Headphones");
                     AttachHeadphones();
                 }
 
@@ -82,7 +79,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Headphone initialization failed: {ex.Message}", "Headphones");
                 return false;
             }
         }
@@ -94,19 +90,22 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         {
             if (!isInitialized)
             {
-                LoggingSystem.Warning("Cannot attach headphones - system not initialized", "Headphones");
                 return false;
             }
-
-            LoggingSystem.Debug($"AttachHeadphones - Loader detailed status: {loader.GetDetailedStatus()}", "Headphones");
 
             if (!loader.IsLoaded)
             {
-                LoggingSystem.Warning($"Cannot attach headphones - assets not loaded. Details: {loader.GetDetailedStatus()}", "Headphones");
                 return false;
             }
 
-            return attachment.AttachToPlayer(loader.HeadphonePrefab, player);
+            bool success = attachment.AttachToPlayer(loader.HeadphonePrefab, player);
+            
+            if (success && playerAttachment != null)
+            {
+                playerAttachment.AttachSpeakerWithHeadphones();
+            }
+            
+            return success;
         }
 
         /// <summary>
@@ -151,9 +150,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             if (!isInitialized)
                 return "Not initialized";
             
-            // Debug the loader state
-            // LoggingSystem.Debug($"GetStatus - Loader detailed status: {loader.GetDetailedStatus()}", "Headphones");
-            
             if (!loader.IsLoaded)
                 return $"Assets not loaded ({loader.GetDetailedStatus()})";
             
@@ -168,14 +164,10 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             if (!FeatureFlags.Headphones.Enabled)
                 return false;
 
-            LoggingSystem.Info("Reloading headphone assets", "Headphones");
-
-            // Detach and cleanup
             attachment.DetachFromPlayer();
             loader.Unload();
             isInitialized = false;
 
-            // Reinitialize
             return Initialize();
         }
 
@@ -186,7 +178,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         {
             if (config.AutoAttachOnSpawn && isInitialized && loader.IsLoaded)
             {
-                LoggingSystem.Info($"Player ready, auto-attaching headphones to {player.name}", "Headphones");
                 AttachHeadphones(player);
             }
         }
@@ -196,7 +187,6 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// </summary>
         private void OnPlayerLost()
         {
-            LoggingSystem.Info("Player lost, detaching headphones", "Headphones");
             attachment.DetachFromPlayer();
         }
 
@@ -205,18 +195,12 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// </summary>
         public void Shutdown()
         {
-            LoggingSystem.Info("Shutting down HeadphoneManager", "Headphones");
-
-            // Unsubscribe from events
             PlayerManager.OnPlayerReady -= OnPlayerReady;
             PlayerManager.OnPlayerLost -= OnPlayerLost;
             
-            // Cleanup
             attachment.DetachFromPlayer();
             loader.Unload();
             isInitialized = false;
-            
-            LoggingSystem.Info("HeadphoneManager shutdown complete", "Headphones");
         }
 
         /// <summary>

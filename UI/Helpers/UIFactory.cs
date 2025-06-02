@@ -27,7 +27,6 @@ namespace BackSpeakerMod.UI.Helpers
             textComponent.fontSize = fontSize;
             textComponent.color = Color.white; // White text for dark theme
             
-            // LoggerUtil.Info($"UIFactory: Created text '{name}' with text '{text}' at {anchorPosition} size {size}");
             return textComponent;
         }
         
@@ -69,7 +68,6 @@ namespace BackSpeakerMod.UI.Helpers
                 textComponent.color = Color.white; // White text for dark theme
             }
             
-            // LoggerUtil.Info($"UIFactory: Created button '{text}' at {anchorPosition} size {size}");
             return button;
         }
         
@@ -134,7 +132,6 @@ namespace BackSpeakerMod.UI.Helpers
             slider.targetGraphic = handleImage;
             slider.handleRect = handleRect;
             
-            // LoggerUtil.Info($"UIFactory: Created functional slider '{name}' at {anchorPosition} size {size}");
             return slider;
         }
 
@@ -172,8 +169,6 @@ namespace BackSpeakerMod.UI.Helpers
                 }
                 
                 shadowImage.color = shadowColor;
-                
-                // LoggerUtil.Info($"UIFactory: Applied modern shadow to {target.name}");
             }
             catch (System.Exception _)
             {
@@ -217,8 +212,6 @@ namespace BackSpeakerMod.UI.Helpers
                     float layerIntensity = intensity / (i + 1); // Decreasing intensity for each layer
                     glowImage.color = new Color(glowColor.r, glowColor.g, glowColor.b, layerIntensity);
                 }
-                
-                // LoggerUtil.Info($"UIFactory: Applied glow effect to {target.name}");
             }
             catch (System.Exception _)
             {
@@ -250,8 +243,6 @@ namespace BackSpeakerMod.UI.Helpers
                 
                 var borderImage = borderObj.AddComponent<Image>();
                 borderImage.color = borderColor;
-                
-                // LoggerUtil.Info($"UIFactory: Applied modern border to {target.name}");
             }
             catch (System.Exception _)
             {

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
+using System.Text.RegularExpressions;
 using Il2CppScheduleOne.Audio;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
@@ -151,24 +152,61 @@ namespace BackSpeakerMod.Core.Modules
             if (string.IsNullOrEmpty(clipName))
                 return "Unknown Track";
                 
-            // Clean up the track name
-            string formatted = clipName;
-            
-            // Remove file extensions
-            if (formatted.Contains("."))
-                formatted = formatted.Substring(0, formatted.LastIndexOf('.'));
+            // Keep a copy of the original name as fallback
+            string original = clipName.Trim();
+            if (string.IsNullOrEmpty(original))
+                return "Unknown Track";
                 
-            // Remove common prefixes
-            if (formatted.StartsWith("audio_", StringComparison.OrdinalIgnoreCase))
-                formatted = formatted.Substring(6);
-            if (formatted.StartsWith("music_", StringComparison.OrdinalIgnoreCase))
-                formatted = formatted.Substring(6);
+            try
+            {
+                string formatted = original;
                 
-            // Replace underscores with spaces and capitalize
-            formatted = formatted.Replace('_', ' ');
-            formatted = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(formatted.ToLower());
-            
-            return formatted;
+                // Remove file extensions
+                if (formatted.Contains("."))
+                {
+                    int lastDot = formatted.LastIndexOf('.');
+                    if (lastDot > 0) // Don't remove if dot is at the beginning
+                        formatted = formatted.Substring(0, lastDot);
+                }
+                
+                // Remove common prefixes (but be more careful)
+                if (formatted.Length > 6 && formatted.StartsWith("audio_", StringComparison.OrdinalIgnoreCase))
+                    formatted = formatted.Substring(6);
+                else if (formatted.Length > 6 && formatted.StartsWith("music_", StringComparison.OrdinalIgnoreCase))
+                    formatted = formatted.Substring(6);
+                
+                // Replace underscores with spaces
+                formatted = formatted.Replace('_', ' ');
+                
+                // Remove extra whitespace
+                formatted = Regex.Replace(formatted, @"\s+", " ").Trim();
+                
+                // Capitalize properly, but handle special cases
+                if (!string.IsNullOrEmpty(formatted))
+                {
+                    try
+                    {
+                        formatted = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(formatted.ToLower());
+                    }
+                    catch
+                    {
+                        // If capitalization fails, just clean up the original
+                        formatted = original.Replace('_', ' ').Trim();
+                    }
+                }
+                
+                // Final validation - if we ended up with empty string, use original
+                if (string.IsNullOrEmpty(formatted) || formatted.Trim().Length == 0)
+                    formatted = original;
+                
+                return formatted;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Warning($"Error formatting track name '{original}': {ex.Message}", "Audio");
+                // Return the original name if formatting fails
+                return original;
+            }
         }
         
         private void LogTrackSummary(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)

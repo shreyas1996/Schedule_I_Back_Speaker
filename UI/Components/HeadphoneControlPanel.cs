@@ -12,7 +12,6 @@ namespace BackSpeakerMod.UI.Components
     {
         private BackSpeakerManager? manager;
         private Button? toggleButton;
-        private Button? placementButton;
         private Text? statusText;
         
         // IL2CPP compatibility
@@ -26,25 +25,22 @@ namespace BackSpeakerMod.UI.Components
 
         private void CreateSimpleUI(RectTransform container)
         {
-            // Create main panel
+            // Create main panel - position it below volume control to avoid overlap
             var panel = new GameObject("HeadphonePanel").AddComponent<RectTransform>();
             panel.SetParent(container, false);
             panel.anchorMin = new Vector2(0f, 0f);
             panel.anchorMax = new Vector2(1f, 0f);
-            panel.anchoredPosition = new Vector2(0f, 50f);
-            panel.sizeDelta = new Vector2(-20f, 100f);
+            panel.anchoredPosition = new Vector2(0f, 20f); // Moved up from 50f to 20f for better spacing
+            panel.sizeDelta = new Vector2(-20f, 60f); // Reduced height from 100f to 60f since we only have one button
             
             // Background
             var bg = panel.gameObject.AddComponent<Image>();
             bg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
             
-            // Toggle button
-            toggleButton = CreateButton(panel, "Toggle Headphones", new Vector2(0f, 0.5f), new Vector2(0.5f, 1f), (UnityEngine.Events.UnityAction)OnToggleClicked);
+            // Single toggle button - center it and make it larger
+            toggleButton = CreateButton(panel, "Toggle Headphones", new Vector2(0.1f, 0.5f), new Vector2(0.9f, 1f), (UnityEngine.Events.UnityAction)OnToggleClicked);
             
-            // Placement button
-            placementButton = CreateButton(panel, "Placement Mode", new Vector2(0.5f, 0.5f), new Vector2(1f, 1f), (UnityEngine.Events.UnityAction)OnPlacementClicked);
-            
-            // Status text
+            // Status text - bottom half of panel
             statusText = CreateText(panel, "Headphones ready", new Vector2(0f, 0f), new Vector2(1f, 0.5f));
         }
 
@@ -54,12 +50,12 @@ namespace BackSpeakerMod.UI.Components
             buttonObj.SetParent(parent, false);
             buttonObj.anchorMin = anchorMin;
             buttonObj.anchorMax = anchorMax;
-            buttonObj.offsetMin = new Vector2(5f, 5f);
-            buttonObj.offsetMax = new Vector2(-5f, -5f);
+            buttonObj.offsetMin = new Vector2(5f, 2f); // Reduced margins
+            buttonObj.offsetMax = new Vector2(-5f, -2f);
             
             var button = buttonObj.gameObject.AddComponent<Button>();
             var image = buttonObj.gameObject.AddComponent<Image>();
-            image.color = new Color(0.2f, 0.4f, 0.8f, 1f);
+            image.color = new Color(0.2f, 0.6f, 0.2f, 1f); // Green color for headphone toggle
             
             var textObj = new GameObject("Text").AddComponent<RectTransform>();
             textObj.SetParent(buttonObj, false);
@@ -85,8 +81,8 @@ namespace BackSpeakerMod.UI.Components
             textObj.SetParent(parent, false);
             textObj.anchorMin = anchorMin;
             textObj.anchorMax = anchorMax;
-            textObj.offsetMin = new Vector2(5f, 5f);
-            textObj.offsetMax = new Vector2(-5f, -5f);
+            textObj.offsetMin = new Vector2(5f, 2f); // Reduced margins
+            textObj.offsetMax = new Vector2(-5f, -2f);
             
             var textComponent = textObj.gameObject.AddComponent<Text>();
             textComponent.text = text;
@@ -102,16 +98,24 @@ namespace BackSpeakerMod.UI.Components
         {
             if (manager != null)
             {
-                manager.ToggleHeadphones();
-                UpdateStatus();
-            }
-        }
-
-        private void OnPlacementClicked()
-        {
-            if (manager != null)
-            {
-                manager.TogglePlacementMode();
+                bool wasAttached = manager.AreHeadphonesAttached();
+                bool success = manager.ToggleHeadphones();
+                
+                if (success)
+                {
+                    // Update button color based on state
+                    if (toggleButton != null)
+                    {
+                        var image = toggleButton.GetComponent<Image>();
+                        bool nowAttached = manager.AreHeadphonesAttached();
+                        image.color = nowAttached ? new Color(0.2f, 0.8f, 0.2f, 1f) : new Color(0.6f, 0.2f, 0.2f, 1f);
+                        
+                        // Update button text
+                        var text = toggleButton.GetComponentInChildren<Text>();
+                        text.text = nowAttached ? "Detach Headphones" : "Attach Headphones";
+                    }
+                }
+                
                 UpdateStatus();
             }
         }
@@ -120,11 +124,21 @@ namespace BackSpeakerMod.UI.Components
         {
             if (manager == null || statusText == null) return;
             
-            string status = manager.GetHeadphoneStatus();
             bool attached = manager.AreHeadphonesAttached();
-            bool placement = manager.IsInPlacementMode();
+            string status = attached ? "HEADPHONES ON" : "HEADPHONES OFF";
             
-            statusText.text = $"{status} | {(attached ? "ON" : "OFF")} | {(placement ? "PLACING" : "NORMAL")}";
+            statusText.text = status;
+            statusText.color = attached ? Color.green : Color.gray;
+            
+            // Update button appearance based on current state
+            if (toggleButton != null)
+            {
+                var image = toggleButton.GetComponent<Image>();
+                image.color = attached ? new Color(0.2f, 0.8f, 0.2f, 1f) : new Color(0.6f, 0.2f, 0.2f, 1f);
+                
+                var text = toggleButton.GetComponentInChildren<Text>();
+                text.text = attached ? "Detach Headphones" : "Attach Headphones";
+            }
         }
 
         private void Update()

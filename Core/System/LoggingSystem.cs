@@ -22,7 +22,7 @@ namespace BackSpeakerMod.Core.System
         /// <summary>
         /// Current minimum log level to display
         /// </summary>
-        public static LogLevel MinLevel { get; set; } = LogLevel.Debug;
+        public static LogLevel MinLevel { get; set; } = LogLevel.Info;
 
         /// <summary>
         /// Enable/disable logging entirely

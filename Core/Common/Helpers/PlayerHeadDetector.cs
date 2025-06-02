@@ -280,7 +280,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
             if (depth > 10) return; // Prevent infinite recursion
             
             string indent = new string(' ', depth * 2);
-            LoggingSystem.Info($"{indent}- {parent.name} (Position: {parent.localPosition}, Children: {parent.childCount})", "PlayerHeadDetector");
+            // LoggingSystem.Info($"{indent}- {parent.name} (Position: {parent.localPosition}, Children: {parent.childCount})", "PlayerHeadDetector");
             
             for (int i = 0; i < parent.childCount; i++)
             {

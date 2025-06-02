@@ -67,6 +67,15 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         }
 
         /// <summary>
+        /// Reset audio system when speaker is detached
+        /// </summary>
+        public void Reset()
+        {
+            audioController?.Reset();
+            isInitialized = false;
+        }
+
+        /// <summary>
         /// Load tracks from jukebox
         /// </summary>
         public void LoadTracks()
