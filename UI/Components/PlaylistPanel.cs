@@ -335,19 +335,63 @@ namespace BackSpeakerMod.UI.Components
             renderComponent.RenderTracks(allTracks, currentTrackIndex, searchComponent);
         }
 
-
-
         public void CreateToggleButton(Transform parentTransform)
         {
-            // Create playlist toggle button positioned at the bottom with other controls
-            toggleButton = UIFactory.CreateButton(
-                parentTransform,
-                "♫ Playlist",
-                new Vector2(0f, -250f),
-                new Vector2(80f, 30f)
-            );
+            // Find the HeadphonePanel that was created by HeadphoneControlPanel
+            var headphonePanel = parentTransform.Find("HeadphonePanel");
+            if (headphonePanel == null)
+            {
+                LoggingSystem.Warning("Could not find HeadphonePanel - creating playlist button with fallback positioning", "UI");
+                // Fallback to old positioning if HeadphonePanel not found
+                toggleButton = UIFactory.CreateButton(
+                    parentTransform,
+                    "♫ Playlist",
+                    new Vector2(0f, -250f),
+                    new Vector2(80f, 30f)
+                );
+            }
+            else
+            {
+                // Position playlist button in RIGHT SIDE of the HeadphonePanel (70% to 95% width, same height as headphone button)
+                toggleButton = CreateButton(headphonePanel, "♫ Playlist", new Vector2(0.7f, 0.5f), new Vector2(0.95f, 1f), (UnityEngine.Events.UnityAction)TogglePlaylist);
+                LoggingSystem.Info("Playlist button positioned alongside headphone button", "UI");
+                ApplyToggleButtonStyling(toggleButton);
+                return; // Return early since we already applied styling
+            }
+            
             toggleButton.onClick.AddListener((UnityEngine.Events.UnityAction)TogglePlaylist);
             ApplyToggleButtonStyling(toggleButton);
+        }
+
+        private Button CreateButton(Transform parent, string text, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
+        {
+            var buttonObj = new GameObject($"{text}Button").AddComponent<RectTransform>();
+            buttonObj.SetParent(parent, false);
+            buttonObj.anchorMin = anchorMin;
+            buttonObj.anchorMax = anchorMax;
+            buttonObj.offsetMin = new Vector2(2f, 2f); // Small margins
+            buttonObj.offsetMax = new Vector2(-2f, -2f);
+            
+            var button = buttonObj.gameObject.AddComponent<Button>();
+            var image = buttonObj.gameObject.AddComponent<Image>();
+            image.color = new Color(0.4f, 0.2f, 0.8f, 0.8f); // Purple accent for playlist
+            
+            var textObj = new GameObject("Text").AddComponent<RectTransform>();
+            textObj.SetParent(buttonObj, false);
+            textObj.anchorMin = Vector2.zero;
+            textObj.anchorMax = Vector2.one;
+            textObj.offsetMin = Vector2.zero;
+            textObj.offsetMax = Vector2.zero;
+            
+            var textComponent = textObj.gameObject.AddComponent<Text>();
+            textComponent.text = text;
+            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            textComponent.fontSize = 10;
+            textComponent.color = Color.white;
+            textComponent.alignment = TextAnchor.MiddleCenter;
+            
+            button.onClick.AddListener(onClick);
+            return button;
         }
     }
 } 

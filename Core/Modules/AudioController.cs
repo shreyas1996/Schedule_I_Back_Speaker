@@ -32,11 +32,19 @@ namespace BackSpeakerMod.Core.Modules
 
         public void Reset()
         {
+            // Stop any playing audio first
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+            
             isPlaying = false;
             audioSource = null;
             tracks.Clear();
             trackInfo.Clear();
             currentTrackIndex = 0;
+            
+            LoggingSystem.Info("AudioController reset - audio stopped and cleared", "Audio");
         }
 
         public void SetTracks(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)

@@ -25,23 +25,26 @@ namespace BackSpeakerMod.UI.Components
 
         private void CreateSimpleUI(RectTransform container)
         {
-            // Create main panel - position it below volume control to avoid overlap
+            // Create main panel - position it below volume control, but give more space for side-by-side layout
             var panel = new GameObject("HeadphonePanel").AddComponent<RectTransform>();
             panel.SetParent(container, false);
             panel.anchorMin = new Vector2(0f, 0f);
             panel.anchorMax = new Vector2(1f, 0f);
-            panel.anchoredPosition = new Vector2(0f, 20f); // Moved up from 50f to 20f for better spacing
-            panel.sizeDelta = new Vector2(-20f, 60f); // Reduced height from 100f to 60f since we only have one button
+            panel.anchoredPosition = new Vector2(0f, 20f); // Same vertical position
+            panel.sizeDelta = new Vector2(-20f, 80f); // Increased height for better layout
             
             // Background
             var bg = panel.gameObject.AddComponent<Image>();
             bg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
             
-            // Single toggle button - center it and make it larger
-            toggleButton = CreateButton(panel, "Toggle Headphones", new Vector2(0.1f, 0.5f), new Vector2(0.9f, 1f), (UnityEngine.Events.UnityAction)OnToggleClicked);
+            // Headphone toggle button - LEFT SIDE (takes left 60% of the panel)
+            toggleButton = CreateButton(panel, "Toggle Headphones", new Vector2(0.05f, 0.5f), new Vector2(0.65f, 1f), (UnityEngine.Events.UnityAction)OnToggleClicked);
             
-            // Status text - bottom half of panel
+            // Status text - BOTTOM half of panel, spans full width
             statusText = CreateText(panel, "Headphones ready", new Vector2(0f, 0f), new Vector2(1f, 0.5f));
+            
+            // NOTE: Playlist button will be created in the RIGHT SIDE (35% to 95%) by PlaylistPanel.CreateToggleButton()
+            // This provides space for the playlist button to be positioned at new Vector2(0.7f, 0.5f), new Vector2(0.95f, 1f)
         }
 
         private Button CreateButton(RectTransform parent, string text, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)

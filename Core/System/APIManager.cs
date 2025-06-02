@@ -115,12 +115,22 @@ namespace BackSpeakerMod.Core.System
         
         public void RemoveHeadphones()
         {
+            // Step 1: Stop any playing music first
             if (IsPlaying)
             {
                 components.AudioManager?.Pause();
             }
+            
+            // Step 2: Reset audio manager to clear audio source reference
+            components.AudioManager?.Reset();
+            
+            // Step 3: Detach and destroy the speaker
             components.PlayerAttachment?.DetachSpeaker();
+            
+            // Step 4: Remove headphones last
             components.HeadphoneManager?.RemoveHeadphones();
+            
+            LoggingSystem.Info("Complete headphone removal sequence executed", "System");
         }
         
         public bool ToggleHeadphones()
@@ -133,15 +143,18 @@ namespace BackSpeakerMod.Core.System
                 bool nowAttached = AreHeadphonesAttached();
                 if (nowAttached && !wasAttached)
                 {
+                    // Attaching: Speaker -> Load tracks
                     components.PlayerAttachment?.TriggerManualAttachment();
                     components.AudioManager?.LoadTracks();
                 }
                 else if (!nowAttached && wasAttached)
                 {
+                    // Detaching: Stop music -> Reset audio -> Detach speaker (headphones already detached by ToggleHeadphones)
                     if (IsPlaying)
                     {
                         components.AudioManager?.Pause();
                     }
+                    components.AudioManager?.Reset();
                     components.PlayerAttachment?.DetachSpeaker();
                 }
             }
