@@ -36,14 +36,15 @@ namespace BackSpeakerMod.Initialization
                         try
                         {
                             AppInstance = new BackSpeakerApp(BackSpeakerModMain.SpeakerManager!);
+                            LoggingSystem.Debug("Creating BackSpeakerApp", "Initialization");
                             if (AppInstance != null && AppInstance.Create())
                             {
                                 appCreated = true;
-                                // LoggerUtil.Info("BackSpeakerApp successfully created.");
+                                LoggingSystem.Debug("BackSpeakerApp successfully created.", "Initialization");
                             }
                             else
                             {
-                                // LoggerUtil.Warn("BackSpeakerApp creation failed. Will retry.");
+                                LoggingSystem.Debug("BackSpeakerApp creation failed. Will retry.", "Initialization");
                                 AppInstance = null;
                             }
                         }

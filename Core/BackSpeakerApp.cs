@@ -27,10 +27,10 @@ namespace BackSpeakerMod.Core
         public Sprite? AppLogo { get; set; }
         public string AppLabel => "Back Speaker";
         
-        // Add App framework support like Drones
+        // Add App framework support 
         public App<ProductManagerApp>? app;
         
-        // App state tracking like Drones
+        // App state tracking
         public static bool appActive = false;
         public static bool appBecameActive = false;
 
@@ -50,12 +50,14 @@ namespace BackSpeakerMod.Core
             // Check if our app canvas already exists
             if (GameObject.Find("BackSpeakerApp") != null)
             {
+                LoggingSystem.Debug("BackSpeakerApp already exists", "BackSpeakerApp");
                 return false;
             }
             // Check if our app icon already exists
             var appIcons = GameObject.Find("AppIcons");
             if (appIcons != null)
             {
+                LoggingSystem.Debug("AppIcons found", "BackSpeakerApp");
                 for (int i = 0; i < appIcons.transform.childCount; i++)
                 {
                     var icon = appIcons.transform.GetChild(i);
@@ -71,10 +73,11 @@ namespace BackSpeakerMod.Core
             homeScreen = GameObject.Find("HomeScreen");
             if (appsCanvas == null || homeScreen == null)
             {
+                LoggingSystem.Debug("AppsCanvas or HomeScreen not found", "BackSpeakerApp");
                 return false;
             }
             
-            // ColorBlock setup -
+            // ColorBlock setup
             ColorBlock colorBlock = default(ColorBlock);
             colorBlock.normalColor = new Color(0.25f, 0.25f, 0.25f, 0.1f);
             colorBlock.highlightedColor = new Color(0.25f, 0.275f, 0.35f, 0.3f);
@@ -86,12 +89,13 @@ namespace BackSpeakerMod.Core
             var baseAppObj = appsCanvas.transform.FindChild("ProductManagerApp");
             if (baseAppObj == null)
             {
+                LoggingSystem.Debug("ProductManagerApp not found", "BackSpeakerApp");
                 return false;
             }
             
             // Clone the original ProductManagerApp as our app canvas
             canvas = UnityEngine.Object.Instantiate<GameObject>(baseAppObj.gameObject, appsCanvas.transform);
-            
+            LoggingSystem.Debug("Canvas cloned", "BackSpeakerApp");
             // Get the App component
             app = canvas.GetComponent<App<ProductManagerApp>>();
             if (app != null)
@@ -151,14 +155,13 @@ namespace BackSpeakerMod.Core
             Transform transform = container.FindChild("Topbar").FindChild("Title");
             var txtHeading = transform.GetComponent<Text>();
             txtHeading.text = AppLabel;
-
-            // Add color to the topbar background
-            var topbarBackground = container.FindChild("Topbar").FindChild("Background");
-            topbarBackground.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.25f, 0.1f);
-
-            // Add color to the topbar text
-            var topbarText = container.FindChild("Topbar").FindChild("Title").GetComponent<Text>();
-            topbarText.color = new Color(1f, 1f, 1f, 1f);
+            txtHeading.color = new Color(1f, 1f, 1f, 1f);
+            LoggingSystem.Debug("Topbar title updated and color set", "BackSpeakerApp");
+           
+            // // Add color to the topbar background
+            // var topbarBackground = container.FindChild("Topbar").FindChild("Background");
+            // topbarBackground.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.25f, 0.1f);
+            // LoggingSystem.Debug("Topbar background color updated", "BackSpeakerApp");
             
             // Remove Scroll View and Details 
             container.FindChild("Scroll View").DetachChildren();

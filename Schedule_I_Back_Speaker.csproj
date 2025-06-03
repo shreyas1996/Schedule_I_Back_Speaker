@@ -10,6 +10,46 @@
     <ScheduleOnePath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/</ScheduleOnePath>
   </PropertyGroup>
 
+  <!-- Debug Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>DEBUG;TRACE;VERBOSE_LOGGING</DefineConstants>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <!-- Release Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>RELEASE;MINIMAL_LOGGING</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- Verbose Configuration (optimized with debug logging) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Verbose'">
+    <DefineConstants>RELEASE;VERBOSE_LOGGING</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- Minimal Configuration (errors only) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Minimal'">
+    <DefineConstants>RELEASE;MINIMAL_LOGGING</DefineConstants>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- IL2CPP Configuration (if needed) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'IL2CPP'">
+    <DefineConstants>IL2CPP;RELEASE;MINIMAL_LOGGING</DefineConstants>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
     <!-- <EmbeddedResource Include="EmbeddedResources\playerwithheadphones" />

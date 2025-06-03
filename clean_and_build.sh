@@ -1,1 +1,0 @@
-dotnet clean && dotnet build -c Release && cp bin/Release/net6.0/BackSpeakerMod.dll "/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/Mods/"

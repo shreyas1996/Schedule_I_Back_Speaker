@@ -3,7 +3,8 @@ using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Configuration
 {
     /// <summary>
-    /// Backward compatibility wrapper for FeatureToggleSystem
+    /// Feature flags for controlling mod functionality
+    /// Consolidated from the previous FeatureToggleSystem
     /// </summary>
     public static class FeatureFlags
     {
@@ -13,8 +14,18 @@ namespace BackSpeakerMod.Configuration
         /// </summary>
         public static class Headphones
         {
-            public static bool Enabled = true; // Primary feature - enabled
-            public static bool ShowDebugInfo = false;
+            public static bool Enabled
+            {
+                get => SystemManager.Features.HeadphonesEnabled;
+                set => SystemManager.Features.HeadphonesEnabled = value;
+            }
+
+            public static bool ShowDebugInfo
+            {
+                get => SystemManager.Features.ShowDebugInfo;
+                set => SystemManager.Features.ShowDebugInfo = value;
+            }
+
             public static bool EnablePhysics = false;
             public static bool AutoAttachOnSpawn = true; // Auto-attach headphones
             public static bool EnableVisibilityDebugging = false;
@@ -31,27 +42,18 @@ namespace BackSpeakerMod.Configuration
         {
             public static bool Enabled 
             { 
-                get => FeatureToggleSystem.Audio.Enabled; 
-                set => FeatureToggleSystem.Audio.Enabled = value; 
+                get => SystemManager.Features.AudioEnabled; 
+                set => SystemManager.Features.AudioEnabled = value; 
             }
             
             public static bool AutoLoadTracks 
             { 
-                get => FeatureToggleSystem.Audio.AutoLoadTracks; 
-                set => FeatureToggleSystem.Audio.AutoLoadTracks = value; 
+                get => SystemManager.Features.AutoLoadTracks; 
+                set => SystemManager.Features.AutoLoadTracks = value; 
             }
             
-            public static bool ShowTrackInfo 
-            { 
-                get => FeatureToggleSystem.Audio.ShowTrackInfo; 
-                set => FeatureToggleSystem.Audio.ShowTrackInfo = value; 
-            }
-            
-            public static bool EnableDebugLogging 
-            { 
-                get => FeatureToggleSystem.Audio.EnableDebugLogging; 
-                set => FeatureToggleSystem.Audio.EnableDebugLogging = value; 
-            }
+            public static bool ShowTrackInfo = true;
+            public static bool EnableDebugLogging = false;
         }
 
         /// <summary>

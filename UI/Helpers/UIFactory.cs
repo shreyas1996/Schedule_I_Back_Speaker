@@ -64,7 +64,7 @@ namespace BackSpeakerMod.UI.Helpers
                 textComponent.text = text;
                 textComponent.alignment = TextAnchor.MiddleCenter;
                 textComponent.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                textComponent.fontSize = 20; // Drones font size
+                textComponent.fontSize = 20; 
                 textComponent.color = Color.white; // White text for dark theme
             }
             
