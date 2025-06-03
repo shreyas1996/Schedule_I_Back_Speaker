@@ -5,13 +5,21 @@ using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.UI.Components
 {
+    public enum RepeatMode
+    {
+        NoRepeat,
+        RepeatOne,
+        RepeatAll
+    }
+
     public class ControlsComponent : MonoBehaviour
     {
         private BackSpeakerManager? manager;
-        private Button? prevButton, playButton, nextButton;
-        private Text? playButtonText;
+        private Button? prevButton, playButton, nextButton, repeatButton;
+        private Text? playButtonText, repeatButtonText;
         private Slider? volumeSlider;
         private Text? volumeText;
+        private RepeatMode currentRepeatMode = RepeatMode.NoRepeat;
         
         public ControlsComponent() : base() { }
         
@@ -25,24 +33,28 @@ namespace BackSpeakerMod.UI.Components
         private void CreateControls()
         {
             // Previous button
-            prevButton = CreateControlButton("⏮️", 0.05f, 0.2f, (UnityEngine.Events.UnityAction)delegate() { manager?.PreviousTrack(); });
+            prevButton = CreateControlButton("PREV", 0.05f, 0.17f, (UnityEngine.Events.UnityAction)delegate() { manager?.PreviousTrack(); });
             
             // Play/pause button
-            playButton = CreateControlButton("⏸️", 0.25f, 0.45f, (UnityEngine.Events.UnityAction)delegate() { manager?.TogglePlayPause(); });
+            playButton = CreateControlButton("PLAY", 0.2f, 0.35f, (UnityEngine.Events.UnityAction)delegate() { manager?.TogglePlayPause(); });
             playButtonText = playButton.GetComponentInChildren<Text>();
             
             // Next button
-            nextButton = CreateControlButton("⏭️", 0.5f, 0.65f, (UnityEngine.Events.UnityAction)delegate() { manager?.NextTrack(); });
+            nextButton = CreateControlButton("NEXT", 0.38f, 0.53f, (UnityEngine.Events.UnityAction)delegate() { manager?.NextTrack(); });
+            
+            // Repeat mode button
+            repeatButton = CreateControlButton("NO RPT", 0.56f, 0.68f, (UnityEngine.Events.UnityAction)delegate() { CycleRepeatMode(); });
+            repeatButtonText = repeatButton.GetComponentInChildren<Text>();
         }
         
         private void CreateVolumeControl()
         {
-            // Volume container - positioned to the right of controls
+            // Volume container - positioned after repeat button
             var volumeContainer = new GameObject("VolumeContainer");
             volumeContainer.transform.SetParent(this.transform, false);
             
             var volumeRect = volumeContainer.AddComponent<RectTransform>();
-            volumeRect.anchorMin = new Vector2(0.7f, 0.3f);
+            volumeRect.anchorMin = new Vector2(0.72f, 0.3f); // Start after repeat button
             volumeRect.anchorMax = new Vector2(0.98f, 0.7f);
             volumeRect.offsetMin = Vector2.zero;
             volumeRect.offsetMax = Vector2.zero;
@@ -173,7 +185,19 @@ namespace BackSpeakerMod.UI.Components
         {
             if (manager != null && playButtonText != null)
             {
-                playButtonText.text = manager.IsPlaying ? "⏸️" : "▶️";
+                playButtonText.text = manager.IsPlaying ? "PAUSE" : "PLAY";
+            }
+            
+            // Update repeat button text
+            if (repeatButtonText != null)
+            {
+                repeatButtonText.text = currentRepeatMode switch
+                {
+                    RepeatMode.NoRepeat => "NO RPT",
+                    RepeatMode.RepeatOne => "RPT 1",
+                    RepeatMode.RepeatAll => "RPT ALL",
+                    _ => "NO RPT"
+                };
             }
             
             // Update volume display
@@ -196,5 +220,21 @@ namespace BackSpeakerMod.UI.Components
                 volumeText.text = $"{volumePercent}%";
             }
         }
+
+        private void CycleRepeatMode()
+        {
+            currentRepeatMode = currentRepeatMode switch
+            {
+                RepeatMode.NoRepeat => RepeatMode.RepeatOne,
+                RepeatMode.RepeatOne => RepeatMode.RepeatAll,
+                RepeatMode.RepeatAll => RepeatMode.NoRepeat,
+                _ => RepeatMode.NoRepeat
+            };
+            
+            LoggingSystem.Info($"Repeat mode changed to: {currentRepeatMode}", "UI");
+            UpdateControls();
+        }
+        
+        public RepeatMode GetRepeatMode() => currentRepeatMode;
     }
 } 

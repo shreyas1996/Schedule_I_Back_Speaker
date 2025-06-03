@@ -36,6 +36,9 @@ namespace BackSpeakerMod.UI.Components
         
         private MusicSourceType currentTab = MusicSourceType.Jukebox;
         
+        // Public property to access playlist toggle
+        public PlaylistToggleComponent? PlaylistToggle => playlistToggle;
+        
         public ContentAreaComponent() : base() { }
         
         public void Setup(BackSpeakerManager manager, TrackLoader trackLoader, TabBarComponent tabBar)

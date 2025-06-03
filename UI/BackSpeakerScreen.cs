@@ -29,6 +29,9 @@ namespace BackSpeakerMod.UI
         private TabBarComponent? tabBar;
         private ContentAreaComponent? contentArea;
         
+        // Public property to access content area
+        public ContentAreaComponent? ContentArea => contentArea;
+        
         public BackSpeakerScreen() : base() { }
 
         public void Setup(BackSpeakerManager manager)

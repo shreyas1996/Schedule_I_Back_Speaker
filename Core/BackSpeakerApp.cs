@@ -23,6 +23,7 @@ namespace BackSpeakerMod.Core
         private GameObject? canvas;
         private GameObject? appIcon;
         private Button? appButton;
+        private BackSpeakerMod.UI.BackSpeakerScreen? backSpeakerScreen;
         // UI elements are now handled by BackSpeakerScreen
         public Sprite? AppLogo { get; set; }
         public string AppLabel => "Back Speaker";
@@ -176,7 +177,7 @@ namespace BackSpeakerMod.Core
 
             var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
             backSpeakerScreenObj.transform.SetParent(container, false); // Attach to Container, not canvas directly
-            var backSpeakerScreen = backSpeakerScreenObj.AddComponent<BackSpeakerMod.UI.BackSpeakerScreen>();
+            backSpeakerScreen = backSpeakerScreenObj.AddComponent<BackSpeakerMod.UI.BackSpeakerScreen>();
             backSpeakerScreen.Setup(manager!);
             
             // Activate the canvas
@@ -186,7 +187,21 @@ namespace BackSpeakerMod.Core
 
         private void OnHomeScreenBtnClick()
         {
-            // Navigation handled by BackSpeakerScreen
+            LoggingSystem.Info("Home button clicked", "BackSpeakerApp");
+            
+            // Check if playlist is open through the component hierarchy
+            var playlistComponent = backSpeakerScreen?.ContentArea?.PlaylistToggle;
+            
+            if (playlistComponent != null && playlistComponent.IsPlaylistOpen())
+            {
+                LoggingSystem.Info("Playlist is open, closing it instead of exiting app", "BackSpeakerApp");
+                playlistComponent.ClosePlaylistIfOpen();
+                return;
+            }
+            
+            // No playlist open, proceed with normal app exit
+            LoggingSystem.Info("No playlist open, exiting app normally", "BackSpeakerApp");
+            
             if (homeScreen != null) homeScreen.GetComponent<Canvas>().enabled = false;
             if (appsCanvas != null) appsCanvas.GetComponent<Canvas>().enabled = true;
             if (canvas != null) canvas.active = true;
@@ -199,6 +214,26 @@ namespace BackSpeakerMod.Core
             {
                 Phone phone = PlayerSingleton<Phone>.instance;
                 bool isActive = this.app.isOpen && phone != null && phone.IsOpen;
+                
+                // Check if app is about to become inactive (closing)
+                if (appActive && !isActive)
+                {
+                    // App is about to close, check if playlist is open
+                    var playlistComponent = backSpeakerScreen?.ContentArea?.PlaylistToggle;
+                    
+                    if (playlistComponent != null && playlistComponent.IsPlaylistOpen())
+                    {
+                        LoggingSystem.Info("App closing intercepted - playlist is open, closing playlist instead", "BackSpeakerApp");
+                        playlistComponent.ClosePlaylistIfOpen();
+                        
+                        // Force the app to stay open
+                        if (this.app != null)
+                        {
+                            this.app.isOpen = true;
+                        }
+                        return;
+                    }
+                }
                 
                 appBecameActive = (!appActive && isActive);
                 appActive = isActive;
