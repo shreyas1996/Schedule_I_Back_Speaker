@@ -59,15 +59,17 @@
   </ItemGroup>
   
   <ItemGroup>
-      <Compile Remove="my_references\**\*.cs" />
-      <!-- Exclude all sphere-related files since we're focusing on headphones -->
-      <Compile Remove="**/*Sphere*.cs" />
-      <Compile Remove="Core/Features/Spheres/**/*.cs" />
-      <Compile Remove="UI/Components/SphereControlPanel.cs" />
-      <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
+    <Compile Remove="my_references\**\*.cs" />
+    <!-- Exclude all sphere-related files since we're focusing on headphones -->
+    <Compile Remove="**/*Sphere*.cs" />
+    <Compile Remove="Core/Features/Spheres/**/*.cs" />
+    <Compile Remove="UI/Components/SphereControlPanel.cs" />
+    <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
 
-      <Reference Include="Assembly-CSharp-firstpass">
-        <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
+    <PackageReference Include="AngleSharp" Version="1.1.2" />
+
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
@@ -92,6 +94,12 @@
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
 			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+		</Reference>
+    <Reference Include="UnityEngine.UnityWebRequestAudioModule">
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+		</Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
 			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.TextRenderingModule.dll</HintPath>

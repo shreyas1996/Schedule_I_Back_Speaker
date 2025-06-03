@@ -53,70 +53,122 @@ namespace BackSpeakerMod
             
             try
             {
-                LoggingSystem.Info("Registering DisplayPanel...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.DisplayPanel>();
-                LoggingSystem.Info("✓ DisplayPanel registered successfully", "Mod");
+                LoggingSystem.Info("Registering TabBarComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.TabBarComponent>();
+                LoggingSystem.Info("✓ TabBarComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register DisplayPanel: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register TabBarComponent: {ex}", "Mod");
             }
             
             try
             {
-                LoggingSystem.Info("Registering MusicControlPanel...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.MusicControlPanel>();
-                LoggingSystem.Info("✓ MusicControlPanel registered successfully", "Mod");
+                LoggingSystem.Info("Registering ContentAreaComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ContentAreaComponent>();
+                LoggingSystem.Info("✓ ContentAreaComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register MusicControlPanel: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register ContentAreaComponent: {ex}", "Mod");
             }
             
             try
             {
-                LoggingSystem.Info("Registering VolumeControl...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.VolumeControl>();
-                LoggingSystem.Info("✓ VolumeControl registered successfully", "Mod");
+                LoggingSystem.Info("Registering TrackInfoComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.TrackInfoComponent>();
+                LoggingSystem.Info("✓ TrackInfoComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register VolumeControl: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register TrackInfoComponent: {ex}", "Mod");
             }
             
             try
             {
-                LoggingSystem.Info("Registering ProgressBar...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ProgressBar>();
-                LoggingSystem.Info("✓ ProgressBar registered successfully", "Mod");
+                LoggingSystem.Info("Registering ProgressBarComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ProgressBarComponent>();
+                LoggingSystem.Info("✓ ProgressBarComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register ProgressBar: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register ProgressBarComponent: {ex}", "Mod");
             }
             
             try
             {
-                LoggingSystem.Info("Registering PlaylistPanel...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.PlaylistPanel>();
-                LoggingSystem.Info("✓ PlaylistPanel registered successfully", "Mod");
+                LoggingSystem.Info("Registering ControlsComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ControlsComponent>();
+                LoggingSystem.Info("✓ ControlsComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register PlaylistPanel: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register ControlsComponent: {ex}", "Mod");
             }
             
             try
             {
-                LoggingSystem.Info("Registering HeadphoneControlPanel...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.HeadphoneControlPanel>();
-                LoggingSystem.Info("✓ HeadphoneControlPanel registered successfully", "Mod");
+                LoggingSystem.Info("Registering ActionButtonsComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ActionButtonsComponent>();
+                LoggingSystem.Info("✓ ActionButtonsComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"✗ Failed to register HeadphoneControlPanel: {ex}", "Mod");
+                LoggingSystem.Error($"✗ Failed to register ActionButtonsComponent: {ex}", "Mod");
             }
             
+            try
+            {
+                LoggingSystem.Info("Registering PlaylistToggleComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.PlaylistToggleComponent>();
+                LoggingSystem.Info("✓ PlaylistToggleComponent registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register PlaylistToggleComponent: {ex}", "Mod");
+            }
+            
+            try
+            {
+                LoggingSystem.Info("Registering HelpTextComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.HelpTextComponent>();
+                LoggingSystem.Info("✓ HelpTextComponent registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register HelpTextComponent: {ex}", "Mod");
+            }
+
+            try {
+                LoggingSystem.Info("Registering YouTubeMusicProvider...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.YouTubeMusicProvider>();
+                LoggingSystem.Info("✓ YouTubeMusicProvider registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register YouTubeMusicProvider: {ex}", "Mod");
+            }
+
+            try {
+                LoggingSystem.Info("Registering LocalFolderMusicProvider...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.LocalFolderMusicProvider>();
+                LoggingSystem.Info("✓ LocalFolderMusicProvider registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register LocalFolderMusicProvider: {ex}", "Mod");
+            }
+
+            try {
+                LoggingSystem.Info("Registering TrackLoader...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.TrackLoader>();
+                LoggingSystem.Info("✓ TrackLoader registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register TrackLoader: {ex}", "Mod");
+            }
+
             LoggingSystem.Info("Il2Cpp type registration completed", "Mod");
         }
 

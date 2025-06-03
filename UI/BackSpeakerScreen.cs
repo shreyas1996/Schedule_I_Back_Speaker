@@ -1,48 +1,47 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
+using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.UI.Components;
-using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI
 {
+    /// <summary>
+    /// Main BackSpeaker UI screen following design specifications
+    /// Total Height: 655px (Title: 55px, Tabs: 50px, Content: 550px)
+    /// </summary>
     public class BackSpeakerScreen : MonoBehaviour
     {
-        // IL2CPP compatibility - explicit field initialization
-        private BackSpeakerManager? manager = null;
-        private RectTransform? parentContainer = null;
+        // Design Constants from Designs/Design.ms
+        private const float SCREEN_WIDTH = 1200f;
+        private const float SCREEN_HEIGHT = 655f;
+        private const float TITLE_BAR_HEIGHT = 55f;
+        private const float TAB_BAR_HEIGHT = 50f;
+        private const float CONTENT_AREA_HEIGHT = 550f;
+        
+        // Dependencies
+        private BackSpeakerManager? manager;
+        private TrackLoader? trackLoader;
         
         // UI Components
-        private DisplayPanel? displayPanel = null;
-        private ProgressBar? progressBar = null;
-        private MusicControlPanel? musicControlPanel = null;
-        private VolumeControl? volumeControl = null;
-        private PlaylistPanel? playlistPanel = null;
-        private HeadphoneControlPanel? headphoneControlPanel = null;
+        private GameObject? titleBar;
+        private TabBarComponent? tabBar;
+        private ContentAreaComponent? contentArea;
         
-        // Layout management
-        private RectTransform? controlsContainer = null;
-        private bool isPlaylistOpen = false;
-        private Vector2 controlsClosedPosition = Vector2.zero;
-        private Vector2 controlsOpenPosition = new Vector2(-200f, 0f); // Center in left 50% area (25% from original center)
-        
-        // IL2CPP compatibility - explicit parameterless constructor
         public BackSpeakerScreen() : base() { }
 
-        public void Setup(BackSpeakerManager? manager)
+        public void Setup(BackSpeakerManager manager)
         {
             try
             {
                 this.manager = manager;
                 
-                // Find the parent container (should be the app's main container)
-                FindParentContainer();
-                CreateControlsContainer();
-                SetupUIComponents();
+                SetupScreenContainer();
+                InitializeTrackLoader();
+                CreateUILayout();
                 
-                LoggingSystem.Info("BackSpeaker UI initialized", "UI");
+                LoggingSystem.Info("BackSpeaker UI created following design specifications", "UI");
             }
             catch (System.Exception ex)
             {
@@ -50,122 +49,135 @@ namespace BackSpeakerMod.UI
                 throw;
             }
         }
-
-        private void FindParentContainer()
+        
+        private void SetupScreenContainer()
         {
-            // The BackSpeakerScreen is created as a child of the app canvas
-            // We need to find the appropriate container to work within
-            Transform current = this.transform;
-            
-            // Look for the Container or similar structure
-            while (current != null)
+            // Setup main screen container to fit within phone app bounds
+            var screenRect = GetComponent<RectTransform>();
+            if (screenRect == null)
             {
-                var container = current.FindChild("Container");
-                if (container != null)
+                screenRect = gameObject.AddComponent<RectTransform>();
+            }
+            
+            // CRITICAL: Anchor to parent container, not full screen
+            screenRect.anchorMin = Vector2.zero;
+            screenRect.anchorMax = Vector2.one;
+            screenRect.offsetMin = Vector2.zero;
+            screenRect.offsetMax = Vector2.zero;
+            
+            // Ensure we stay within container bounds
+            screenRect.anchoredPosition = Vector2.zero;
+            screenRect.sizeDelta = Vector2.zero;
+        }
+        
+        private void InitializeTrackLoader()
+        {
+            // Initialize or get existing track loader
+            var audioManager = manager?.GetType()
+                .GetProperty("SystemManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.GetValue(manager);
+            
+            if (audioManager != null)
+            {
+                var audioFeature = audioManager.GetType()
+                    .GetProperty("AudioManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.GetValue(audioManager);
+                
+                if (audioFeature != null)
                 {
-                    parentContainer = container.GetComponent<RectTransform>();
-                    break;
-                }
-                current = current.parent;
-            }
-            
-            // Fallback to using this transform if no container found
-            if (parentContainer == null)
-            {
-                parentContainer = this.GetComponent<RectTransform>();
-                if (parentContainer == null)
-                {
-                    parentContainer = this.gameObject.AddComponent<RectTransform>();
+                    trackLoader = audioFeature.GetType()
+                        .GetField("trackLoader", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                        ?.GetValue(audioFeature) as TrackLoader;
                 }
             }
             
-            // Set up this object's RectTransform to fill the parent
-            var myRect = this.GetComponent<RectTransform>();
-            if (myRect == null)
+            if (trackLoader == null)
             {
-                myRect = this.gameObject.AddComponent<RectTransform>();
-            }
-            
-            myRect.anchorMin = Vector2.zero;
-            myRect.anchorMax = Vector2.one;
-            myRect.offsetMin = Vector2.zero;
-            myRect.offsetMax = Vector2.zero;
-        }
-
-        private void CreateControlsContainer()
-        {
-            // Create a container for all the music controls so we can move them as a group
-            var containerObj = new GameObject("ControlsContainer");
-            containerObj.transform.SetParent(this.transform, false);
-            
-            controlsContainer = containerObj.AddComponent<RectTransform>();
-            controlsContainer.anchorMin = new Vector2(0.5f, 0.5f);
-            controlsContainer.anchorMax = new Vector2(0.5f, 0.5f);
-            controlsContainer.pivot = new Vector2(0.5f, 0.5f);
-            controlsContainer.anchoredPosition = controlsClosedPosition;
-            controlsContainer.sizeDelta = new Vector2(400f, 600f);
-        }
-
-        private void SetupUIComponents()
-        {
-            // Setup display panel (album art, track info) - top section
-            displayPanel = gameObject.AddComponent<DisplayPanel>();
-            displayPanel.Setup(manager!, controlsContainer!);
-            
-            // Setup progress bar - below display, proper spacing
-            progressBar = gameObject.AddComponent<ProgressBar>();
-            progressBar.Setup(manager!, controlsContainer!);
-            
-            // Setup music controls - below progress bar, proper spacing  
-            musicControlPanel = gameObject.AddComponent<MusicControlPanel>();
-            musicControlPanel.Setup(manager!, controlsContainer!);
-            
-            // Setup volume control - below music controls, proper spacing
-            volumeControl = gameObject.AddComponent<VolumeControl>();
-            volumeControl.Setup(manager!, controlsContainer!);
-            
-            // Setup headphone control panel - below volume control with extra spacing
-            headphoneControlPanel = gameObject.AddComponent<HeadphoneControlPanel>();
-            headphoneControlPanel.Setup(manager!, controlsContainer!);
-            
-            // Setup playlist panel - uses the parent container for full screen management
-            playlistPanel = gameObject.AddComponent<PlaylistPanel>();
-            playlistPanel.Setup(manager!, parentContainer!, this);
-            
-            // Create playlist toggle button in the controls container so it shifts with other controls
-            playlistPanel.CreateToggleButton(controlsContainer!);
-        }
-
-        public void OnPlaylistToggle(bool isOpen)
-        {
-            isPlaylistOpen = isOpen;
-            
-            // Animate the controls container position
-            if (controlsContainer != null)
-            {
-                Vector2 targetPosition = isOpen ? controlsOpenPosition : controlsClosedPosition;
-                controlsContainer.anchoredPosition = targetPosition;
+                var trackLoaderObj = new GameObject("TrackLoader");
+                trackLoaderObj.transform.SetParent(this.transform, false);
+                trackLoader = trackLoaderObj.AddComponent<TrackLoader>();
+                trackLoader.InitializeExternalProviders(this.gameObject);
+                LoggingSystem.Info("Created new TrackLoader", "UI");
             }
         }
-
+        
+        private void CreateUILayout()
+        {
+            // Create Title Bar (55px height)
+            CreateTitleBar();
+            
+            // Create Tab Bar (50px height) 
+            CreateTabBar();
+            
+            // Create Content Area (550px height)
+            CreateContentArea();
+        }
+        
+        private void CreateTitleBar()
+        {
+            titleBar = new GameObject("TitleBar");
+            titleBar.transform.SetParent(this.transform, false);
+            
+            var titleRect = titleBar.AddComponent<RectTransform>();
+            // Use relative positioning instead of fixed pixels
+            titleRect.anchorMin = new Vector2(0f, 0.9f); // Top 10% of container
+            titleRect.anchorMax = new Vector2(1f, 1f);   // Full width
+            titleRect.offsetMin = new Vector2(5f, 0f);   // Small margin
+            titleRect.offsetMax = new Vector2(-5f, 0f);  // Small margin
+            titleRect.anchoredPosition = Vector2.zero;
+            
+            // Title bar background - make it transparent to not block topbar
+            var titleBg = titleBar.AddComponent<Image>();
+            titleBg.color = new Color(0.15f, 0.15f, 0.15f, 0.3f); // More transparent
+            
+            // Remove the title text creation to avoid blocking the topbar text
+            // The topbar already shows "BackSpeaker" so we don't need duplicate text
+        }
+        
+        private void CreateTabBar()
+        {
+            var tabBarObj = new GameObject("TabBar");
+            tabBarObj.transform.SetParent(this.transform, false);
+            
+            var tabBarRect = tabBarObj.AddComponent<RectTransform>();
+            // Position tab bar in second 10% of container (below title)
+            tabBarRect.anchorMin = new Vector2(0f, 0.8f);  // 80% from bottom
+            tabBarRect.anchorMax = new Vector2(1f, 0.9f);  // 90% from bottom
+            tabBarRect.offsetMin = new Vector2(5f, 0f);    // Small margin
+            tabBarRect.offsetMax = new Vector2(-5f, 0f);   // Small margin
+            tabBarRect.anchoredPosition = Vector2.zero;
+            
+            tabBar = tabBarObj.AddComponent<TabBarComponent>();
+            tabBar.Setup(manager!, trackLoader!);
+        }
+        
+        private void CreateContentArea()
+        {
+            var contentAreaObj = new GameObject("ContentArea");
+            contentAreaObj.transform.SetParent(this.transform, false);
+            
+            var contentRect = contentAreaObj.AddComponent<RectTransform>();
+            // Use bottom 80% of container for content (below title and tabs)
+            contentRect.anchorMin = new Vector2(0f, 0f);   // Bottom
+            contentRect.anchorMax = new Vector2(1f, 0.8f); // 80% height
+            contentRect.offsetMin = new Vector2(5f, 5f);   // Small margins
+            contentRect.offsetMax = new Vector2(-5f, 0f);  // Small margins
+            contentRect.anchoredPosition = Vector2.zero;
+            
+            contentArea = contentAreaObj.AddComponent<ContentAreaComponent>();
+            contentArea.Setup(manager!, trackLoader!, tabBar!);
+        }
+        
         public void Update()
         {
-            try
-            {
-                if (manager == null) return;
-                
-                // Update all UI components
-                displayPanel?.UpdateDisplay();
-                progressBar?.UpdateProgress();
-                musicControlPanel?.UpdateButtonText();
-                volumeControl?.UpdateVolume();
-                headphoneControlPanel?.UpdateStatus();
-                playlistPanel?.UpdatePlaylist();
-            }
-            catch (System.Exception ex)
-            {
-                LoggingSystem.Error($"BackSpeaker UI update failed: {ex.Message}", "UI");
-            }
+            // Update components
+            tabBar?.UpdateTabs();
+            contentArea?.UpdateContent();
+        }
+        
+        private void OnDestroy()
+        {
+            // Cleanup
         }
     }
 } 

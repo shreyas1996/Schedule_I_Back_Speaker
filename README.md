@@ -1,182 +1,179 @@
 # BackSpeaker Mod for Schedule I
 
-A headphone-based audio system mod for Schedule I that allows players to listen to in-game music through virtual headphones.
+A Unity C# mod that provides background music functionality through virtual headphones in the Schedule I game.
 
-## ✅ Recent Improvements
+## Features
 
-### System Architecture Consolidation
-- **Simplified System Files**: Consolidated 6 redundant system files into a single `SystemManager.cs`
-- **Cleaner API**: All functionality now accessible through `BackSpeakerManager` with a clean, simple interface
-- **Reduced Complexity**: Removed overlapping responsibilities between SystemCoordinator, SystemComponents, APIManager, etc.
-- **Better Performance**: Smaller build size and reduced memory footprint
+🎵 **Multiple Music Sources**:
+- **🎮 In-Game Jukebox**: Load music from game's jukebox objects for testing
+- **📁 Local Music Folder**: Play your own music files (MP3, WAV, OGG, M4A, AAC)
+- **📺 YouTube Music**: Download and stream music directly from YouTube URLs
 
-### Build Configuration System
-- **Automatic Log Levels**: Log levels automatically adjust based on build configuration
-- **Multiple Build Types**: Debug, Release, Verbose, Minimal, and IL2CPP configurations
-- **Smart Optimization**: Conditional compilation removes unused logging code in production builds
-- **Easy Build Script**: Simple `./build_configurations.sh [type]` command for building
+🎧 **Virtual Headphones**: Immersive audio experience that integrates with the game world
 
-### UI & User Experience Fixes
-- **Fixed UI Bleeding**: Apps no longer show in other phone apps
-- **Clean Button Layout**: Headphone controls don't overlap with music app buttons
-- **Headphone-First Audio**: Music only plays when headphones are attached
-- **Visual Feedback**: Button colors and states clearly indicate headphone status
+🎮 **Game Integration**: 
+- Seamless integration with Schedule I's audio system
+- Compatible with existing game audio and effects
+- Works with both IL2CPP and Mono backends
 
-## 📁 Architecture Overview
+✨ **Modern UI**: Clean, intuitive interface with source switching and playlist management
 
-### Core System Structure (Simplified)
-```
-Core/
-├── BackSpeakerManager.cs          # Main API - your entry point
-├── BackSpeakerApp.cs              # Phone app integration
-└── System/
-    ├── SystemManager.cs           # Consolidated system management (NEW)
-    └── LoggingSystem.cs           # Logging with build-aware levels
-```
+## Quick Start
 
-### Key Features
-- **Consolidated SystemManager**: Handles initialization, API, configuration, and components in one place
-- **Build-Aware Logging**: Automatically adjusts verbosity based on Debug/Release/Verbose/Minimal builds
-- **Feature Toggles**: Easy runtime control of headphones, audio, and debugging features
-- **Event-Driven Architecture**: Clean event handling for headphone attachment/detachment
-- **Configuration Management**: Built-in settings system for runtime configuration
+1. **Download** the latest release from the releases page
+2. **Extract** to your game's mod directory
+3. **Launch** Schedule I and enjoy your music!
 
-### Removed Redundancy
-Previously had 6 separate system files with overlapping responsibilities:
-- ❌ `SystemCoordinator.cs` (replaced by SystemManager)
-- ❌ `SystemComponents.cs` (functionality moved to SystemManager)
-- ❌ `APIManager.cs` (API methods moved to SystemManager)
-- ❌ `SystemInitializer.cs` (initialization moved to SystemManager)
-- ❌ `FeatureToggleSystem.cs` (feature flags moved to SystemManager.Features)
-- ❌ `ConfigurationManager.cs` (configuration moved to SystemManager)
+## Music Sources
 
-## 🚀 Quick Start
+### YouTube Music 📺
+- **No installation required** - Built-in YoutubeExplode library
+- Paste any YouTube URL and download audio instantly
+- Automatic caching for offline playback
+- Supports all standard YouTube URL formats
 
-### Building the Mod
-```bash
-# Development (full logging)
-./build_configurations.sh debug
+### Local Music Files 📁
+- Supports MP3, WAV, OGG, M4A, AAC formats
+- Auto-creates music folder: `[Game]/Mods/BackSpeaker/Music/`
+- Simple drag-and-drop workflow
+- Instant refresh and reload
 
-# Production (minimal logging) 
-./build_configurations.sh release
+### In-Game Jukebox 🎮
+- Testing integration with game audio
+- Loads from existing jukebox objects
+- Perfect for mod development and debugging
 
-# Troubleshooting (verbose logging, optimized)
-./build_configurations.sh verbose
+## Installation
 
-# High performance (errors only)
-./build_configurations.sh minimal
+### For Users
 
-# View all options
-./build_configurations.sh help
+1. Download the latest release ZIP file
+2. Extract to your Schedule I game directory
+3. The mod will auto-create necessary folders on first run
+
+### For Developers
+
+**Prerequisites**:
+- Unity 2021.3 LTS or compatible version
+- .NET Standard 2.1 support
+- IL2CPP backend support
+
+**Dependencies**:
+```xml
+<!-- Add to your .csproj file -->
+<PackageReference Include="YoutubeExplode" Version="6.3.16" />
 ```
 
-### Basic Usage
+**Build Instructions**:
+1. Clone this repository
+2. Install YoutubeExplode NuGet package
+3. Build with your preferred Unity IL2CPP setup
+4. Copy output to game mod directory
+
+## Technical Architecture
+
+### Provider Pattern
+- `IMusicSourceProvider` interface for extensible music sources
+- `TrackLoader` manages provider lifecycle and switching
+- `MusicSourceSelector` handles UI and user interactions
+
+### Unity Integration
+- **IL2CPP Compatible**: Works with Unity's IL2CPP backend
+- **Async/Await**: Modern async patterns for smooth operation
+- **Memory Efficient**: Smart caching and cleanup systems
+- **Cross-Platform**: Windows, macOS, Linux support
+
+### Audio Pipeline
+```
+YouTube URL → YoutubeExplode → Audio Stream → Unity AudioClip → Game Audio System
+Local Files → Unity AudioLoader → AudioClip → Game Audio System  
+Jukebox → Game Objects → AudioClip → Game Audio System
+```
+
+## Configuration
+
+### User Settings
+- Music source selection (persistent across sessions)
+- Volume controls and audio mixing
+- Cache management (automatic cleanup)
+- Playlist organization
+
+### Developer Settings
 ```csharp
-// Get the manager instance
-var manager = BackSpeakerManager.Instance;
-
-// Control headphones
-bool attached = manager.AttachHeadphones();
-manager.RemoveHeadphones();
-bool toggled = manager.ToggleHeadphones();
-
-// Control audio (only works with headphones attached)
-manager.Play();
-manager.Pause();
-manager.NextTrack();
-manager.SetVolume(0.8f);
-
-// Get status
-string status = manager.GetSystemStatus();
-bool isPlaying = manager.IsPlaying;
+// Example configuration
+var config = new Dictionary<string, object>
+{
+    ["MaxCacheSize"] = 50,
+    ["AudioQuality"] = "High",
+    ["AutoCleanup"] = true
+};
+provider.ApplyConfiguration(config);
 ```
 
-### Configuration
-```csharp
-// Feature toggles
-SystemManager.Features.HeadphonesEnabled = true;
-SystemManager.Features.AudioEnabled = true;
-SystemManager.Features.ShowDebugInfo = false;
-SystemManager.Features.AutoLoadTracks = true;
+## Troubleshooting
 
-// Runtime settings
-manager.SetSetting("Audio.Volume", 0.7f);
-float volume = manager.GetSetting<float>("Audio.Volume", 0.5f);
+### Common Issues
+
+**YouTube downloads not working:**
+- Check internet connection
+- Verify URL format (youtube.com/watch?v=... or youtu.be/...)
+- Some videos may be region-restricted
+
+**Local files not loading:**
+- Ensure files are in supported formats (MP3, WAV, OGG, M4A, AAC)
+- Check file permissions
+- Try the "Refresh Tracks" button
+
+**Audio not playing:**
+- Verify game audio settings
+- Check mod is properly loaded
+- Try switching between music sources
+
+### Debug Information
+Enable detailed logging in `Configuration/BackSpeakerConfig.json`:
+```json
+{
+  "LogLevel": "Debug",
+  "EnableAudioLogging": true
+}
 ```
 
-## 🔧 Development
+## Contributing
 
-### Logging System
-The logging system automatically adjusts based on your build configuration:
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-- **Debug builds**: Show all logs (Debug, Info, Warning, Error)
-- **Release builds**: Show warnings and errors only
-- **Verbose builds**: Show all logs but with optimization
-- **Minimal builds**: Show errors only
+### Development Setup
+1. Fork the repository
+2. Create a feature branch
+3. Install dependencies: `dotnet restore`
+4. Make your changes
+5. Test with Unity IL2CPP build
+6. Submit a pull request
 
-```csharp
-// Logging examples
-LoggingSystem.Debug("Detailed debug info", "Category");
-LoggingSystem.Info("Important information", "Category");
-LoggingSystem.Warning("Something concerning", "Category");
-LoggingSystem.Error("An error occurred", "Category");
+## License
 
-// Conditional logging (only in debug/verbose builds)
-LoggingSystem.Verbose("Very detailed info", "Category");
-LoggingSystem.Performance("Operation took 50ms", "Performance");
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### System Manager API
-```csharp
-// Direct access to system manager
-var systemManager = BackSpeakerManager.Instance.systemManager;
+## Changelog
 
-// Lifecycle
-bool initialized = systemManager.Initialize();
-systemManager.Update();
-systemManager.Shutdown();
+### Version 1.1.0 (Latest)
+- ✨ **NEW**: YoutubeExplode integration - no more external dependencies!
+- 🔧 **IMPROVED**: YouTube downloads now work out-of-the-box
+- 🐛 **FIXED**: IL2CPP compatibility issues
+- 📚 **UPDATED**: Comprehensive documentation and help system
 
-// Feature control
-SystemManager.Features.HeadphonesEnabled = false; // Disable headphones
-SystemManager.Features.AudioEnabled = false;      // Disable audio
+### Version 1.0.0
+- 🎉 Initial release with multi-source music system
+- 🎧 Virtual headphone functionality
+- 📁 Local folder music support
+- 🎮 In-game jukebox integration
 
-// Event handling
-systemManager.OnTracksReloaded += () => LoggingSystem.Info("Tracks reloaded");
-systemManager.OnSpeakerAttached += (audioSource) => LoggingSystem.Info("Speaker attached");
-```
+## Support
 
-## 📊 Build Results
+- **Documentation**: See [MUSIC_SOURCES.md](MUSIC_SOURCES.md) for detailed usage guide
+- **Issues**: Report bugs on the GitHub Issues page
+- **Community**: Join discussions in the Schedule I modding community
 
-| Configuration | Size | Logging Level | Use Case |
-|---------------|------|---------------|----------|
-| Debug | 484K | All logs | Development |
-| Release | 476K | Warnings+ | Production |
-| Verbose | 484K | All logs (optimized) | Troubleshooting |
-| Minimal | 476K | Errors only | High performance |
+---
 
-## 🎯 Key Benefits of Consolidation
-
-1. **Simplified Development**: One file to understand instead of six
-2. **Reduced Complexity**: Clear separation of concerns within regions
-3. **Better Performance**: Smaller builds, less memory overhead
-4. **Easier Debugging**: All system logic in one place
-5. **Cleaner API**: Consistent interface through BackSpeakerManager
-6. **Build-Aware Features**: Automatic optimization based on build type
-
-## 📖 Documentation
-
-- **[LOGGING.md](LOGGING.md)**: Complete logging system documentation
-- **[refactor.md](refactor.md)**: Notes on recent refactoring (simplified architecture)
-
-## 🎵 Features
-
-- 🎧 **Virtual Headphones**: Attach/detach headphones to control audio access
-- 🎵 **Music Playback**: Play in-game jukebox tracks through headphones
-- 📱 **Phone Integration**: Clean phone app with music controls
-- 🎛️ **Audio Controls**: Play, pause, skip, volume, progress seeking
-- 🔁 **Repeat Modes**: None, Single, All
-- 📃 **Playlist Management**: View and select tracks
-- ⚙️ **Runtime Configuration**: Adjustable settings and feature toggles
-- 🔧 **Developer Tools**: Comprehensive logging and debugging features
-
-The mod now features a much cleaner, simpler architecture while maintaining all original functionality and adding new capabilities!
+**Made with ❤️ for the Schedule I community**
