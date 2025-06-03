@@ -112,9 +112,10 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Remove headphones from player
         /// </summary>
-        public void RemoveHeadphones()
+        public bool RemoveHeadphones()
         {
             attachment.DetachFromPlayer();
+            return true;
         }
 
         /// <summary>
@@ -124,8 +125,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         {
             if (attachment.IsAttached)
             {
-                RemoveHeadphones();
-                return false;
+                return RemoveHeadphones();
             }
             return AttachHeadphones(player);
         }

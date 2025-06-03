@@ -154,6 +154,7 @@ namespace BackSpeakerMod.Core.System
 
         private void HandleSpeakerDetached()
         {
+            LoggingSystem.Debug("Speaker detached", "SystemManager");
             audioManager?.Reset();
         }
 
@@ -280,33 +281,49 @@ namespace BackSpeakerMod.Core.System
             return success;
         }
 
-        public void RemoveHeadphones()
+        public bool RemoveHeadphones()
         {
+            LoggingSystem.Debug("Removing headphones", "SystemManager");
             // Stop music first
+            LoggingSystem.Debug($"Checking if music is playing: {IsPlaying}", "SystemManager");
             if (IsPlaying) audioManager?.Pause();
             
             // Reset audio system
+            LoggingSystem.Debug("Resetting audio system", "SystemManager");
             audioManager?.Reset();
             
             // Detach speaker
-            playerAttachment?.DetachSpeaker();
+            try {
+                LoggingSystem.Debug("Detaching speaker", "SystemManager");
+                playerAttachment?.DetachSpeaker();
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to detach speaker: {ex.Message}", "SystemManager");
+                return false;
+            }
             
             // Remove headphones
-            headphoneManager?.RemoveHeadphones();
-            
-            LoggingSystem.Info("Complete headphone removal sequence executed", "SystemManager");
+            LoggingSystem.Debug("Removing headphones", "SystemManager");
+            bool removed = headphoneManager?.RemoveHeadphones() ?? false;
+            LoggingSystem.Debug($"Headphone removal result: {removed}", "SystemManager");
+            return removed;
         }
 
         public bool ToggleHeadphones()
         {
+            LoggingSystem.Debug("Toggling headphones", "SystemManager");
             bool wasAttached = AreHeadphonesAttached();
             bool success = headphoneManager?.ToggleHeadphones() ?? false;
+            LoggingSystem.Debug($"Toggle headphones result: {success}", "SystemManager");
             
             if (success)
             {
+                LoggingSystem.Debug("Headphones toggled", "SystemManager");
                 bool nowAttached = AreHeadphonesAttached();
                 if (nowAttached && !wasAttached)
                 {
+                    LoggingSystem.Debug("Attaching headphones", "SystemManager");
                     // Attaching headphones
                     playerAttachment?.TriggerManualAttachment();
                     if (Features.AutoLoadTracks)
@@ -316,10 +333,11 @@ namespace BackSpeakerMod.Core.System
                 }
                 else if (!nowAttached && wasAttached)
                 {
+                    LoggingSystem.Debug("Detaching headphones", "SystemManager");
                     // Detaching headphones
-                    if (IsPlaying) audioManager?.Pause();
-                    audioManager?.Reset();
-                    playerAttachment?.DetachSpeaker();
+                    bool removed = RemoveHeadphones();
+                    LoggingSystem.Debug($"Remove headphones result: {removed}", "SystemManager");
+                    return removed;
                 }
             }
             

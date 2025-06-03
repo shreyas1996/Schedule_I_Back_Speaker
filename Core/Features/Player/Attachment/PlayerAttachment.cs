@@ -44,6 +44,7 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// </summary>
         public void DetachSpeaker()
         {
+            LoggingSystem.Debug("Detaching speaker", "PlayerAttachment");
             CleanupSpeaker();
         }
 
@@ -78,32 +79,40 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// </summary>
         private void OnPlayerLost(Il2CppScheduleOne.PlayerScripts.Player player)
         {
-            CleanupSpeaker();
+            LoggingSystem.Debug("Player lost", "PlayerAttachment");
+            CleanupSpeaker(onPlayerLost: true);
         }
 
         /// <summary>
         /// Clean up speaker when player is lost
         /// </summary>
-        private void CleanupSpeaker()
+        private void CleanupSpeaker(bool onPlayerLost = false)
         {
+            LoggingSystem.Debug("Cleaning up speaker", "PlayerAttachment");
             try
             {
                 // Stop any playing audio first
                 if (audioSource != null && audioSource.isPlaying)
                 {
+                    LoggingSystem.Debug("Stopping audio", "PlayerAttachment");
                     audioSource.Stop();
                 }
                 
                 if (speakerObject != null)
                 {
+                    LoggingSystem.Debug("Destroying speaker object", "PlayerAttachment");
                     GameObject.Destroy(speakerObject);
                     speakerObject = null;
                 }
                 
                 audioSource = null;
-                currentPlayer = null;
+                if (onPlayerLost)
+                {
+                    currentPlayer = null;
+                }
                 
                 OnSpeakerDetached?.Invoke();
+                LoggingSystem.Debug("Speaker detached", "PlayerAttachment");
             }
             catch (Exception ex)
             {
