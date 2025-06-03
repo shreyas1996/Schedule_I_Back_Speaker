@@ -296,24 +296,30 @@ namespace BackSpeakerMod.UI.Components
             
             if (tracks == null || tracks.Count == 0)
             {
-                // Show "No tracks" message
-                var noTracksObj = new GameObject("NoTracks");
+                // Show "No tracks" message with proper styling
+                var noTracksObj = new GameObject("NoTracksMessage");
                 noTracksObj.transform.SetParent(content.transform, false);
                 
                 var noTracksText = noTracksObj.AddComponent<Text>();
-                noTracksText.text = "No tracks loaded. Use the reload button to load tracks.";
+                noTracksText.text = $"No tracks loaded for {currentTab}\n\n" +
+                                  "• Attach headphones first\n" +
+                                  "• Use the reload button to load tracks\n" +
+                                  "• For local music: place files in game folder\n" +
+                                  "• For YouTube: search and cache videos";
                 noTracksText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                noTracksText.fontSize = 14;
+                noTracksText.fontSize = 12;
                 noTracksText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
                 noTracksText.alignment = TextAnchor.MiddleCenter;
+                noTracksText.fontStyle = FontStyle.Italic;
                 
                 var noTracksLayout = noTracksObj.AddComponent<LayoutElement>();
-                noTracksLayout.minHeight = 50f;
+                noTracksLayout.minHeight = 120f;
+                noTracksLayout.preferredHeight = 120f;
                 
                 return;
             }
             
-            // Create track items
+            // Create track items for real tracks
             for (int i = 0; i < tracks.Count; i++)
             {
                 CreateTrackItem(content, tracks[i], i);
@@ -392,7 +398,7 @@ namespace BackSpeakerMod.UI.Components
             try
             {
                 var allTracks = manager?.GetAllTracks();
-                if (allTracks != null)
+                if (allTracks != null && allTracks.Count > 0)
                 {
                     foreach (var track in allTracks)
                     {
@@ -409,22 +415,21 @@ namespace BackSpeakerMod.UI.Components
                 LoggingSystem.Error($"Failed to get tracks: {ex.Message}", "UI");
             }
             
-            // Add some placeholder tracks if none loaded for demonstration
-            if (tracks.Count == 0)
-            {
-                tracks.Add($"Sample {currentTab} Track 1");
-                tracks.Add($"Sample {currentTab} Track 2");
-                tracks.Add($"Sample {currentTab} Track 3");
-            }
-            
-            return tracks;
+            return tracks; // Return empty list if no tracks, no placeholders
         }
         
         private void PlayTrack(int index)
         {
             LoggingSystem.Info($"Playing track {index} from {currentTab} playlist", "UI");
-            // TODO: Implement track selection
-            ClosePlaylist();
+            try
+            {
+                manager?.PlayTrack(index);
+                ClosePlaylist();
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to play track {index}: {ex.Message}", "UI");
+            }
         }
         
         public void UpdateForTab(MusicSourceType newTab)
@@ -443,18 +448,29 @@ namespace BackSpeakerMod.UI.Components
         {
             if (buttonText == null || playlistButton == null) return;
             
-            var trackCount = manager?.GetAllTracks().Count ?? 0;
-            
-            var (text, color) = currentTab switch
+            try
             {
-                MusicSourceType.Jukebox => ($"♫ Jukebox Playlist ({trackCount} tracks)", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
-                MusicSourceType.LocalFolder => ($"♫ Local Playlist ({trackCount} tracks)", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
-                MusicSourceType.YouTube => ($"♫ YouTube Playlist ({trackCount} tracks)", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
-                _ => ($"♫ Playlist ({trackCount} tracks)", new Color(0.5f, 0.5f, 0.5f, 0.8f))
-            };
-            
-            buttonText.text = text;
-            playlistButton.GetComponent<Image>().color = color;
+                var trackCount = manager?.GetTrackCount() ?? 0;
+                
+                var (text, color) = currentTab switch
+                {
+                    MusicSourceType.Jukebox => ($"♫ Jukebox Playlist ({trackCount} tracks)", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
+                    MusicSourceType.LocalFolder => ($"♫ Local Playlist ({trackCount} tracks)", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
+                    MusicSourceType.YouTube => ($"♫ YouTube Playlist ({trackCount} tracks)", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
+                    _ => ($"♫ Playlist ({trackCount} tracks)", new Color(0.5f, 0.5f, 0.5f, 0.8f))
+                };
+                
+                buttonText.text = text;
+                playlistButton.GetComponent<Image>().color = color;
+                
+                LoggingSystem.Debug($"Playlist button updated for {currentTab}: {trackCount} tracks", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to update playlist button: {ex.Message}", "UI");
+                buttonText.text = $"♫ Playlist Error";
+                playlistButton.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
+            }
         }
         
         public void UpdatePlaylist()

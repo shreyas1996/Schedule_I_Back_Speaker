@@ -181,14 +181,6 @@ namespace BackSpeakerMod.Core.Modules
             return null;
         }
 
-        /// <summary>
-        /// Legacy method - kept for backward compatibility
-        /// </summary>
-        public void LoadJukeboxTracks()
-        {
-            SetMusicSource(MusicSourceType.Jukebox);
-        }
-
         private void OnDestroy()
         {
             // Cleanup all providers

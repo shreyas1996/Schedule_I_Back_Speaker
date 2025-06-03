@@ -81,6 +81,12 @@ namespace BackSpeakerMod.Core
             set => systemManager.RepeatMode = value;
         }
 
+        // Public API - Music Source Management
+        public void SetMusicSource(MusicSourceType sourceType) => systemManager.SetMusicSource(sourceType);
+        public MusicSourceType GetCurrentMusicSource() => systemManager.GetCurrentMusicSource();
+        public List<(MusicSourceType type, string name, bool available)> GetAvailableMusicSources() => systemManager.GetAvailableMusicSources();
+        public void LoadTracksFromCurrentSource() => systemManager.LoadTracksFromCurrentSource();
+
         // Public API - Player Attachment
         public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();
         public string GetAttachmentStatus() => systemManager.GetAttachmentStatus();

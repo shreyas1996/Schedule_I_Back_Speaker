@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
+using System;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -188,6 +189,18 @@ namespace BackSpeakerMod.UI.Components
                 playButtonText.text = manager.IsPlaying ? "PAUSE" : "PLAY";
             }
             
+            // Sync repeat mode with manager
+            if (manager != null)
+            {
+                currentRepeatMode = manager.RepeatMode switch
+                {
+                    Core.Modules.RepeatMode.None => RepeatMode.NoRepeat,
+                    Core.Modules.RepeatMode.RepeatOne => RepeatMode.RepeatOne,
+                    Core.Modules.RepeatMode.RepeatAll => RepeatMode.RepeatAll,
+                    _ => RepeatMode.NoRepeat
+                };
+            }
+            
             // Update repeat button text
             if (repeatButtonText != null)
             {
@@ -203,6 +216,16 @@ namespace BackSpeakerMod.UI.Components
             // Update volume display
             if (volumeSlider != null && volumeText != null)
             {
+                // Sync volume slider with manager
+                if (manager != null)
+                {
+                    float managerVolume = manager.CurrentVolume;
+                    if (Math.Abs(volumeSlider.value - managerVolume) > 0.01f)
+                    {
+                        volumeSlider.value = managerVolume;
+                    }
+                }
+                
                 int volumePercent = Mathf.RoundToInt(volumeSlider.value * 100f);
                 volumeText.text = $"{volumePercent}%";
             }
@@ -230,6 +253,21 @@ namespace BackSpeakerMod.UI.Components
                 RepeatMode.RepeatAll => RepeatMode.NoRepeat,
                 _ => RepeatMode.NoRepeat
             };
+            
+            // Update the manager's repeat mode
+            if (manager != null)
+            {
+                // Convert our enum to the manager's enum
+                var managerRepeatMode = currentRepeatMode switch
+                {
+                    RepeatMode.NoRepeat => Core.Modules.RepeatMode.None,
+                    RepeatMode.RepeatOne => Core.Modules.RepeatMode.RepeatOne,
+                    RepeatMode.RepeatAll => Core.Modules.RepeatMode.RepeatAll,
+                    _ => Core.Modules.RepeatMode.None
+                };
+                
+                manager.RepeatMode = managerRepeatMode;
+            }
             
             LoggingSystem.Info($"Repeat mode changed to: {currentRepeatMode}", "UI");
             UpdateControls();

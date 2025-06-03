@@ -76,7 +76,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         }
 
         /// <summary>
-        /// Load tracks from jukebox
+        /// Load tracks from current music source
         /// </summary>
         public void LoadTracks()
         {
@@ -86,8 +86,8 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
                 return;
             }
 
-            LoggingSystem.Info("Loading tracks", "Audio");
-            trackLoader.LoadJukeboxTracks();
+            LoggingSystem.Info("Loading tracks from current source", "Audio");
+            trackLoader.LoadTracksFromCurrentSource();
         }
 
         /// <summary>

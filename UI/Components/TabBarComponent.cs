@@ -15,7 +15,6 @@ namespace BackSpeakerMod.UI.Components
     {
         // Dependencies
         private BackSpeakerManager? manager;
-        private TrackLoader? trackLoader;
         
         // Tab buttons
         private readonly Dictionary<MusicSourceType, Button> tabButtons = new Dictionary<MusicSourceType, Button>();
@@ -29,10 +28,9 @@ namespace BackSpeakerMod.UI.Components
         
         public TabBarComponent() : base() { }
         
-        public void Setup(BackSpeakerManager manager, TrackLoader trackLoader)
+        public void Setup(BackSpeakerManager manager)
         {
             this.manager = manager;
-            this.trackLoader = trackLoader;
             
             CreateTabBarLayout();
             SetActiveTab(MusicSourceType.Jukebox); // Default to Jukebox as per design
@@ -119,7 +117,33 @@ namespace BackSpeakerMod.UI.Components
         {
             if (sourceType != currentTab)
             {
+                LoggingSystem.Info($"Switching from {currentTab} to {sourceType}", "UI");
+                
                 SetActiveTab(sourceType);
+                
+                // Actually switch the music source
+                try
+                {
+                    if (manager != null)
+                    {
+                        manager.SetMusicSource(sourceType);
+                        UpdateStatusText(); // Update status immediately
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning("Manager is null, cannot switch music source", "UI");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    LoggingSystem.Error($"Failed to switch music source to {sourceType}: {ex.Message}", "UI");
+                    if (statusText != null)
+                    {
+                        statusText.text = $"Status: Error switching to {sourceType}";
+                    }
+                }
+                
+                // Notify other components
                 OnTabChanged?.Invoke(sourceType);
                 
                 LoggingSystem.Info($"Tab switched to: {sourceType}", "UI");
@@ -180,17 +204,22 @@ namespace BackSpeakerMod.UI.Components
             
             try
             {
-                var trackCount = manager.GetAllTracks().Count;
+                var trackCount = manager.GetTrackCount();
+                var isPlaying = manager.IsPlaying;
+                var playState = isPlaying ? "Playing" : "Ready";
                 
                 var statusMessage = currentTab switch
                 {
-                    MusicSourceType.Jukebox => $"Status: {trackCount} tracks loaded",
-                    MusicSourceType.LocalFolder => $"Status: {trackCount} tracks loaded", 
-                    MusicSourceType.YouTube => $"Status: {trackCount} cached tracks",
-                    _ => "Status: Ready"
+                    MusicSourceType.Jukebox => $"🎮 {playState}: {trackCount} tracks",
+                    MusicSourceType.LocalFolder => $"📁 {playState}: {trackCount} tracks", 
+                    MusicSourceType.YouTube => $"📺 {playState}: {trackCount} cached",
+                    _ => $"Status: {playState}"
                 };
                 
                 statusText.text = statusMessage;
+                statusText.color = isPlaying ? 
+                    new Color(0.4f, 1f, 0.4f, 1f) :      // Green when playing
+                    new Color(0.8f, 0.8f, 0.8f, 1f);    // Gray when ready
             }
             catch (System.Exception ex)
             {

@@ -23,7 +23,6 @@ namespace BackSpeakerMod.UI.Components
         
         // Dependencies
         private BackSpeakerManager? manager;
-        private TrackLoader? trackLoader;
         private TabBarComponent? tabBar;
         
         // UI Components
@@ -41,10 +40,9 @@ namespace BackSpeakerMod.UI.Components
         
         public ContentAreaComponent() : base() { }
         
-        public void Setup(BackSpeakerManager manager, TrackLoader trackLoader, TabBarComponent tabBar)
+        public void Setup(BackSpeakerManager manager, TabBarComponent tabBar)
         {
             this.manager = manager;
-            this.trackLoader = trackLoader;
             this.tabBar = tabBar;
             
             // Subscribe to tab changes
@@ -128,7 +126,7 @@ namespace BackSpeakerMod.UI.Components
             currentY -= (ACTION_BUTTONS_HEIGHT + PADDING);
             
             actionButtons = panelObj.AddComponent<ActionButtonsComponent>();
-            actionButtons.Setup(manager!, trackLoader!);
+            actionButtons.Setup(manager!);
         }
         
         private void CreatePlaylistTogglePanel(ref float currentY)
@@ -171,9 +169,9 @@ namespace BackSpeakerMod.UI.Components
             currentTab = newTab;
             
             // Switch music source
-            if (trackLoader != null)
+            if (manager != null)
             {
-                trackLoader.SetMusicSource(newTab);
+                manager.SetMusicSource(newTab);
                 LoggingSystem.Info($"Content area switched to {newTab}", "UI");
             }
             

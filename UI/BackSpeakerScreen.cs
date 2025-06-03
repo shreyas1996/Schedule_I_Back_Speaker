@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
-using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.UI.Components;
 
 namespace BackSpeakerMod.UI
@@ -22,7 +21,6 @@ namespace BackSpeakerMod.UI
         
         // Dependencies
         private BackSpeakerManager? manager;
-        private TrackLoader? trackLoader;
         
         // UI Components
         private GameObject? titleBar;
@@ -41,8 +39,17 @@ namespace BackSpeakerMod.UI
                 this.manager = manager;
                 
                 SetupScreenContainer();
-                InitializeTrackLoader();
                 CreateUILayout();
+                
+                // Trigger initial track loading through the manager
+                LoggingSystem.Info("Triggering initial track loading through manager", "UI");
+                manager?.ReloadTracks();
+                
+                // Subscribe to track reload events for automatic UI updates
+                if (manager != null)
+                {
+                    manager.OnTracksReloaded += OnTracksReloaded;
+                }
                 
                 LoggingSystem.Info("BackSpeaker UI created following design specifications", "UI");
             }
@@ -71,37 +78,6 @@ namespace BackSpeakerMod.UI
             // Ensure we stay within container bounds
             screenRect.anchoredPosition = Vector2.zero;
             screenRect.sizeDelta = Vector2.zero;
-        }
-        
-        private void InitializeTrackLoader()
-        {
-            // Initialize or get existing track loader
-            var audioManager = manager?.GetType()
-                .GetProperty("SystemManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.GetValue(manager);
-            
-            if (audioManager != null)
-            {
-                var audioFeature = audioManager.GetType()
-                    .GetProperty("AudioManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.GetValue(audioManager);
-                
-                if (audioFeature != null)
-                {
-                    trackLoader = audioFeature.GetType()
-                        .GetField("trackLoader", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                        ?.GetValue(audioFeature) as TrackLoader;
-                }
-            }
-            
-            if (trackLoader == null)
-            {
-                var trackLoaderObj = new GameObject("TrackLoader");
-                trackLoaderObj.transform.SetParent(this.transform, false);
-                trackLoader = trackLoaderObj.AddComponent<TrackLoader>();
-                trackLoader.InitializeExternalProviders(this.gameObject);
-                LoggingSystem.Info("Created new TrackLoader", "UI");
-            }
         }
         
         private void CreateUILayout()
@@ -151,7 +127,7 @@ namespace BackSpeakerMod.UI
             tabBarRect.anchoredPosition = Vector2.zero;
             
             tabBar = tabBarObj.AddComponent<TabBarComponent>();
-            tabBar.Setup(manager!, trackLoader!);
+            tabBar.Setup(manager!);
         }
         
         private void CreateContentArea()
@@ -168,12 +144,19 @@ namespace BackSpeakerMod.UI
             contentRect.anchoredPosition = Vector2.zero;
             
             contentArea = contentAreaObj.AddComponent<ContentAreaComponent>();
-            contentArea.Setup(manager!, trackLoader!, tabBar!);
+            contentArea.Setup(manager!, tabBar!);
+        }
+        
+        private void OnTracksReloaded()
+        {
+            LoggingSystem.Info("Tracks reloaded - updating UI", "UI");
+            // Force immediate update of all components
+            contentArea?.UpdateContent();
         }
         
         public void Update()
         {
-            // Update components
+            // Update components regularly for real-time display
             tabBar?.UpdateTabs();
             contentArea?.UpdateContent();
         }

@@ -14,6 +14,7 @@ namespace BackSpeakerMod.UI.Components
         private BackSpeakerManager? manager;
         private Slider? progressSlider;
         private Text? timeText;
+        private bool isUpdatingSlider = false; // Prevent feedback loops
         
         public ProgressBarComponent() : base() { }
         
@@ -39,6 +40,12 @@ namespace BackSpeakerMod.UI.Components
             progressSlider.minValue = 0f;
             progressSlider.maxValue = 1f;
             progressSlider.value = 0f;
+            
+            // Add seek functionality
+            progressSlider.onValueChanged.AddListener((UnityEngine.Events.UnityAction<float>)delegate(float value) 
+            { 
+                OnSeek(value); 
+            });
             
             // Background
             var background = sliderObj.AddComponent<Image>();
@@ -89,7 +96,7 @@ namespace BackSpeakerMod.UI.Components
         
         public void UpdateProgress()
         {
-            if (manager == null) return;
+            if (manager == null || isUpdatingSlider) return;
             
             try
             {
@@ -97,7 +104,9 @@ namespace BackSpeakerMod.UI.Components
                 var currentTime = manager.CurrentTime;
                 var totalTime = manager.TotalTime;
                 
+                isUpdatingSlider = true;
                 progressSlider!.value = progress;
+                isUpdatingSlider = false;
                 
                 var currentMin = Mathf.FloorToInt(currentTime / 60f);
                 var currentSec = Mathf.FloorToInt(currentTime % 60f);
@@ -110,6 +119,22 @@ namespace BackSpeakerMod.UI.Components
             {
                 LoggingSystem.Error($"Progress update failed: {ex.Message}", "UI");
                 timeText!.text = "[0:00 / 0:00]";
+                isUpdatingSlider = false;
+            }
+        }
+        
+        private void OnSeek(float value)
+        {
+            if (manager == null || isUpdatingSlider) return;
+            
+            try
+            {
+                LoggingSystem.Info($"Seeking to {value:F2} ({value * 100:F0}%)", "UI");
+                manager.SeekToProgress(value);
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Seek failed: {ex.Message}", "UI");
             }
         }
     }

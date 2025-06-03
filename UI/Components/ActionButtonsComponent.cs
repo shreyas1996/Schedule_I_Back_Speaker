@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using System.Collections;
+using MelonLoader;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -13,7 +15,6 @@ namespace BackSpeakerMod.UI.Components
     public class ActionButtonsComponent : MonoBehaviour
     {
         private BackSpeakerManager? manager;
-        private TrackLoader? trackLoader;
         private MusicSourceType currentTab = MusicSourceType.Jukebox;
         
         private Button? leftButton;
@@ -22,10 +23,9 @@ namespace BackSpeakerMod.UI.Components
         
         public ActionButtonsComponent() : base() { }
         
-        public void Setup(BackSpeakerManager manager, TrackLoader trackLoader)
+        public void Setup(BackSpeakerManager manager)
         {
             this.manager = manager;
-            this.trackLoader = trackLoader;
             CreateActionButtons();
         }
         
@@ -116,25 +116,127 @@ namespace BackSpeakerMod.UI.Components
         private void ReloadJukebox()
         {
             LoggingSystem.Info("Reloading jukebox tracks...", "UI");
-            trackLoader?.InitializeExternalProviders(this.gameObject);
+            try
+            {
+                // Check if headphones are attached first
+                bool headphonesAttached = manager?.AreHeadphonesAttached() ?? false;
+                bool audioReady = manager?.IsAudioReady() ?? false;
+                
+                LoggingSystem.Info($"System status - Headphones: {headphonesAttached}, Audio Ready: {audioReady}", "UI");
+                
+                if (!headphonesAttached)
+                {
+                    LoggingSystem.Warning("Headphones not attached - cannot load tracks", "UI");
+                    UpdateLeftButtonFeedback("🎧 Attach headphones first", new Color(0.8f, 0.4f, 0.2f, 0.8f));
+                    return;
+                }
+                
+                if (!audioReady)
+                {
+                    LoggingSystem.Warning("Audio system not ready", "UI");
+                    UpdateLeftButtonFeedback("⚠️ Audio not ready", new Color(0.8f, 0.4f, 0.2f, 0.8f));
+                    return;
+                }
+                
+                // First set the music source to jukebox
+                manager?.SetMusicSource(MusicSourceType.Jukebox);
+                
+                // Then reload tracks through the manager
+                manager?.ReloadTracks();
+                
+                LoggingSystem.Info("Jukebox reload initiated", "UI");
+                UpdateLeftButtonFeedback("🔄 Reloading...", new Color(0.8f, 0.8f, 0.2f, 0.8f));
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to reload jukebox: {ex.Message}", "UI");
+                UpdateLeftButtonFeedback("❌ Failed to reload", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+            }
         }
         
         private void RefreshLocalMusic()
         {
             LoggingSystem.Info("Refreshing local music...", "UI");
-            trackLoader?.InitializeExternalProviders(this.gameObject);
+            try
+            {
+                // Check system status
+                bool headphonesAttached = manager?.AreHeadphonesAttached() ?? false;
+                
+                if (!headphonesAttached)
+                {
+                    LoggingSystem.Warning("Headphones not attached - cannot load local music", "UI");
+                    UpdateLeftButtonFeedback("🎧 Attach headphones first", new Color(0.8f, 0.4f, 0.2f, 0.8f));
+                    return;
+                }
+                
+                // Switch to local music source and load tracks
+                manager?.SetMusicSource(MusicSourceType.LocalFolder);
+                manager?.LoadTracksFromCurrentSource();
+                
+                LoggingSystem.Info("Local music refresh initiated", "UI");
+                UpdateLeftButtonFeedback("🔄 Refreshing...", new Color(0.8f, 0.8f, 0.2f, 0.8f));
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to refresh local music: {ex.Message}", "UI");
+                UpdateLeftButtonFeedback("❌ Failed to refresh", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+            }
         }
         
         private void OpenYouTubeSearch()
         {
-            LoggingSystem.Info("YouTube search requested (placeholder)", "UI");
-            // TODO: Implement YouTube search popup
+            LoggingSystem.Info("Switching to YouTube source", "UI");
+            try
+            {
+                // Switch to YouTube source
+                manager?.SetMusicSource(MusicSourceType.YouTube);
+                
+                LoggingSystem.Info("YouTube source activated", "UI");
+                UpdateLeftButtonFeedback("📺 YouTube Ready", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+                // TODO: Implement YouTube search popup when ready
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to switch to YouTube: {ex.Message}", "UI");
+                UpdateLeftButtonFeedback("❌ YouTube Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+            }
         }
         
         private void OnHeadphoneToggle()
         {
             LoggingSystem.Info("Headphone toggle requested", "UI");
-            // TODO: Integrate with existing headphone system
+            try
+            {
+                bool success = manager?.ToggleHeadphones() ?? false;
+                string status = manager?.GetHeadphoneStatus() ?? "Unknown";
+                
+                LoggingSystem.Info($"Headphone toggle result: {success}, Status: {status}", "UI");
+                
+                // Update right button text immediately to show new state
+                UpdateButtons();
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to toggle headphones: {ex.Message}", "UI");
+            }
+        }
+        
+        private void UpdateLeftButtonFeedback(string text, Color color)
+        {
+            if (leftButtonText != null && leftButton != null)
+            {
+                leftButtonText.text = text;
+                leftButton.GetComponent<Image>().color = color;
+                
+                // Reset to normal after 2 seconds using MonoBehaviour.StartCoroutine
+                MelonCoroutines.Start(ResetLeftButtonAfterDelay(2f));
+            }
+        }
+        
+        private System.Collections.IEnumerator ResetLeftButtonAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            UpdateLeftButton(); // Reset to normal state
         }
         
         public void UpdateForTab(MusicSourceType newTab)
@@ -161,7 +263,40 @@ namespace BackSpeakerMod.UI.Components
         
         public void UpdateButtons()
         {
-            // Update button states if needed
+            // Update left button for current tab
+            UpdateLeftButton();
+            
+            // Update right button for headphone status
+            if (rightButton != null && manager != null)
+            {
+                var rightButtonText = rightButton.GetComponentInChildren<Text>();
+                var rightButtonImage = rightButton.GetComponent<Image>();
+                
+                try
+                {
+                    bool headphonesAttached = manager.AreHeadphonesAttached();
+                    string status = manager.GetHeadphoneStatus();
+                    
+                    if (headphonesAttached)
+                    {
+                        rightButtonText.text = "🎧 Detach Headphones";
+                        rightButtonImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for detach
+                    }
+                    else
+                    {
+                        rightButtonText.text = "🎧 Attach Headphones";
+                        rightButtonImage.color = new Color(0.2f, 0.7f, 0.2f, 0.8f); // Green for attach
+                    }
+                    
+                    LoggingSystem.Debug($"Headphone button updated - Attached: {headphonesAttached}, Status: {status}", "UI");
+                }
+                catch (System.Exception ex)
+                {
+                    LoggingSystem.Error($"Failed to update headphone button: {ex.Message}", "UI");
+                    rightButtonText.text = "🎧 Headphone Error";
+                    rightButtonImage.color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
+                }
+            }
         }
     }
 } 

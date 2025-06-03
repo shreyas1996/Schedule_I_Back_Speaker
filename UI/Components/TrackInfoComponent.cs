@@ -147,28 +147,116 @@ namespace BackSpeakerMod.UI.Components
             try
             {
                 var currentTrackInfo = manager.GetCurrentTrackInfo();
+                var currentArtist = manager.GetCurrentArtistInfo();
                 var isPlaying = manager.IsPlaying;
+                var isAudioReady = manager.IsAudioReady();
+                var headphonesAttached = manager.AreHeadphonesAttached();
+                var trackCount = manager.GetTrackCount();
                 
+                // Priority 1: Check if headphones are attached
+                if (!headphonesAttached)
+                {
+                    nowPlayingText!.text = "🎧 Headphones Required";
+                    artistText!.text = "🔌 Please attach headphones to start";
+                    albumText!.text = "💡 Use the attach button below";
+                    sourceText!.text = "📊 System: Waiting for headphones";
+                    
+                    // Orange color for attention
+                    if (nowPlayingText != null)
+                    {
+                        nowPlayingText.color = new Color(1f, 0.6f, 0.2f, 1f);
+                    }
+                    return;
+                }
+                
+                // Priority 2: Check if audio system is ready
+                if (!isAudioReady)
+                {
+                    nowPlayingText!.text = "⚙️ Audio System Starting...";
+                    artistText!.text = "🔧 Initializing audio components";
+                    albumText!.text = "⏳ Please wait a moment";
+                    sourceText!.text = "📊 System: Initializing";
+                    
+                    // Yellow color for waiting
+                    if (nowPlayingText != null)
+                    {
+                        nowPlayingText.color = new Color(1f, 1f, 0.4f, 1f);
+                    }
+                    return;
+                }
+                
+                // Priority 3: Check if we have tracks
+                if (trackCount == 0)
+                {
+                    nowPlayingText!.text = "📂 No Tracks Loaded";
+                    artistText!.text = "🔄 Use the reload button to load music";
+                    albumText!.text = "🎵 Switch tabs to try different sources";
+                    sourceText!.text = "📊 System: Ready but no tracks";
+                    
+                    // Gray color for no content
+                    if (nowPlayingText != null)
+                    {
+                        nowPlayingText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+                    }
+                    return;
+                }
+                
+                // Priority 4: Show actual track info
                 if (!string.IsNullOrEmpty(currentTrackInfo) && currentTrackInfo != "No Track")
                 {
-                    // Parse track info or use as-is
-                    nowPlayingText!.text = $"🎵 Now Playing: \"{currentTrackInfo}\"";
-                    artistText!.text = "🎤 Artist: \"Game Audio\"";
-                    albumText!.text = "💿 Album: \"Official Soundtrack\"";
-                    sourceText!.text = "📊 Source: In-Game Jukebox";
+                    // Display real track information
+                    var playState = isPlaying ? "Now Playing" : "Paused";
+                    nowPlayingText!.text = $"🎵 {playState}: \"{currentTrackInfo}\"";
+                    
+                    // Display artist info or fallback
+                    if (!string.IsNullOrEmpty(currentArtist) && currentArtist != "Unknown Artist")
+                    {
+                        artistText!.text = $"🎤 Artist: \"{currentArtist}\"";
+                    }
+                    else
+                    {
+                        artistText!.text = "🎤 Artist: Unknown";
+                    }
+                    
+                    // Show track position
+                    var currentIndex = manager.CurrentTrackIndex;
+                    albumText!.text = $"💿 Track {currentIndex + 1} of {trackCount}";
+                    sourceText!.text = "📊 Source: In-Game Music";
+                    
+                    // Green when playing, white when paused
+                    if (nowPlayingText != null)
+                    {
+                        nowPlayingText.color = isPlaying ? 
+                            new Color(0.4f, 1f, 0.4f, 1f) :  // Green when playing
+                            Color.white;                      // White when paused/stopped
+                    }
                 }
                 else
                 {
-                    nowPlayingText!.text = "🎵 No Track Selected";
-                    artistText!.text = "🎤 Artist: Unknown";
-                    albumText!.text = "💿 Album: Unknown";
-                    sourceText!.text = "📊 Source: Load music to get started";
+                    // Fallback case
+                    nowPlayingText!.text = "🎵 Ready to Play";
+                    artistText!.text = "🎤 Select a track from playlist";
+                    albumText!.text = $"💿 {trackCount} tracks available";
+                    sourceText!.text = "📊 System: Ready";
+                    
+                    if (nowPlayingText != null)
+                    {
+                        nowPlayingText.color = Color.white;
+                    }
                 }
             }
             catch (System.Exception ex)
             {
                 LoggingSystem.Error($"Track info update failed: {ex.Message}", "UI");
                 nowPlayingText!.text = "🎵 Error loading track info";
+                artistText!.text = "🎤 Error";
+                albumText!.text = "💿 Error";
+                sourceText!.text = "📊 Error";
+                
+                if (nowPlayingText != null)
+                {
+                    nowPlayingText.color = new Color(1f, 0.4f, 0.4f, 1f); // Red for error
+                }
             }
         }
     }

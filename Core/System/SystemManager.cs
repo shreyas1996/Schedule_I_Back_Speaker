@@ -265,6 +265,80 @@ namespace BackSpeakerMod.Core.System
 
         #endregion
 
+        #region Music Source Management
+
+        public void SetMusicSource(MusicSourceType sourceType)
+        {
+            try
+            {
+                var trackLoader = audioManager?.GetTrackLoader();
+                if (trackLoader != null)
+                {
+                    trackLoader.SetMusicSource(sourceType);
+                    LoggingSystem.Info($"Music source changed to: {sourceType}", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Cannot change music source - TrackLoader not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to set music source to {sourceType}: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public MusicSourceType GetCurrentMusicSource()
+        {
+            try
+            {
+                var trackLoader = audioManager?.GetTrackLoader();
+                return trackLoader?.GetCurrentSourceType() ?? MusicSourceType.Jukebox;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to get current music source: {ex.Message}", "SystemManager");
+                return MusicSourceType.Jukebox;
+            }
+        }
+
+        public List<(MusicSourceType type, string name, bool available)> GetAvailableMusicSources()
+        {
+            try
+            {
+                var trackLoader = audioManager?.GetTrackLoader();
+                return trackLoader?.GetAvailableSources() ?? new List<(MusicSourceType, string, bool)>();
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to get available music sources: {ex.Message}", "SystemManager");
+                return new List<(MusicSourceType, string, bool)>();
+            }
+        }
+
+        public void LoadTracksFromCurrentSource()
+        {
+            try
+            {
+                var trackLoader = audioManager?.GetTrackLoader();
+                if (trackLoader != null)
+                {
+                    trackLoader.LoadTracksFromCurrentSource();
+                    LoggingSystem.Info("Loading tracks from current source", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Cannot load tracks - TrackLoader not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load tracks from current source: {ex.Message}", "SystemManager");
+            }
+        }
+
+        #endregion
+
         #region Headphone API
 
         public bool AttachHeadphones()
