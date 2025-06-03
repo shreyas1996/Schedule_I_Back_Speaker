@@ -19,7 +19,7 @@ namespace BackSpeakerMod.Core.System
         /// <summary>
         /// Event to notify UI when tracks are reloaded
         /// </summary>
-        public Action OnTracksReloaded
+        public Action? OnTracksReloaded
         {
             get => components.OnTracksReloaded;
             set => components.OnTracksReloaded = value;
@@ -51,7 +51,6 @@ namespace BackSpeakerMod.Core.System
                 return;
 
             components.AudioManager?.Update();
-            components.PlacementManager?.Update();
         }
 
         // Public API - Audio Control
@@ -96,27 +95,6 @@ namespace BackSpeakerMod.Core.System
         public bool AreHeadphonesAttached() => apiManager.AreHeadphonesAttached();
         public string GetHeadphoneStatus() => apiManager.GetHeadphoneStatus();
 
-        // Public API - Spheres
-        public bool AttachSphere() => apiManager.AttachSphere();
-        public bool DetachSphere() => apiManager.DetachSphere();
-        public bool ToggleSphere() => apiManager.ToggleSphere();
-        public bool IsSphereAttached() => apiManager.IsSphereAttached();
-        public string GetSphereStatus() => apiManager.GetSphereStatus();
-
-        // Public API - Testing
-        public bool AttachTestCube() => apiManager.AttachTestCube();
-        public bool AttachGlowingSphere() => apiManager.AttachGlowingSphere();
-        public bool ToggleGlowingSphere() => apiManager.ToggleGlowingSphere();
-        public bool ToggleTestCube() => apiManager.ToggleTestCube();
-        public void DestroyAllTestObjects() => apiManager.DestroyAllTestObjects();
-        public string GetTestingStatus() => apiManager.GetTestingStatus();
-
-        // Public API - Placement
-        public void TogglePlacementMode() => apiManager.TogglePlacementMode();
-        public void ToggleSpherePlacementMode() => apiManager.ToggleSpherePlacementMode();
-        public bool IsInPlacementMode() => apiManager.IsInPlacementMode();
-        public string GetPlacementStatus() => apiManager.GetPlacementStatus();
-
         /// <summary>
         /// Get comprehensive system status
         /// </summary>
@@ -127,8 +105,7 @@ namespace BackSpeakerMod.Core.System
 
             var statuses = new List<string>();
 
-            if (!FeatureFlags.Headphones.Enabled && !FeatureFlags.Spheres.Enabled && !FeatureFlags.Testing.Enabled && 
-                !FeatureFlags.Placement.Enabled && !FeatureFlags.Audio.Enabled)
+            if (!FeatureFlags.Headphones.Enabled && !FeatureFlags.Audio.Enabled)
             {
                 statuses.Add("All features disabled");
             }
@@ -139,15 +116,6 @@ namespace BackSpeakerMod.Core.System
 
                 if (FeatureFlags.Headphones.Enabled)
                     statuses.Add($"Headphones: {GetHeadphoneStatus()}");
-
-                if (FeatureFlags.Spheres.Enabled)
-                    statuses.Add($"Spheres: {GetSphereStatus()}");
-
-                if (FeatureFlags.Testing.Enabled)
-                    statuses.Add($"Testing: {GetTestingStatus()}");
-
-                if (FeatureFlags.Placement.Enabled)
-                    statuses.Add($"Placement: {GetPlacementStatus()}");
             }
 
             statuses.Add($"Player: {GetAttachmentStatus()}");
@@ -167,7 +135,7 @@ namespace BackSpeakerMod.Core.System
             }
             catch (Exception ex)
             {
-                // Silent shutdown failure
+                LoggingSystem.Error($"Failed to shutdown system: {ex.Message}", "SystemCoordinator");
             }
         }
 

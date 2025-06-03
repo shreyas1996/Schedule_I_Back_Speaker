@@ -12,14 +12,14 @@ namespace BackSpeakerMod.UI.Components.Playlist
     /// </summary>
     public class PlaylistRenderer
     {
-        private Transform contentParent;
-        private ScrollRect scrollRect;
+        private Transform? contentParent;
+        private ScrollRect? scrollRect;
         private List<Button> trackButtons = new List<Button>();
 
         /// <summary>
         /// Event fired when a track is selected
         /// </summary>
-        public event Action<int> OnTrackSelected;
+        public event Action<int> OnTrackSelected = null!;
 
         /// <summary>
         /// Initialize with content parent and scroll rect
@@ -88,7 +88,7 @@ namespace BackSpeakerMod.UI.Components.Playlist
         private void CreateNoTracksMessage()
         {
             var noTracksText = UIFactory.CreateText(
-                contentParent,
+                contentParent!,
                 "NoTracks",
                 "No music loaded yet.\nUse 'RELOAD' to find music.",
                 new Vector2(0f, -30f),
@@ -104,7 +104,7 @@ namespace BackSpeakerMod.UI.Components.Playlist
         private void CreateNoMatchesMessage(string searchQuery)
         {
             var noMatchText = UIFactory.CreateText(
-                contentParent,
+                contentParent!,
                 "NoMatches",
                 $"No tracks found for '{searchQuery}'",
                 new Vector2(0f, -30f),
@@ -164,7 +164,7 @@ namespace BackSpeakerMod.UI.Components.Playlist
             }
 
             var trackButton = UIFactory.CreateButton(
-                contentParent,
+                contentParent!,
                 buttonText,
                 new Vector2(0f, yPosition),
                 new Vector2(260f, 35f)

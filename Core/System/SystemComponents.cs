@@ -1,9 +1,6 @@
 using System;
 using BackSpeakerMod.Core.Features.Player.Attachment;
 using BackSpeakerMod.Core.Features.Headphones.Managers;
-// using BackSpeakerMod.Core.Features.Spheres.Managers; // Excluded from compilation
-using BackSpeakerMod.Core.Features.Placement.Managers;
-using BackSpeakerMod.Core.Features.Testing.Managers;
 using BackSpeakerMod.Core.Features.Audio.Managers;
 
 namespace BackSpeakerMod.Core.System
@@ -16,32 +13,22 @@ namespace BackSpeakerMod.Core.System
         /// <summary>
         /// Legacy player attachment module
         /// </summary>
-        public PlayerAttachment PlayerAttachment { get; set; }
+        public PlayerAttachment? PlayerAttachment { get; set; }
 
         /// <summary>
         /// Headphone management system
         /// </summary>
-        public HeadphoneManager HeadphoneManager { get; set; }
+        public HeadphoneManager? HeadphoneManager { get; set; }
 
         /// <summary>
         /// Placement management system
         /// </summary>
-        public PlacementManager PlacementManager { get; set; }
-
-        /// <summary>
-        /// Testing management system
-        /// </summary>
-        public TestingManager TestingManager { get; set; }
-
-        /// <summary>
-        /// Audio management system
-        /// </summary>
-        public AudioManager AudioManager { get; set; }
+        public AudioManager? AudioManager { get; set; }
 
         /// <summary>
         /// Event to notify UI when tracks are reloaded
         /// </summary>
-        public Action OnTracksReloaded { get; set; }
+        public Action? OnTracksReloaded { get; set; }
 
         /// <summary>
         /// Create system components with dependencies
@@ -56,8 +43,6 @@ namespace BackSpeakerMod.Core.System
             {
                 // Create feature managers
                 components.HeadphoneManager = new HeadphoneManager();
-                components.PlacementManager = new PlacementManager();
-                components.TestingManager = new TestingManager();
                 components.AudioManager = new AudioManager();
 
                 // Create legacy modules
@@ -84,8 +69,6 @@ namespace BackSpeakerMod.Core.System
             {
                 // Shutdown feature managers
                 HeadphoneManager?.Shutdown();
-                PlacementManager?.Shutdown();
-                TestingManager?.Shutdown();
                 AudioManager?.Shutdown();
 
                 LoggingSystem.Info("System components shutdown completed", "System");

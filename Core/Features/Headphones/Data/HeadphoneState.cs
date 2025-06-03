@@ -74,25 +74,25 @@ namespace BackSpeakerMod.Core.Features.Headphones.Data
             return $"Headphones attached for {timeSince:F1}s to {AttachedTo?.name ?? "unknown"}";
         }
 
-        /// <summary>
-        /// Event fired when headphones are attached
-        /// </summary>
-        public event Action<GameObject>? OnAttached;
+        // /// <summary>
+        // /// Event fired when headphones are attached
+        // /// </summary>
+        // public event Action<GameObject>? OnAttached;
 
-        /// <summary>
-        /// Event fired when headphones are detached
-        /// </summary>
-        public event Action? OnDetached;
+        // /// <summary>
+        // /// Event fired when headphones are detached
+        // /// </summary>
+        // public event Action? OnDetached;
 
-        /// <summary>
-        /// Event fired when attachment fails
-        /// </summary>
-        public event Action<string>? OnAttachmentFailed;
+        // /// <summary>
+        // /// Event fired when attachment fails
+        // /// </summary>
+        // public event Action<string>? OnAttachmentFailed;
 
-        /// <summary>
-        /// Event fired when state changes
-        /// </summary>
-        public event Action<HeadphoneAttachmentStatus>? OnStateChanged;
+        // /// <summary>
+        // /// Event fired when state changes
+        // /// </summary>
+        // public event Action<HeadphoneAttachmentStatus>? OnStateChanged;
     }
 
     /// <summary>

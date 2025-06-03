@@ -13,20 +13,20 @@ namespace BackSpeakerMod.UI.Components
     public class PlaylistPanel : MonoBehaviour
     {
         // Core dependencies
-        private BackSpeakerManager manager = null;
-        private BackSpeakerScreen mainScreen = null;
-        private RectTransform canvasRect = null;
+        private BackSpeakerManager? manager;
+        private BackSpeakerScreen? mainScreen;
+        private RectTransform? canvasRect;
         
         // UI Components
-        private Button toggleButton = null;
-        private GameObject playlistContainer = null;
-        private ScrollRect scrollRect = null;
-        private Transform contentParent = null;
+        private Button? toggleButton;
+        private GameObject? playlistContainer;
+        private ScrollRect? scrollRect;
+        private Transform? contentParent;
         private bool isVisible = false;
         
         // Extracted functionality
-        private PlaylistSearch searchComponent;
-        private PlaylistRenderer renderComponent;
+        private PlaylistSearch? searchComponent;
+        private PlaylistRenderer? renderComponent;
         
         // Change detection to prevent constant recreation
         private int lastTrackCount = -1;
@@ -34,8 +34,8 @@ namespace BackSpeakerMod.UI.Components
         private string lastSearchQuery = "";
         private bool needsPlaylistRefresh = false;
 
-        // IL2CPP compatibility - explicit parameterless constructor
-        public PlaylistPanel() : base() { }
+        // // IL2CPP compatibility - explicit parameterless constructor
+        // public PlaylistPanel() : base() { }
 
         public void Setup(BackSpeakerManager manager, RectTransform canvasRect, BackSpeakerScreen mainScreen)
         {
@@ -80,7 +80,7 @@ namespace BackSpeakerMod.UI.Components
             }
             
             playlistContainer = new GameObject("PlaylistContainer");
-            playlistContainer.transform.SetParent(canvasRect.transform, false);
+            playlistContainer.transform.SetParent(canvasRect!.transform, false);
             
             var containerRect = playlistContainer.AddComponent<RectTransform>();
             // Position on the right side with proper 50/50 split
@@ -120,13 +120,13 @@ namespace BackSpeakerMod.UI.Components
             titleRect.offsetMax = new Vector2(0f, -5f);
             
             // Create search functionality using extracted component
-            searchComponent.CreateSearchInterface(playlistContainer.transform);
+            searchComponent?.CreateSearchInterface(playlistContainer!.transform);
             
             // Create scroll view for track list
             CreateScrollView();
             
             // Initialize render component
-            renderComponent.Initialize(contentParent, scrollRect);
+            renderComponent?.Initialize(contentParent!, scrollRect!);
             
             // Start completely hidden
             playlistContainer.SetActive(false);
@@ -137,7 +137,7 @@ namespace BackSpeakerMod.UI.Components
         private void CreateScrollView()
         {
             var scrollObj = new GameObject("ScrollView");
-            scrollObj.transform.SetParent(playlistContainer.transform, false);
+            scrollObj.transform.SetParent(playlistContainer!.transform, false);
             
             var scrollRectTransform = scrollObj.AddComponent<RectTransform>();
             scrollRectTransform.anchorMin = new Vector2(0f, 0f);
@@ -316,7 +316,7 @@ namespace BackSpeakerMod.UI.Components
             // Check if anything actually changed
             var allTracks = manager.GetAllTracks();
             int currentTrackIndex = manager.CurrentTrackIndex;
-            string currentSearchQuery = searchComponent.CurrentQuery;
+            string currentSearchQuery = searchComponent.CurrentQuery ?? "";
             
             bool hasChanges = needsPlaylistRefresh ||
                              allTracks.Count != lastTrackCount ||
@@ -328,7 +328,7 @@ namespace BackSpeakerMod.UI.Components
             // Update tracking variables
             lastTrackCount = allTracks.Count;
             lastCurrentTrackIndex = currentTrackIndex;
-            lastSearchQuery = currentSearchQuery;
+            lastSearchQuery = currentSearchQuery ?? "";
             needsPlaylistRefresh = false;
             
             // Use render component to update the playlist

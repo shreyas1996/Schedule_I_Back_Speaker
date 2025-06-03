@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.UI.Helpers;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -74,9 +74,9 @@ namespace BackSpeakerMod.UI.Components
                 
                 // LoggerUtil.Info("ProgressBar: Modern Spotify-style setup completed");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"ProgressBar: Setup failed: {ex}");
+                LoggingSystem.Error($"ProgressBar: Setup failed: {ex}", "ProgressBar");
                 throw;
             }
         }
@@ -137,9 +137,9 @@ namespace BackSpeakerMod.UI.Components
                 
                 // LoggerUtil.Info("ProgressBar: Spotify styling applied to progress slider");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"ProgressBar: Failed to apply Spotify styling: {ex}");
+                LoggingSystem.Error($"ProgressBar: Failed to apply Spotify styling: {ex}", "ProgressBar");
             }
         }
 
@@ -187,9 +187,9 @@ namespace BackSpeakerMod.UI.Components
                     timeText.text = $"{currentTimeStr} / {totalTimeStr}";
                 }
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"ProgressBar: UpdateProgress failed: {ex}");
+                LoggingSystem.Error($"ProgressBar: UpdateProgress failed: {ex}", "ProgressBar");
             }
         }
 

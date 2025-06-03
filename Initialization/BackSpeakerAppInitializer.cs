@@ -3,7 +3,6 @@ using Il2CppScheduleOne.PlayerScripts;
 using MelonLoader;
 using UnityEngine;
 using BackSpeakerMod.Core;
-using BackSpeakerMod.Utils;
 using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Initialization
 {
@@ -36,7 +35,7 @@ namespace BackSpeakerMod.Initialization
                         // LoggerUtil.Info($"Attempt {appCreateRetries}: Trying to create BackSpeakerApp");
                         try
                         {
-                            AppInstance = new BackSpeakerApp(BackSpeakerModMain.SpeakerManager);
+                            AppInstance = new BackSpeakerApp(BackSpeakerModMain.SpeakerManager!);
                             if (AppInstance != null && AppInstance.Create())
                             {
                                 appCreated = true;

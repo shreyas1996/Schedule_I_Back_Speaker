@@ -18,17 +18,17 @@ namespace BackSpeakerMod.Core.Common.Managers
         /// <summary>
         /// Event fired when player is detected and ready
         /// </summary>
-        public static event global::System.Action<Il2CppScheduleOne.PlayerScripts.Player> OnPlayerReady;
+        public static event global::System.Action<Il2CppScheduleOne.PlayerScripts.Player>? OnPlayerReady;
 
         /// <summary>
         /// Event fired when player is lost (scene change, etc.)
         /// </summary>
-        public static event global::System.Action OnPlayerLost;
+        public static event global::System.Action<Il2CppScheduleOne.PlayerScripts.Player>? OnPlayerLost;
 
         /// <summary>
         /// Current detected player
         /// </summary>
-        public static Il2CppScheduleOne.PlayerScripts.Player CurrentPlayer { get; private set; }
+        public static Il2CppScheduleOne.PlayerScripts.Player? CurrentPlayer { get; private set; }
 
         /// <summary>
         /// Whether we're currently in the main game scene
@@ -217,7 +217,7 @@ namespace BackSpeakerMod.Core.Common.Managers
             
             try
             {
-                OnPlayerLost?.Invoke();
+                OnPlayerLost?.Invoke(CurrentPlayer!);
             }
             catch (Exception ex)
             {

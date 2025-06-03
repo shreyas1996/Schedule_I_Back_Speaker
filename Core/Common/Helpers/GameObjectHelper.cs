@@ -12,7 +12,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Create empty GameObject with name
         /// </summary>
-        public static GameObject CreateEmpty(string name)
+        public static GameObject? CreateEmpty(string name)
         {
             var obj = new GameObject(name);
             LoggingSystem.Debug($"Created empty GameObject: {name}", "Helper");
@@ -22,10 +22,10 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Create GameObject with component
         /// </summary>
-        public static T CreateWithComponent<T>(string name) where T : Component
+        public static T? CreateWithComponent<T>(string name) where T : Component
         {
             var obj = CreateEmpty(name);
-            var component = obj.AddComponent<T>();
+            var component = obj?.AddComponent<T>();
             LoggingSystem.Debug($"Created GameObject with {typeof(T).Name}: {name}", "Helper");
             return component;
         }
@@ -33,7 +33,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Clone GameObject with new name
         /// </summary>
-        public static GameObject Clone(GameObject original, string newName = null)
+        public static GameObject? Clone(GameObject original, string? newName = null)
         {
             if (original == null) return null;
             
@@ -70,7 +70,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Find child by name recursively
         /// </summary>
-        public static Transform FindChildRecursive(Transform parent, string childName)
+        public static Transform? FindChildRecursive(Transform parent, string childName)
         {
             if (parent == null) return null;
             
@@ -91,7 +91,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Get or add component safely
         /// </summary>
-        public static T GetOrAddComponent<T>(GameObject obj) where T : Component
+        public static T? GetOrAddComponent<T>(GameObject obj) where T : Component
         {
             if (obj == null) return null;
             

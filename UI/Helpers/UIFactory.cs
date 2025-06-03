@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.UI.Helpers
 {
@@ -170,9 +170,9 @@ namespace BackSpeakerMod.UI.Helpers
                 
                 shadowImage.color = shadowColor;
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"UIFactory: Failed to apply shadow to {target.name}: {ex}");
+                LoggingSystem.Error($"UIFactory: Failed to apply shadow to {target.name}: {ex}", "UIFactory");
             }
         }
 
@@ -213,9 +213,9 @@ namespace BackSpeakerMod.UI.Helpers
                     glowImage.color = new Color(glowColor.r, glowColor.g, glowColor.b, layerIntensity);
                 }
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"UIFactory: Failed to apply glow to {target.name}: {ex}");
+                LoggingSystem.Error($"UIFactory: Failed to apply glow to {target.name}: {ex}", "UIFactory");
             }
         }
 
@@ -244,9 +244,9 @@ namespace BackSpeakerMod.UI.Helpers
                 var borderImage = borderObj.AddComponent<Image>();
                 borderImage.color = borderColor;
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"UIFactory: Failed to apply border to {target.name}: {ex}");
+                LoggingSystem.Error($"UIFactory: Failed to apply border to {target.name}: {ex}", "UIFactory");
             }
         }
     }

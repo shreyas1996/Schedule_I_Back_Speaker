@@ -61,9 +61,9 @@ namespace BackSpeakerMod.UI.Components
                 
                 // LoggerUtil.Info("DisplayPanel: Modern setup with album art completed");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"DisplayPanel: Setup failed: {ex}");
+                LoggingSystem.Error($"DisplayPanel: Setup failed: {ex}", "UI");
                 throw;
             }
         }

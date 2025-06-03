@@ -4,8 +4,6 @@ using System;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Features.Player.Attachment;
 using BackSpeakerMod.Core.Features.Headphones.Managers;
-using BackSpeakerMod.Core.Features.Placement.Managers;
-using BackSpeakerMod.Core.Features.Testing.Managers;
 using BackSpeakerMod.Core.Features.Audio.Managers;
 using BackSpeakerMod.Core.Common.Managers;
 
@@ -22,12 +20,12 @@ namespace BackSpeakerMod.Core.System
         /// <summary>
         /// Event fired when initialization is complete
         /// </summary>
-        public event Action OnInitializationComplete;
+        public event Action? OnInitializationComplete;
 
         /// <summary>
         /// Event fired when speaker is attached
         /// </summary>
-        public event Action<AudioSource> OnSpeakerAttached;
+        public event Action<AudioSource>? OnSpeakerAttached;
 
         /// <summary>
         /// Whether system is initialized
@@ -67,10 +65,6 @@ namespace BackSpeakerMod.Core.System
                 // Step 3: Initialize player attachment (but don't auto-attach speaker yet)
                 components.PlayerAttachment?.Initialize();
 
-                // Step 4: Initialize other managers
-                components.PlacementManager?.Initialize();
-                components.TestingManager?.Initialize();
-
                 // Step 5: Set up coordinated initialization
                 if (components.HeadphoneManager != null && components.PlayerAttachment != null)
                 {
@@ -95,6 +89,7 @@ namespace BackSpeakerMod.Core.System
             }
             catch (Exception ex)
             {
+                LoggingSystem.Error($"SystemInitializer: Initialize failed: {ex}", "SystemInitializer");
                 return false;
             }
         }

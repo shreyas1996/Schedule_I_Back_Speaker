@@ -15,9 +15,9 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
     public class HeadphoneAssetLoader
     {
         private readonly HeadphoneConfig config;
-        private Il2CppAssetBundle persistentBundle = null;
-        private GameObject headphonePrefab = null;
-        private string tempBundlePath = null;
+        private Il2CppAssetBundle? persistentBundle = null;
+        private GameObject? headphonePrefab = null;
+        private string? tempBundlePath = null;
         private bool isLoaded = false;
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                     if (ReloadPrefabFromBundle())
                     {
                         hasValidPrefab = headphonePrefab != null && headphonePrefab;
-                        LoggingSystem.Info($"Prefab reloaded successfully: {(hasValidPrefab ? headphonePrefab.name : "failed")}", "Headphones");
+                        LoggingSystem.Info($"Prefab reloaded successfully: {(hasValidPrefab ? headphonePrefab!.name : "failed")}", "Headphones");
                     }
                     else
                     {
@@ -54,12 +54,12 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
         /// <summary>
         /// Get the loaded headphone prefab
         /// </summary>
-        public GameObject HeadphonePrefab => headphonePrefab;
+        public GameObject? HeadphonePrefab => headphonePrefab;
 
         /// <summary>
         /// Initialize with config
         /// </summary>
-        public HeadphoneAssetLoader(HeadphoneConfig headphoneConfig = null)
+        public HeadphoneAssetLoader(HeadphoneConfig? headphoneConfig = null)
         {
             config = headphoneConfig ?? new HeadphoneConfig();
             LoggingSystem.Info("HeadphoneAssetLoader created", "Headphones");
@@ -108,7 +108,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 }
 
                 isLoaded = true;
-                LoggingSystem.Info($"✓ Headphones loaded successfully: {headphonePrefab.name}", "Headphones");
+                LoggingSystem.Info($"✓ Headphones loaded successfully: {headphonePrefab!.name}", "Headphones");
                 return true;
             }
             catch (global::System.Exception ex)
@@ -127,6 +127,10 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
+                if (assembly == null)
+                {
+                    throw new Exception("Failed to get executing assembly");
+                }
                 
                 // Try different resource name formats
                 string[] possibleNames = {
@@ -135,8 +139,8 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                     $"EmbeddedResources.{config.EmbeddedResourceName}"
                 };
 
-                Stream resourceStream = null;
-                string actualResourceName = null;
+                Stream? resourceStream = null;
+                string? actualResourceName = null;
 
                 foreach (var name in possibleNames)
                 {
@@ -148,7 +152,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                     }
                 }
 
-                if (resourceStream == null)
+                if (resourceStream == null || actualResourceName == null)
                 {
                     LoggingSystem.Error($"Embedded resource not found: {config.EmbeddedResourceName}", "Headphones");
                     LogAvailableResources(assembly);
@@ -160,13 +164,13 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 tempBundlePath = Path.Combine(Path.GetTempPath(), $"headphones_{guid:N}.bundle");
                 
                 // Write resource to temp file
-                using (var fileStream = File.Create(tempBundlePath))
+                using (var fileStream = File.Create(tempBundlePath!))
                 {
                     resourceStream.CopyTo(fileStream);
                 }
                 
-                resourceStream.Close();
-                resourceStream.Dispose();
+                resourceStream?.Close();
+                resourceStream?.Dispose();
 
                 LoggingSystem.Info($"✓ Extracted {actualResourceName} to temp file: {tempBundlePath}", "Headphones");
                 return true;
@@ -191,7 +195,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                     return false;
                 }
 
-                persistentBundle = Il2CppAssetBundleManager.LoadFromFile(tempBundlePath);
+                persistentBundle = Il2CppAssetBundleManager.LoadFromFile(tempBundlePath!);
                 
                 if (persistentBundle == null)
                 {
@@ -228,7 +232,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 if (!string.IsNullOrEmpty(config.AssetName))
                 {
                     LoggingSystem.Debug($"Attempting to load specific asset: '{config.AssetName}'", "Headphones");
-                    headphonePrefab = persistentBundle.LoadAsset<GameObject>(config.AssetName);
+                    headphonePrefab = persistentBundle.LoadAsset<GameObject>(config.AssetName!);
                     if (headphonePrefab != null)
                     {
                         LoggingSystem.Info($"✓ Successfully loaded specific asset: {headphonePrefab.name}", "Headphones");
@@ -243,7 +247,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 if (headphonePrefab == null)
                 {
                     LoggingSystem.Debug("Attempting to load first GameObject from bundle", "Headphones");
-                    var allAssets = persistentBundle.LoadAllAssets<GameObject>();
+                    var allAssets = persistentBundle.LoadAllAssets<GameObject>() ?? Array.Empty<GameObject>();
                     LoggingSystem.Debug($"Found {(allAssets?.Length ?? 0)} GameObjects in bundle", "Headphones");
                     
                     if (allAssets != null && allAssets.Length > 0)
@@ -282,7 +286,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
         /// <summary>
         /// Create headphone instance (simple instantiation)
         /// </summary>
-        public GameObject CreateInstance(bool persistAcrossScenes = false)
+        public GameObject? CreateInstance(bool persistAcrossScenes = false)
         {
             if (!IsLoaded)
             {
@@ -292,7 +296,17 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
 
             try
             {
-                var instance = UnityEngine.Object.Instantiate(headphonePrefab);
+                var instance = UnityEngine.Object.Instantiate(headphonePrefab!);
+                if (instance == null)
+                {
+                    throw new Exception("Failed to instantiate headphone prefab");
+                }
+
+                if (instance == null)
+                {
+                    throw new Exception("Failed to instantiate headphone prefab");
+                }
+
                 instance.name = "HeadphoneInstance";
                 
                 // Only mark as DontDestroyOnLoad if the instance needs to persist across scenes
@@ -318,7 +332,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
         /// <summary>
         /// Create instance at specific position/rotation
         /// </summary>
-        public GameObject CreateInstance(Vector3 position, Quaternion rotation, bool persistAcrossScenes = false)
+        public GameObject? CreateInstance(Vector3 position, Quaternion rotation, bool persistAcrossScenes = false)
         {
             if (!IsLoaded)
             {
@@ -328,7 +342,17 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
 
             try
             {
-                var instance = UnityEngine.Object.Instantiate(headphonePrefab, position, rotation);
+                var instance = UnityEngine.Object.Instantiate(headphonePrefab!, position, rotation);
+                if (instance == null)
+                {
+                    throw new Exception("Failed to instantiate headphone prefab");
+                }
+
+                if (instance == null)
+                {
+                    throw new Exception("Failed to instantiate headphone prefab");
+                }
+
                 instance.name = "HeadphoneInstance";
                 
                 // Only mark as DontDestroyOnLoad if the instance needs to persist across scenes
@@ -360,7 +384,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 return "Disabled";
             
             if (IsLoaded)
-                return $"Loaded: {headphonePrefab.name}";
+                return $"Loaded: {headphonePrefab!.name}";
             
             return "Not loaded";
         }
@@ -499,7 +523,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 if (!string.IsNullOrEmpty(config.AssetName))
                 {
                     LoggingSystem.Debug($"Attempting to load specific asset: '{config.AssetName}'", "Headphones");
-                    headphonePrefab = persistentBundle.LoadAsset<GameObject>(config.AssetName);
+                    headphonePrefab = persistentBundle.LoadAsset<GameObject>(config.AssetName!);
                     if (headphonePrefab != null)
                     {
                         LoggingSystem.Info($"✓ Successfully reloaded specific asset: {headphonePrefab.name}", "Headphones");
@@ -514,7 +538,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                 if (headphonePrefab == null)
                 {
                     LoggingSystem.Debug("Attempting to load first GameObject from bundle", "Headphones");
-                    var allAssets = persistentBundle.LoadAllAssets<GameObject>();
+                    var allAssets = persistentBundle.LoadAllAssets<GameObject>() ?? Array.Empty<GameObject>();
                     LoggingSystem.Debug($"Found {(allAssets?.Length ?? 0)} GameObjects in bundle", "Headphones");
                     
                     if (allAssets != null && allAssets.Length > 0)

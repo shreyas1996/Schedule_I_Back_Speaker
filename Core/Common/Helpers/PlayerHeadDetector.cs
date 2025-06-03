@@ -12,131 +12,11 @@ namespace BackSpeakerMod.Core.Common.Helpers
     public class PlayerHeadDetector
     {
         #region Instance Methods (for spheres and other features that need instance-based usage)
-        
-        /// <summary>
-        /// Find the current player's head transform for attachment
-        /// </summary>
-        public Transform FindPlayerHead()
-        {
-            try
-            {
-                var player = PlayerManager.CurrentPlayer;
-                if (player == null)
-                {
-                    LoggingSystem.Error("No current player found for head detection", "PlayerHeadDetector");
-                    return null;
-                }
-
-                return FindPlayerHead(player);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Exception in FindPlayerHead: {ex.Message}", "PlayerHeadDetector");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Find the head transform for a specific player (instance method)
-        /// </summary>
-        public Transform FindPlayerHead(Il2CppScheduleOne.PlayerScripts.Player player)
-        {
-            return FindAttachmentPoint(player);
-        }
-
-        /// <summary>
-        /// Validate that attachment point is suitable
-        /// </summary>
-        public bool ValidateAttachmentPoint(Transform attachmentPoint)
-        {
-            return IsValidAttachmentPoint(attachmentPoint);
-        }
-
-        #endregion
-
-        #region Static Methods (for headphones and backward compatibility)
-
-        /// <summary>
-        /// Find the best attachment point on player (static method for backward compatibility)
-        /// </summary>
-        public static Transform FindAttachmentPoint(Il2CppScheduleOne.PlayerScripts.Player player)
-        {
-            if (player == null)
-            {
-                LoggingSystem.Error("Player is null - cannot find attachment point", "PlayerHeadDetector");
-                return null;
-            }
-
-            try
-            {
-                // Method 1: Try to get avatar head bone
-                var avatar = player.Avatar;
-                if (avatar != null)
-                {
-                    var headBone = avatar.HeadBone;
-                    if (headBone != null)
-                    {
-                        LoggingSystem.Debug($"Found avatar head bone: {headBone.name}", "PlayerHeadDetector");
-                        return headBone;
-                    }
-                    
-                    LoggingSystem.Warning("Avatar found but no head bone", "PlayerHeadDetector");
-                }
-                else
-                {
-                    LoggingSystem.Warning("Player avatar not found", "PlayerHeadDetector");
-                }
-
-                // Method 2: Try to find head bone by name in hierarchy
-                var headTransform = FindHeadByName(player.transform);
-                if (headTransform != null)
-                {
-                    LoggingSystem.Debug($"Found head by name search: {headTransform.name}", "PlayerHeadDetector");
-                    return headTransform;
-                }
-
-                // Method 3: Fallback to player transform
-                LoggingSystem.Warning("No head bone found, using player transform as fallback", "PlayerHeadDetector");
-                return player.transform;
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error finding attachment point: {ex.Message}", "PlayerHeadDetector");
-                return player.transform; // Final fallback
-            }
-        }
-
-        /// <summary>
-        /// Find the current player's head (static convenience method)
-        /// </summary>
-        public static Transform FindCurrentPlayerHead()
-        {
-            var player = PlayerManager.CurrentPlayer;
-            return FindAttachmentPoint(player);
-        }
-
-        /// <summary>
-        /// Validate that attachment point is suitable (static method)
-        /// </summary>
-        public static bool IsValidAttachmentPoint(Transform attachmentPoint)
-        {
-            if (attachmentPoint == null)
-                return false;
-
-            // Check if transform is active and valid
-            if (attachmentPoint.gameObject == null || !attachmentPoint.gameObject.activeInHierarchy)
-            {
-                LoggingSystem.Warning("Attachment point is not active in hierarchy", "PlayerHeadDetector");
-                return false;
-            }
-
-            return true;
-        }
 
         /// <summary>
         /// Find the best attachment point specifically for headphones
         /// </summary>
-        public static Transform FindHeadphoneAttachmentPoint(Il2CppScheduleOne.PlayerScripts.Player player)
+        public static Transform? FindHeadphoneAttachmentPoint(Il2CppScheduleOne.PlayerScripts.Player player)
         {
             if (player == null)
             {
@@ -161,18 +41,18 @@ namespace BackSpeakerMod.Core.Common.Helpers
                     var headBone = avatar.HeadBone;
                     if (headBone != null)
                     {
-                        LoggingSystem.Info($"Found Avatar.HeadBone: {headBone.name}", "PlayerHeadDetector");
+                        LoggingSystem.Debug($"Found Avatar.HeadBone: {headBone.name}", "PlayerHeadDetector");
                         
                         // Check if the head bone has children that might be better for headphones
                         var earChild = FindEarChildBone(headBone);
                         if (earChild != null)
                         {
-                            LoggingSystem.Info($"Found better ear attachment point: {earChild.name}", "PlayerHeadDetector");
+                            LoggingSystem.Debug($"Found better ear attachment point: {earChild.name}", "PlayerHeadDetector");
                             return earChild;
                         }
 
                         // HeadBone is good enough - it's the actual head bone from the avatar system
-                        LoggingSystem.Info($"Using Avatar.HeadBone for headphones: {headBone.name}", "PlayerHeadDetector");
+                        LoggingSystem.Debug($"Using Avatar.HeadBone for headphones: {headBone.name}", "PlayerHeadDetector");
                         return headBone;
                     }
                     else
@@ -189,13 +69,13 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 var headTransform = FindHeadByName(player.transform);
                 if (headTransform != null)
                 {
-                    LoggingSystem.Info($"Found head by name search: {headTransform.name}", "PlayerHeadDetector");
+                    LoggingSystem.Debug($"Found head by name search: {headTransform.name}", "PlayerHeadDetector");
                     
                     // Check if this head has ear children
                     var earChild = FindEarChildBone(headTransform);
                     if (earChild != null)
                     {
-                        LoggingSystem.Info($"Found ear child from head search: {earChild.name}", "PlayerHeadDetector");
+                        LoggingSystem.Debug($"Found ear child from head search: {earChild.name}", "PlayerHeadDetector");
                         return earChild;
                     }
 
@@ -206,7 +86,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 var earAttachment = FindEarAttachmentPoint(player.transform);
                 if (earAttachment != null)
                 {
-                    LoggingSystem.Info($"Found ear attachment point by name: {earAttachment.name}", "PlayerHeadDetector");
+                    LoggingSystem.Debug($"Found ear attachment point by name: {earAttachment.name}", "PlayerHeadDetector");
                     return earAttachment;
                 }
 
@@ -228,15 +108,15 @@ namespace BackSpeakerMod.Core.Common.Helpers
         {
             try
             {
-                LoggingSystem.Info("=== RUNTIME BONE DISCOVERY ===", "PlayerHeadDetector");
-                LoggingSystem.Info($"Player: {player.name}", "PlayerHeadDetector");
+                LoggingSystem.Debug("=== RUNTIME BONE DISCOVERY ===", "PlayerHeadDetector");
+                LoggingSystem.Debug($"Player: {player.name}", "PlayerHeadDetector");
 
                 // Check Avatar bones first
                 var avatar = player.Avatar;
                 if (avatar != null)
                 {
-                    LoggingSystem.Info("Avatar bone structure:", "PlayerHeadDetector");
-                    LoggingSystem.Info($"  HeadBone: {(avatar.HeadBone != null ? avatar.HeadBone.name : "NULL")}", "PlayerHeadDetector");
+                    LoggingSystem.Debug("Avatar bone structure:", "PlayerHeadDetector");
+                    LoggingSystem.Debug($"  HeadBone: {(avatar.HeadBone != null ? avatar.HeadBone.name : "NULL")}", "PlayerHeadDetector");
                     
                     // Log other avatar bones if they exist
                     try
@@ -250,7 +130,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                             if (field.FieldType == typeof(Transform) && field.Name.Contains("Bone"))
                             {
                                 var boneTransform = field.GetValue(avatar) as Transform;
-                                LoggingSystem.Info($"  {field.Name}: {(boneTransform != null ? boneTransform.name : "NULL")}", "PlayerHeadDetector");
+                                LoggingSystem.Debug($"  {field.Name}: {(boneTransform != null ? boneTransform.name : "NULL")}", "PlayerHeadDetector");
                             }
                         }
                     }
@@ -261,10 +141,10 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 }
 
                 // Discover all transforms in hierarchy
-                LoggingSystem.Info("Full transform hierarchy:", "PlayerHeadDetector");
+                LoggingSystem.Debug("Full transform hierarchy:", "PlayerHeadDetector");
                 LogAllTransforms(player.transform, 0);
 
-                LoggingSystem.Info("=== END BONE DISCOVERY ===", "PlayerHeadDetector");
+                LoggingSystem.Debug("=== END BONE DISCOVERY ===", "PlayerHeadDetector");
             }
             catch (Exception ex)
             {
@@ -280,7 +160,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
             if (depth > 10) return; // Prevent infinite recursion
             
             string indent = new string(' ', depth * 2);
-            // LoggingSystem.Info($"{indent}- {parent.name} (Position: {parent.localPosition}, Children: {parent.childCount})", "PlayerHeadDetector");
+            // LoggingSystem.Debug($"{indent}- {parent.name} (Position: {parent.localPosition}, Children: {parent.childCount})", "PlayerHeadDetector");
             
             for (int i = 0; i < parent.childCount; i++)
             {
@@ -295,7 +175,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Search for head bone by common naming patterns
         /// </summary>
-        private static Transform FindHeadByName(Transform root)
+        private static Transform? FindHeadByName(Transform root)
         {
             // Common Unity/Mixamo head bone naming patterns
             string[] headNames = { 
@@ -325,7 +205,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Recursively search for child by name
         /// </summary>
-        private static Transform FindChildByName(Transform parent, string name)
+        private static Transform? FindChildByName(Transform parent, string name)
         {
             if (parent.name.Equals(name, StringComparison.OrdinalIgnoreCase))
                 return parent;
@@ -343,7 +223,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Find ear-specific attachment points
         /// </summary>
-        private static Transform FindEarAttachmentPoint(Transform root)
+        private static Transform? FindEarAttachmentPoint(Transform? root)
         {
             // Common Unity/Mixamo bone naming patterns for heads and ears
             string[] headEarNames = { 
@@ -358,7 +238,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
 
             foreach (var boneName in headEarNames)
             {
-                var found = FindChildByName(root, boneName);
+                var found = FindChildByName(root!, boneName);
                 if (found != null)
                 {
                     LoggingSystem.Debug($"Found head/ear bone by name pattern: {boneName}", "PlayerHeadDetector");
@@ -372,7 +252,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Find ear child bones from a head bone
         /// </summary>
-        private static Transform FindEarChildBone(Transform headBone)
+        private static Transform? FindEarChildBone(Transform? headBone)
         {
             if (headBone == null) return null;
 
@@ -391,14 +271,14 @@ namespace BackSpeakerMod.Core.Common.Helpers
                     childName.Contains("end") || 
                     childName.Contains("top"))
                 {
-                    LoggingSystem.Info($"Found ear child bone: {child.name}", "PlayerHeadDetector");
+                    LoggingSystem.Debug($"Found ear child bone: {child.name}", "PlayerHeadDetector");
                     return child;
                 }
             }
 
             // If no specific ear bones, look for the highest positioned child
             // (ears are typically higher on the head than other features)
-            Transform highestChild = null;
+            Transform? highestChild = null;
             float highestY = float.MinValue;
 
             for (int i = 0; i < headBone.childCount; i++)
@@ -425,7 +305,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Find child with partial name match
         /// </summary>
-        private static Transform FindChildWithPartialName(Transform parent, string partialName)
+        private static Transform? FindChildWithPartialName(Transform parent, string partialName)
         {
             if (parent.name.ToLower().Contains(partialName.ToLower()))
                 return parent;

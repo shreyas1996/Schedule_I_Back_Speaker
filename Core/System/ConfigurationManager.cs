@@ -26,7 +26,7 @@ namespace BackSpeakerMod.Core.System
         /// <summary>
         /// Get setting value
         /// </summary>
-        public static T GetSetting<T>(string key, T defaultValue = default(T))
+        public static T? GetSetting<T>(string key, T? defaultValue = default(T))
         {
             if (settings.TryGetValue(key, out var value))
             {
@@ -48,8 +48,20 @@ namespace BackSpeakerMod.Core.System
         /// </summary>
         public static void SetSetting<T>(string key, T value)
         {
-            settings[key] = value;
-            LoggingSystem.Debug($"Setting '{key}' set to '{value}'", "System");
+            try {
+                if (settings.ContainsKey(key))
+                {
+                    LoggingSystem.Warning($"Setting '{key}' already exists", "System");
+                    return;
+                }
+
+                settings[key] = value ?? throw new ArgumentNullException(nameof(value));
+                LoggingSystem.Debug($"Setting '{key}' set to '{value}'", "System");
+            } 
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to set setting '{key}': {ex.Message}", "System");
+            }
         }
 
         /// <summary>
@@ -60,8 +72,6 @@ namespace BackSpeakerMod.Core.System
             SetSetting("Audio.Enabled", true);
             SetSetting("Audio.Volume", 0.5f);
             SetSetting("Headphones.Enabled", true);
-            SetSetting("Placement.Enabled", true);
-            SetSetting("Testing.Enabled", true);
         }
     }
 } 

@@ -15,14 +15,14 @@ namespace BackSpeakerMod.Core.Modules
 
     public class AudioController
     {
-        private AudioSource audioSource;
+        private AudioSource? audioSource;
         private List<AudioClip> tracks = new List<AudioClip>();
         private List<(string title, string artist)> trackInfo = new List<(string, string)>();
         private int currentTrackIndex = 0;
         private bool isPlaying = false;
         private RepeatMode repeatMode = RepeatMode.None;
         
-        public Action OnTracksChanged;
+        public Action? OnTracksChanged;
 
         public void Initialize(AudioSource audioSource)
         {

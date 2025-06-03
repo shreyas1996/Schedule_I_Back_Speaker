@@ -5,6 +5,7 @@ using MelonLoader;
 using System.IO;
 using System.Reflection;
 using Il2CppInterop.Runtime.InteropTypes;
+using System;
 
 namespace BackSpeakerMod.Core.Common.Loaders
 {
@@ -16,11 +17,15 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Load asset bundle from embedded resource
         /// </summary>
-        public static Il2CppAssetBundle LoadFromEmbeddedResource(string resourceName, Assembly assembly = null)
+        public static Il2CppAssetBundle? LoadFromEmbeddedResource(string resourceName, Assembly? assembly = null)
         {
             try
             {
-                assembly ??= Assembly.GetExecutingAssembly();
+                assembly = Assembly.GetExecutingAssembly();
+                if (assembly == null)
+                {
+                    throw new Exception("Failed to get executing assembly");
+                }
                 
                 // Try common resource name formats
                 string[] possibleNames = {
@@ -31,13 +36,13 @@ namespace BackSpeakerMod.Core.Common.Loaders
                 
                 LoggingSystem.Info($"Loading asset bundle from embedded resource: {resourceName}", "AssetLoader");
 
-                global::System.IO.Stream stream = null;
-                string actualResourceName = null;
+                global::System.IO.Stream? stream = null;
+                string? actualResourceName = null;
                 
                 // Find the resource
                 foreach (var name in possibleNames)
                 {
-                    stream = assembly.GetManifestResourceStream(name);
+                    stream = assembly.GetManifestResourceStream(name)!;
                     if (stream != null)
                     {
                         actualResourceName = name;
@@ -82,7 +87,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Load specific asset from bundle
         /// </summary>
-        public static T LoadAsset<T>(Il2CppAssetBundle bundle, string assetName) where T : UnityEngine.Object
+        public static T? LoadAsset<T>(Il2CppAssetBundle? bundle, string assetName) where T : UnityEngine.Object
         {
             try
             {
@@ -113,7 +118,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Load first asset of type from bundle
         /// </summary>
-        public static T LoadFirstAsset<T>(Il2CppAssetBundle bundle) where T : UnityEngine.Object
+        public static T? LoadFirstAsset<T>(Il2CppAssetBundle? bundle) where T : UnityEngine.Object
         {
             try
             {
@@ -144,7 +149,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Safely unload asset bundle
         /// </summary>
-        public static void UnloadBundle(Il2CppAssetBundle bundle, bool unloadAllLoadedObjects = false)
+        public static void UnloadBundle(Il2CppAssetBundle? bundle, bool unloadAllLoadedObjects = false)
         {
             try
             {
@@ -162,7 +167,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Log available embedded resources for debugging
         /// </summary>
-        public static void LogAvailableResources(Assembly assembly = null)
+        public static void LogAvailableResources(Assembly? assembly = null)
         {
             try
             {
@@ -184,7 +189,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Log contents of asset bundle for debugging
         /// </summary>
-        public static void LogBundleContents(Il2CppAssetBundle bundle)
+        public static void LogBundleContents(Il2CppAssetBundle? bundle)
         {
             try
             {
@@ -211,7 +216,7 @@ namespace BackSpeakerMod.Core.Common.Loaders
         /// <summary>
         /// Check if asset bundle contains specific asset
         /// </summary>
-        public static bool ContainsAsset(Il2CppAssetBundle bundle, string assetName)
+        public static bool ContainsAsset(Il2CppAssetBundle? bundle, string assetName)
         {
             try
             {

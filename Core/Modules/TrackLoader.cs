@@ -12,7 +12,7 @@ namespace BackSpeakerMod.Core.Modules
 {
     public class TrackLoader
     {
-        public Action<List<AudioClip>, List<(string title, string artist)>> OnTracksLoaded;
+        public Action<List<AudioClip>, List<(string title, string artist)>>? OnTracksLoaded;
 
         public void LoadJukeboxTracks()
         {

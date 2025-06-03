@@ -14,7 +14,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         /// <summary>
         /// Create and configure headphone instance at attachment point
         /// </summary>
-        public static GameObject CreateAndPositionHeadphones(GameObject prefab, Transform attachmentPoint, HeadphoneConfig config)
+        public static GameObject? CreateAndPositionHeadphones(GameObject prefab, Transform attachmentPoint, HeadphoneConfig config)
         {
             if (prefab == null || attachmentPoint == null)
             {

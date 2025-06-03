@@ -74,7 +74,7 @@ namespace BackSpeakerMod.Core
                 return false;
             }
             
-            // ColorBlock setup - EXACTLY like Drones
+            // ColorBlock setup -
             ColorBlock colorBlock = default(ColorBlock);
             colorBlock.normalColor = new Color(0.25f, 0.25f, 0.25f, 0.1f);
             colorBlock.highlightedColor = new Color(0.25f, 0.275f, 0.35f, 0.3f);
@@ -89,10 +89,10 @@ namespace BackSpeakerMod.Core
                 return false;
             }
             
-            // Clone the original ProductManagerApp as our app canvas - EXACTLY like Drones does
+            // Clone the original ProductManagerApp as our app canvas
             canvas = UnityEngine.Object.Instantiate<GameObject>(baseAppObj.gameObject, appsCanvas.transform);
             
-            // Get the App component like Drones does
+            // Get the App component
             app = canvas.GetComponent<App<ProductManagerApp>>();
             if (app != null)
                 this.app.AppName = AppLabel;
@@ -111,7 +111,7 @@ namespace BackSpeakerMod.Core
                 canvasComponent.overrideSorting = false; // Don't override phone's sorting
             }
 
-            // Get the last icon and modify it directly - EXACTLY like Drones does
+            // Get the last icon and modify it directly
             if (appIcons == null)
             {
                 UnityEngine.Object.DestroyImmediate(canvas);
@@ -147,48 +147,49 @@ namespace BackSpeakerMod.Core
                 return false;
             }
             
-            // --- Drones-style cleanup - EXACTLY like Drones ---
-            // Update topbar title - EXACTLY like Drones
+            // Update topbar title
             Transform transform = container.FindChild("Topbar").FindChild("Title");
             var txtHeading = transform.GetComponent<Text>();
             txtHeading.text = AppLabel;
+
+            // Add color to the topbar background
+            var topbarBackground = container.FindChild("Topbar").FindChild("Background");
+            topbarBackground.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.25f, 0.1f);
+
+            // Add color to the topbar text
+            var topbarText = container.FindChild("Topbar").FindChild("Title").GetComponent<Text>();
+            topbarText.color = new Color(1f, 1f, 1f, 1f);
             
-            // Hide instruction - EXACTLY like Drones  
-            Transform transform2 = container.FindChild("Details").FindChild("Instruction");
-            transform2.GetComponent<Text>().text = "Click a viewport to zoom in";
-            transform2.gameObject.SetActive(false);
-            
-            // Remove Scroll View and Details - EXACTLY like Drones
+            // Remove Scroll View and Details 
             container.FindChild("Scroll View").DetachChildren();
             UnityEngine.Object.Destroy(container.FindChild("Scroll View"));
             UnityEngine.Object.Destroy(container.FindChild("Details").gameObject);
                 
-            // Set up background - EXACTLY like Drones
+            // Set up background
             GameObject gameObject3 = container.FindChild("Background").gameObject;
             gameObject3.transform.SetAsFirstSibling();
             var imgBackground = gameObject3.GetComponent<Image>();
             imgBackground.color = new Color(0.1f, 0.1f, 0.1f, 1f); // Dark background
-            // --- End Drones-style cleanup ---
 
             var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
             backSpeakerScreenObj.transform.SetParent(container, false); // Attach to Container, not canvas directly
             var backSpeakerScreen = backSpeakerScreenObj.AddComponent<BackSpeakerMod.UI.BackSpeakerScreen>();
-            backSpeakerScreen.Setup(manager);
+            backSpeakerScreen.Setup(manager!);
             
-            // Activate the canvas like Drones does
+            // Activate the canvas
             canvas.active = true;
             return true;
         }
 
         private void OnHomeScreenBtnClick()
         {
-            // Use Drones pattern for proper navigation - EXACTLY like Drones
+            // Navigation handled by BackSpeakerScreen
             if (homeScreen != null) homeScreen.GetComponent<Canvas>().enabled = false;
             if (appsCanvas != null) appsCanvas.GetComponent<Canvas>().enabled = true;
-            if (canvas != null) canvas.active = true; // EXACTLY like Drones does
+            if (canvas != null) canvas.active = true;
         }
 
-        // Add Update method like Drones for proper app state tracking
+        // Add Update method
         public void Update()
         {
             if (app != null && canvas != null)
