@@ -2,6 +2,7 @@ using System.Reflection;
 using System.IO;
 using UnityEngine;
 using MelonLoader;
+using System;
 // using UnityEngine.ImageConversion;
 
 namespace BackSpeakerMod.Utils
@@ -11,12 +12,16 @@ namespace BackSpeakerMod.Utils
         public static Sprite LoadEmbeddedSprite(string resourceName)
         {
             var assembly = Assembly.GetExecutingAssembly();
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
+            if (assembly == null)
+            {
+                throw new Exception("Failed to get executing assembly");
+            }
+            using (var stream = assembly.GetManifestResourceStream(resourceName)!)
             {
                 if (stream == null)
                 {
                     // LoggerUtil.Error($"Resource {resourceName} not found!");
-                    return null;
+                    throw new Exception($"Resource {resourceName} not found!");
                 }
                 byte[] buffer = new byte[stream.Length];
                 stream.Read(buffer, 0, buffer.Length);

@@ -14,7 +14,6 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         private Il2CppScheduleOne.PlayerScripts.Player? currentPlayer = null;
         private GameObject? speakerObject = null;
         private AudioSource? audioSource = null;
-        private string lastStatus = "";
         
         // Static reference to current player (set by Harmony patch)
         public static Il2CppScheduleOne.PlayerScripts.Player? CurrentPlayerInstance = null;
@@ -45,6 +44,7 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// </summary>
         public void DetachSpeaker()
         {
+            LoggingSystem.Debug("Detaching speaker", "PlayerAttachment");
             CleanupSpeaker();
         }
 
@@ -77,34 +77,42 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
         /// <summary>
         /// Handle player lost event from PlayerManager
         /// </summary>
-        private void OnPlayerLost()
+        private void OnPlayerLost(Il2CppScheduleOne.PlayerScripts.Player player)
         {
-            CleanupSpeaker();
+            LoggingSystem.Debug("Player lost", "PlayerAttachment");
+            CleanupSpeaker(onPlayerLost: true);
         }
 
         /// <summary>
         /// Clean up speaker when player is lost
         /// </summary>
-        private void CleanupSpeaker()
+        private void CleanupSpeaker(bool onPlayerLost = false)
         {
+            LoggingSystem.Debug("Cleaning up speaker", "PlayerAttachment");
             try
             {
                 // Stop any playing audio first
                 if (audioSource != null && audioSource.isPlaying)
                 {
+                    LoggingSystem.Debug("Stopping audio", "PlayerAttachment");
                     audioSource.Stop();
                 }
                 
                 if (speakerObject != null)
                 {
+                    LoggingSystem.Debug("Destroying speaker object", "PlayerAttachment");
                     GameObject.Destroy(speakerObject);
                     speakerObject = null;
                 }
                 
                 audioSource = null;
-                currentPlayer = null;
+                if (onPlayerLost)
+                {
+                    currentPlayer = null;
+                }
                 
                 OnSpeakerDetached?.Invoke();
+                LoggingSystem.Debug("Speaker detached", "PlayerAttachment");
             }
             catch (Exception ex)
             {
@@ -142,7 +150,7 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
             }
             catch (Exception ex)
             {
-                // Silent attachment failure
+                LoggingSystem.Error($"Failed to attach speaker to player: {ex.Message}", "Audio");
             }
         }
 
@@ -158,7 +166,7 @@ namespace BackSpeakerMod.Core.Features.Player.Attachment
             }
         }
 
-        public AudioSource GetAudioSource() => audioSource;
-        public Il2CppScheduleOne.PlayerScripts.Player GetCurrentPlayer() => currentPlayer;
+        public AudioSource? GetAudioSource() => audioSource;
+        public Il2CppScheduleOne.PlayerScripts.Player? GetCurrentPlayer() => currentPlayer;
     }
 } 

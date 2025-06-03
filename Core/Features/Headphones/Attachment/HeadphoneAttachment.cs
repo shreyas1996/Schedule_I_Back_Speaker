@@ -14,16 +14,16 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
     {
         private readonly HeadphoneConfig config;
         private readonly HeadphoneState state;
-        private GameObject currentHeadphoneInstance;
-        private Il2CppScheduleOne.PlayerScripts.Player attachedPlayer;
+        private GameObject? currentHeadphoneInstance;
+        private Il2CppScheduleOne.PlayerScripts.Player? attachedPlayer;
         private bool isAttached;
         private float attachmentTime;
-        private HeadphoneState currentState;
+        private HeadphoneState? currentState;
 
         /// <summary>
         /// Initialize headphone attachment system
         /// </summary>
-        public HeadphoneAttachment(HeadphoneConfig headphoneConfig = null)
+        public HeadphoneAttachment(HeadphoneConfig? headphoneConfig = null)
         {
             config = headphoneConfig ?? new HeadphoneConfig();
             state = new HeadphoneState();
@@ -33,7 +33,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         /// <summary>
         /// Attach headphones to player's head
         /// </summary>
-        public bool AttachToPlayer(GameObject headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player player = null)
+        public bool AttachToPlayer(GameObject headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player? player = null)
         {
             if (!FeatureFlags.Headphones.Enabled)
             {
@@ -253,7 +253,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         /// <summary>
         /// Toggle headphones on/off
         /// </summary>
-        public bool ToggleAttachment(GameObject headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player player = null)
+        public bool ToggleAttachment(GameObject? headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player? player = null)
         {
             if (state.IsAttached)
             {
@@ -262,7 +262,12 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
             }
             else
             {
-                return AttachToPlayer(headphonePrefab, player);
+                // if (headphonePrefab == null)
+                // {
+                //     LoggingSystem.Error("Cannot attach headphones - prefab is null", "Headphones");
+                //     return false;
+                // }
+                return AttachToPlayer(headphonePrefab!, player);
             }
         }
 

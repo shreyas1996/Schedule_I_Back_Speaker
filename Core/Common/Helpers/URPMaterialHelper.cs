@@ -25,7 +25,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Create a URP/Lit material from configuration
         /// </summary>
-        public static Material CreateURPMaterial(URPMaterialConfig config)
+        public static Material? CreateURPMaterial(URPMaterialConfig config)
         {
             if (config == null)
             {
@@ -36,7 +36,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
             try
             {
                 // Find the best available shader
-                Shader urpShader = FindBestURPShader();
+                Shader? urpShader = FindBestURPShader();
                 if (urpShader == null)
                 {
                     LoggingSystem.Error("No suitable URP shader found", "MaterialHelper");
@@ -61,7 +61,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                     ValidateURPMaterial(material);
                 }
 
-                LoggingSystem.Info($"✓ Created URP material: {config.Name}", "MaterialHelper");
+                LoggingSystem.Debug($"✓ Created URP material: {config.Name}", "MaterialHelper");
                 return material;
             }
             catch (global::System.Exception ex)
@@ -74,7 +74,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Apply URP material configuration to an existing material
         /// </summary>
-        public static void ApplyURPMaterialConfig(Material material, URPMaterialConfig config)
+        public static void ApplyURPMaterialConfig(Material? material, URPMaterialConfig config)
         {
             if (material == null || config == null)
             {
@@ -96,27 +96,27 @@ namespace BackSpeakerMod.Core.Common.Helpers
                     baseColor.a = config.Alpha;
                 }
 
-                if (material.HasProperty("_BaseColor"))
+                if (material?.HasProperty("_BaseColor") ?? false)
                 {
                     material.SetColor("_BaseColor", baseColor);
                 }
-                else if (material.HasProperty("_Color"))
+                else if (material?.HasProperty("_Color") ?? false)
                 {
                     material.SetColor("_Color", baseColor);
                 }
 
                 // Metallic properties
-                if (material.HasProperty("_Metallic"))
+                if (material?.HasProperty("_Metallic") ?? false)
                 {
                     material.SetFloat("_Metallic", config.Metallic);
                 }
 
                 // Smoothness 
-                if (material.HasProperty("_Smoothness"))
+                if (material?.HasProperty("_Smoothness") ?? false)
                 {
                     material.SetFloat("_Smoothness", config.Smoothness);
                 }
-                else if (material.HasProperty("_Glossiness"))
+                else if (material?.HasProperty("_Glossiness") ?? false)
                 {
                     material.SetFloat("_Glossiness", config.Smoothness);
                 }
@@ -125,7 +125,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 ConfigureSurfaceType(material, config);
 
                 // Render Face (Cull Mode)
-                if (material.HasProperty("_Cull"))
+                if (material?.HasProperty("_Cull") ?? false)
                 {
                     material.SetFloat("_Cull", (float)config.CullMode);
                 }
@@ -147,63 +147,69 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Configure surface type (opaque vs transparent)
         /// </summary>
-        private static void ConfigureSurfaceType(Material material, URPMaterialConfig config)
+        private static void ConfigureSurfaceType(Material? material, URPMaterialConfig config)
         {
             try
             {
                 if (config.IsOpaque)
                 {
                     // Opaque surface
-                    if (material.HasProperty("_Surface"))
+                    if (material?.HasProperty("_Surface") ?? false)
                     {
                         material.SetFloat("_Surface", 0); // 0 = Opaque
                     }
                     
-                    if (material.HasProperty("_Mode"))
+                    if (material?.HasProperty("_Mode") ?? false)
                     {
                         material.SetFloat("_Mode", 0); // Standard opaque
                     }
 
                     // Set render queue
-                    material.renderQueue = (int)RenderQueue.Geometry;
+                    if (material != null)
+                    {
+                        material.renderQueue = (int)RenderQueue.Geometry;
+                        // Disable transparency keywords
+                        material.DisableKeyword("_ALPHATEST_ON");
+                        material.DisableKeyword("_ALPHABLEND_ON");
+                        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                    }
 
-                    // Disable transparency keywords
-                    material.DisableKeyword("_ALPHATEST_ON");
-                    material.DisableKeyword("_ALPHABLEND_ON");
-                    material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                 }
                 else
                 {
                     // Transparent surface
-                    if (material.HasProperty("_Surface"))
+                    if (material?.HasProperty("_Surface") ?? false)
                     {
                         material.SetFloat("_Surface", 1); // 1 = Transparent
                     }
                     
-                    if (material.HasProperty("_Mode"))
+                    if (material?.HasProperty("_Mode") ?? false)
                     {
                         material.SetFloat("_Mode", 2); // Transparent
                     }
 
                     // Configure blending for transparency
-                    if (material.HasProperty("_SrcBlend"))
+                    if (material?.HasProperty("_SrcBlend") ?? false)
                     {
                         material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
                     }
-                    if (material.HasProperty("_DstBlend"))
+                    if (material?.HasProperty("_DstBlend") ?? false)
                     {
                         material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
                     }
-                    if (material.HasProperty("_ZWrite"))
+                    if (material?.HasProperty("_ZWrite") ?? false)
                     {
                         material.SetFloat("_ZWrite", 0); // Disable Z-write for transparency
                     }
 
                     // Set render queue
-                    material.renderQueue = (int)RenderQueue.Transparent;
+                    if (material != null)
+                    {
+                        material.renderQueue = (int)RenderQueue.Transparent;
+                        // Enable transparency keyword
+                        material.EnableKeyword("_ALPHABLEND_ON");
+                    }
 
-                    // Enable transparency keyword
-                    material.EnableKeyword("_ALPHABLEND_ON");
                 }
 
                 if (FeatureFlags.Headphones.EnableMaterialDebugging)
@@ -220,7 +226,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Configure emission properties
         /// </summary>
-        private static void ConfigureEmission(Material material, URPMaterialConfig config)
+        private static void ConfigureEmission(Material? material, URPMaterialConfig config)
         {
             try
             {
@@ -229,7 +235,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 if (hasEmission)
                 {
                     // Enable emission
-                    if (material.HasProperty("_EmissionColor"))
+                    if (material?.HasProperty("_EmissionColor") ?? false)
                     {
                         var emissionColor = config.EmissionColor * config.EmissionIntensity;
                         material.SetColor("_EmissionColor", emissionColor);
@@ -247,7 +253,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 else
                 {
                     // Disable emission
-                    if (material.HasProperty("_EmissionColor"))
+                    if (material?.HasProperty("_EmissionColor") ?? false)
                     {
                         material.SetColor("_EmissionColor", Color.black);
                         material.DisableKeyword("_EMISSION");
@@ -269,7 +275,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Find the best available URP shader
         /// </summary>
-        private static Shader FindBestURPShader()
+        private static Shader? FindBestURPShader()
         {
             foreach (var shaderName in URPLitShaderNames)
             {
@@ -310,7 +316,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
 
             try
             {
-                LoggingSystem.Info($"Applying URP materials to {gameObject.name}", "MaterialHelper");
+                LoggingSystem.Debug($"Applying URP materials to {gameObject.name}", "MaterialHelper");
 
                 var renderers = gameObject.GetComponentsInChildren<Renderer>();
                 if (FeatureFlags.Headphones.EnableMaterialDebugging)
@@ -392,7 +398,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                     }
                 }
 
-                LoggingSystem.Info($"✓ Applied URP materials to {renderers.Length} renderers", "MaterialHelper");
+                LoggingSystem.Debug($"✓ Applied URP materials to {renderers.Length} renderers", "MaterialHelper");
             }
             catch (global::System.Exception ex)
             {
@@ -403,7 +409,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Validate that a material is properly configured for URP
         /// </summary>
-        public static bool ValidateURPMaterial(Material material)
+        public static bool ValidateURPMaterial(Material? material)
         {
             if (material == null) return false;
 
@@ -448,7 +454,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
         /// <summary>
         /// Log material properties for debugging
         /// </summary>
-        public static void LogMaterialProperties(Material material)
+        public static void LogMaterialProperties(Material? material)
         {
             if (material == null || !FeatureFlags.Headphones.EnableMaterialDebugging) return;
 
@@ -462,7 +468,7 @@ namespace BackSpeakerMod.Core.Common.Helpers
                 var commonProperties = new[] { "_BaseColor", "_Color", "_BaseMap", "_MainTex", "_Metallic", "_Smoothness", "_Cull", "_EmissionColor" };
                 foreach (var prop in commonProperties)
                 {
-                    if (material.HasProperty(prop))
+                    if (material?.HasProperty(prop) ?? false)
                     {
                         if (prop.Contains("Color"))
                         {

@@ -4,6 +4,7 @@ using Il2CppInterop.Runtime.Injection;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI;
+using BackSpeakerMod.Configuration;
 
 [assembly: MelonInfo(typeof(BackSpeakerMod.BackSpeakerModMain), "Back Speaker Mod", "1.0.0", "Shreyas")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -18,7 +19,18 @@ namespace BackSpeakerMod
 
         public override void OnInitializeMelon()
         {
+            // Initialize logging system first with build-specific settings
+            LoggingSystem.Initialize();
+            LoggingConfig.ApplyToLoggingSystem();
+            
             LoggingSystem.Info("Back Speaker Mod initialized!", "Mod");
+            LoggingSystem.Info($"Build Configuration: {LoggingSystem.GetBuildInfo()}", "Mod");
+            
+            // Show detailed config in debug builds
+#if DEBUG || VERBOSE_LOGGING
+            LoggingSystem.Info(LoggingConfig.GetConfigSummary(), "Mod");
+#endif
+            
             SpeakerManager = BackSpeakerManager.Instance;
         }
 
@@ -105,37 +117,12 @@ namespace BackSpeakerMod
                 LoggingSystem.Error($"✗ Failed to register HeadphoneControlPanel: {ex}", "Mod");
             }
             
-            // Sphere components excluded from compilation - focusing on headphones
-            /*
-            try
-            {
-                LoggingSystem.Info("Registering TestSphereRotator...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<Core.Features.Testing.Components.TestSphereRotator>();
-                LoggingSystem.Info("✓ TestSphereRotator registered successfully", "Mod");
-            }
-            catch (System.Exception ex)
-            {
-                LoggingSystem.Error($"✗ Failed to register TestSphereRotator: {ex}", "Mod");
-            }
-            
-            try
-            {
-                LoggingSystem.Info("Registering SphereRotator...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<Core.Features.Spheres.Components.SphereRotator>();
-                LoggingSystem.Info("✓ SphereRotator registered successfully", "Mod");
-            }
-            catch (System.Exception ex)
-            {
-                LoggingSystem.Error($"✗ Failed to register SphereRotator: {ex}", "Mod");
-            }
-            */
-            
             LoggingSystem.Info("Il2Cpp type registration completed", "Mod");
         }
 
         public override void OnUpdate()
         {
-            // Update app state tracking like Drones does
+            // Update app state tracking
             SpeakerApp?.Update();
             
             // Update music manager for auto-advance functionality

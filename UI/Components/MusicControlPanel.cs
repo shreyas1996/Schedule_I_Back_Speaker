@@ -225,6 +225,7 @@ namespace BackSpeakerMod.UI.Components
         private void OnStatusButtonClick()
         {
             string status = manager?.GetAttachmentStatus() ?? "Unknown";
+            LoggingSystem.Debug($"Status button clicked: {status}", "MusicControlPanel");
             
             if (status.Contains("Waiting for player"))
             {

@@ -10,19 +10,19 @@ namespace BackSpeakerMod.UI.Components.Playlist
     /// </summary>
     public class PlaylistSearch
     {
-        private InputField searchInput;
-        private Button clearSearchButton;
-        private string currentSearchQuery = "";
+        private InputField? searchInput;
+        private Button? clearSearchButton;
+        private string? currentSearchQuery = "";
 
         /// <summary>
         /// Event fired when search query changes
         /// </summary>
-        public event Action<string> OnSearchChanged;
+        public event Action<string>? OnSearchChanged;
 
         /// <summary>
         /// Current search query
         /// </summary>
-        public string CurrentQuery => currentSearchQuery;
+        public string? CurrentQuery => currentSearchQuery;
 
         /// <summary>
         /// Create search interface in parent container
@@ -93,7 +93,7 @@ namespace BackSpeakerMod.UI.Components.Playlist
             placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
             placeholderText.alignment = TextAnchor.MiddleLeft;
             
-            searchInput.placeholder = placeholderText;
+            searchInput!.placeholder = placeholderText;
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace BackSpeakerMod.UI.Components.Playlist
             inputText.color = new Color(1f, 1f, 1f, 1f);
             inputText.alignment = TextAnchor.MiddleLeft;
             
-            searchInput.textComponent = inputText;
+            searchInput!.textComponent = inputText;
         }
 
         /// <summary>
@@ -167,12 +167,9 @@ namespace BackSpeakerMod.UI.Components.Playlist
         /// </summary>
         private void ClearSearch()
         {
-            if (searchInput != null)
-            {
-                searchInput.text = "";
-                currentSearchQuery = "";
-                OnSearchChanged?.Invoke(currentSearchQuery);
-            }
+            searchInput!.text = "";
+            currentSearchQuery = "";
+            OnSearchChanged?.Invoke(currentSearchQuery);
         }
 
         /// <summary>

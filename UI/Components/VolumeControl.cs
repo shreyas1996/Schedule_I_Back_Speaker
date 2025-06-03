@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.UI.Helpers;
-using BackSpeakerMod.Utils;
+using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -40,9 +40,9 @@ namespace BackSpeakerMod.UI.Components
                 
                 // LoggerUtil.Info("VolumeControl: Modern Spotify-style setup completed");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"VolumeControl: Setup failed: {ex}");
+                LoggingSystem.Error($"VolumeControl: Setup failed: {ex}", "VolumeControl");
                 throw;
             }
         }
@@ -103,9 +103,9 @@ namespace BackSpeakerMod.UI.Components
                 
                 // LoggerUtil.Info("VolumeControl: Spotify styling applied to slider");
             }
-            catch (System.Exception _)
+            catch (System.Exception ex)
             {
-                // LoggerUtil.Error($"VolumeControl: Failed to apply Spotify styling: {ex}");
+                LoggingSystem.Error($"VolumeControl: Failed to apply Spotify styling: {ex}", "VolumeControl");
             }
         }
 

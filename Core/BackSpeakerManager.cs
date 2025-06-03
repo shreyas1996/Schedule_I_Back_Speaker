@@ -6,121 +6,109 @@ using BackSpeakerMod.Core.Modules;
 namespace BackSpeakerMod.Core
 {
     /// <summary>
-    /// Backward compatibility wrapper for BackSpeaker mod
-    /// Delegates all functionality to the new granular SystemCoordinator
+    /// Main BackSpeaker manager using the consolidated SystemManager
+    /// Provides a clean, simple API for all mod functionality
     /// </summary>
     public class BackSpeakerManager
     {
-        private static BackSpeakerManager _instance;
+        private static BackSpeakerManager? _instance;
         public static BackSpeakerManager Instance
         {
             get
             {
                 if (_instance == null)
+                {
                     _instance = new BackSpeakerManager();
+                }
                 return _instance;
             }
         }
         
-        private readonly SystemCoordinator coordinator;
+        private readonly SystemManager systemManager;
 
         /// <summary>
         /// Event to notify UI when tracks are reloaded
         /// </summary>
-        public Action OnTracksReloaded
+        public Action? OnTracksReloaded
         {
-            get => coordinator.OnTracksReloaded;
-            set => coordinator.OnTracksReloaded = value;
+            get => systemManager.OnTracksReloaded;
+            set => systemManager.OnTracksReloaded = value;
         }
 
         /// <summary>
-        /// Initialize BackSpeaker manager using new granular architecture
+        /// Initialize BackSpeaker manager using consolidated SystemManager
         /// </summary>
         public BackSpeakerManager()
         {
-            LoggingSystem.Info("BackSpeakerManager: Initializing with SystemCoordinator", "Core");
-            coordinator = new SystemCoordinator();
+            LoggingSystem.Info("BackSpeakerManager: Initializing with SystemManager", "Core");
+            systemManager = new SystemManager();
+            systemManager.Initialize();
         }
 
         /// <summary>
         /// Update all systems
         /// </summary>
-        public void Update() => coordinator.Update();
+        public void Update() => systemManager.Update();
 
         // Public API - Audio Control
-        public void Play() => coordinator.Play();
-        public void Pause() => coordinator.Pause();
-        public void TogglePlayPause() => coordinator.TogglePlayPause();
-        public void SetVolume(float volume) => coordinator.SetVolume(volume);
-        public void NextTrack() => coordinator.NextTrack();
-        public void PreviousTrack() => coordinator.PreviousTrack();
-        public void PlayTrack(int index) => coordinator.PlayTrack(index);
-        public void SeekToTime(float time) => coordinator.SeekToTime(time);
-        public void SeekToProgress(float progress) => coordinator.SeekToProgress(progress);
-        public void ReloadTracks() => coordinator.ReloadTracks();
+        public void Play() => systemManager.Play();
+        public void Pause() => systemManager.Pause();
+        public void TogglePlayPause() => systemManager.TogglePlayPause();
+        public void SetVolume(float volume) => systemManager.SetVolume(volume);
+        public void NextTrack() => systemManager.NextTrack();
+        public void PreviousTrack() => systemManager.PreviousTrack();
+        public void PlayTrack(int index) => systemManager.PlayTrack(index);
+        public void SeekToTime(float time) => systemManager.SeekToTime(time);
+        public void SeekToProgress(float progress) => systemManager.SeekToProgress(progress);
+        public void ReloadTracks() => systemManager.ReloadTracks();
 
         // Public API - Audio Properties
-        public bool IsPlaying => coordinator.IsPlaying;
-        public float CurrentVolume => coordinator.CurrentVolume;
-        public int GetTrackCount() => coordinator.GetTrackCount();
-        public bool IsAudioReady() => coordinator.IsAudioReady();
-        public float CurrentTime => coordinator.CurrentTime;
-        public float TotalTime => coordinator.TotalTime;
-        public float Progress => coordinator.Progress;
-        public int CurrentTrackIndex => coordinator.CurrentTrackIndex;
-        public string GetCurrentTrackInfo() => coordinator.GetCurrentTrackInfo();
-        public string GetCurrentArtistInfo() => coordinator.GetCurrentArtistInfo();
-        public List<(string title, string artist)> GetAllTracks() => coordinator.GetAllTracks();
+        public bool IsPlaying => systemManager.IsPlaying;
+        public float CurrentVolume => systemManager.CurrentVolume;
+        public int GetTrackCount() => systemManager.GetTrackCount();
+        public bool IsAudioReady() => systemManager.IsAudioReady();
+        public float CurrentTime => systemManager.CurrentTime;
+        public float TotalTime => systemManager.TotalTime;
+        public float Progress => systemManager.Progress;
+        public int CurrentTrackIndex => systemManager.CurrentTrackIndex;
+        public string GetCurrentTrackInfo() => systemManager.GetCurrentTrackInfo();
+        public string GetCurrentArtistInfo() => systemManager.GetCurrentArtistInfo();
+        public List<(string title, string artist)> GetAllTracks() => systemManager.GetAllTracks();
 
         public RepeatMode RepeatMode
         {
-            get => coordinator.RepeatMode;
-            set => coordinator.RepeatMode = value;
+            get => systemManager.RepeatMode;
+            set => systemManager.RepeatMode = value;
         }
 
         // Public API - Player Attachment
-        public void TriggerManualAttachment() => coordinator.TriggerManualAttachment();
-        public string GetAttachmentStatus() => coordinator.GetAttachmentStatus();
+        public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();
+        public string GetAttachmentStatus() => systemManager.GetAttachmentStatus();
 
         // Public API - Headphones
-        public bool AttachHeadphones() => coordinator.AttachHeadphones();
-        public void RemoveHeadphones() => coordinator.RemoveHeadphones();
-        public bool ToggleHeadphones() => coordinator.ToggleHeadphones();
-        public bool AreHeadphonesAttached() => coordinator.AreHeadphonesAttached();
-        public string GetHeadphoneStatus() => coordinator.GetHeadphoneStatus();
+        public bool AttachHeadphones() => systemManager.AttachHeadphones();
+        public void RemoveHeadphones() => systemManager.RemoveHeadphones();
+        public bool ToggleHeadphones() => systemManager.ToggleHeadphones();
+        public bool AreHeadphonesAttached() => systemManager.AreHeadphonesAttached();
+        public string GetHeadphoneStatus() => systemManager.GetHeadphoneStatus();
 
-        // Public API - Spheres
-        public bool AttachSphere() => coordinator.AttachSphere();
-        public bool DetachSphere() => coordinator.DetachSphere();
-        public bool ToggleSphere() => coordinator.ToggleSphere();
-        public bool IsSphereAttached() => coordinator.IsSphereAttached();
-        public string GetSphereStatus() => coordinator.GetSphereStatus();
+        // Public API - Configuration
+        public T? GetSetting<T>(string key, T? defaultValue = default(T)) => systemManager.GetSetting(key, defaultValue);
+        public void SetSetting<T>(string key, T value) => systemManager.SetSetting(key, value);
 
-        // Public API - Testing
-        public bool AttachTestCube() => coordinator.AttachTestCube();
-        public bool AttachGlowingSphere() => coordinator.AttachGlowingSphere();
-        public bool ToggleGlowingSphere() => coordinator.ToggleGlowingSphere();
-        public bool ToggleTestCube() => coordinator.ToggleTestCube();
-        public void DestroyAllTestObjects() => coordinator.DestroyAllTestObjects();
-        public string GetTestingStatus() => coordinator.GetTestingStatus();
-
-        // Public API - Placement
-        public void TogglePlacementMode() => coordinator.TogglePlacementMode();
-        public void ToggleSpherePlacementMode() => coordinator.ToggleSpherePlacementMode();
-        public bool IsInPlacementMode() => coordinator.IsInPlacementMode();
-        public string GetPlacementStatus() => coordinator.GetPlacementStatus();
-        
         /// <summary>
         /// Get overall system status
         /// </summary>
-        public string GetSystemStatus() => coordinator.GetSystemStatus();
+        public string GetSystemStatus() => systemManager.GetSystemStatus();
+        
+        /// <summary>
+        /// Whether system is initialized
+        /// </summary>
+        public bool IsInitialized => systemManager.IsInitialized;
         
         /// <summary>
         /// Shutdown all systems
         /// </summary>
-        public void Shutdown() => coordinator.Shutdown();
-
-        // Remove sphere-specific API - focusing on headphones
-        // public Core.Features.Spheres.Managers.SphereManager? GetSphereManager() => coordinator.GetSphereManager();
+        public void Shutdown() => systemManager.Shutdown();
     }
 }

@@ -26,7 +26,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Initialize headphone manager
         /// </summary>
-        public HeadphoneManager(HeadphoneConfig headphoneConfig = null)
+        public HeadphoneManager(HeadphoneConfig? headphoneConfig = null)
         {
             config = headphoneConfig ?? new HeadphoneConfig();
             loader = new HeadphoneAssetLoader(config);
@@ -79,6 +79,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             }
             catch (Exception ex)
             {
+                LoggingSystem.Error($"HeadphoneManager: Initialize failed: {ex}", "HeadphoneManager");
                 return false;
             }
         }
@@ -86,7 +87,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Attach headphones to player
         /// </summary>
-        public bool AttachHeadphones(Il2CppScheduleOne.PlayerScripts.Player player = null)
+        public bool AttachHeadphones(Il2CppScheduleOne.PlayerScripts.Player? player = null)
         {
             if (!isInitialized)
             {
@@ -98,7 +99,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
                 return false;
             }
 
-            bool success = attachment.AttachToPlayer(loader.HeadphonePrefab, player);
+            bool success = attachment.AttachToPlayer(loader.HeadphonePrefab!, player);
             
             if (success && playerAttachment != null)
             {
@@ -111,20 +112,20 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Remove headphones from player
         /// </summary>
-        public void RemoveHeadphones()
+        public bool RemoveHeadphones()
         {
             attachment.DetachFromPlayer();
+            return true;
         }
 
         /// <summary>
         /// Toggle headphones on/off
         /// </summary>
-        public bool ToggleHeadphones(Il2CppScheduleOne.PlayerScripts.Player player = null)
+        public bool ToggleHeadphones(Il2CppScheduleOne.PlayerScripts.Player? player = null)
         {
             if (attachment.IsAttached)
             {
-                RemoveHeadphones();
-                return false;
+                return RemoveHeadphones();
             }
             return AttachHeadphones(player);
         }
@@ -174,7 +175,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Player ready event handler
         /// </summary>
-        private void OnPlayerReady(Il2CppScheduleOne.PlayerScripts.Player player)
+        private void OnPlayerReady(Il2CppScheduleOne.PlayerScripts.Player? player)
         {
             if (config.AutoAttachOnSpawn && isInitialized && loader.IsLoaded)
             {
@@ -185,7 +186,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Player lost event handler
         /// </summary>
-        private void OnPlayerLost()
+        private void OnPlayerLost(Il2CppScheduleOne.PlayerScripts.Player? player)
         {
             attachment.DetachFromPlayer();
         }

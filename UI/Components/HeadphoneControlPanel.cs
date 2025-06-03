@@ -99,10 +99,14 @@ namespace BackSpeakerMod.UI.Components
 
         private void OnToggleClicked()
         {
+            LoggingSystem.Debug("Toggle headphones clicked", "HeadphoneControlPanel");
             if (manager != null)
             {
+                LoggingSystem.Debug("Manager is not null", "HeadphoneControlPanel");
                 bool wasAttached = manager.AreHeadphonesAttached();
+                LoggingSystem.Debug("Was attached: " + wasAttached, "HeadphoneControlPanel");
                 bool success = manager.ToggleHeadphones();
+                LoggingSystem.Debug("Success: " + success, "HeadphoneControlPanel");
                 
                 if (success)
                 {

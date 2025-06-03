@@ -5,7 +5,6 @@ using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI.Components;
 using BackSpeakerMod.UI.Helpers;
-using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.UI
 {
@@ -32,7 +31,7 @@ namespace BackSpeakerMod.UI
         // IL2CPP compatibility - explicit parameterless constructor
         public BackSpeakerScreen() : base() { }
 
-        public void Setup(BackSpeakerManager manager)
+        public void Setup(BackSpeakerManager? manager)
         {
             try
             {
@@ -111,30 +110,30 @@ namespace BackSpeakerMod.UI
         {
             // Setup display panel (album art, track info) - top section
             displayPanel = gameObject.AddComponent<DisplayPanel>();
-            displayPanel.Setup(manager, controlsContainer);
+            displayPanel.Setup(manager!, controlsContainer!);
             
             // Setup progress bar - below display, proper spacing
             progressBar = gameObject.AddComponent<ProgressBar>();
-            progressBar.Setup(manager, controlsContainer);
+            progressBar.Setup(manager!, controlsContainer!);
             
             // Setup music controls - below progress bar, proper spacing  
             musicControlPanel = gameObject.AddComponent<MusicControlPanel>();
-            musicControlPanel.Setup(manager, controlsContainer);
+            musicControlPanel.Setup(manager!, controlsContainer!);
             
             // Setup volume control - below music controls, proper spacing
             volumeControl = gameObject.AddComponent<VolumeControl>();
-            volumeControl.Setup(manager, controlsContainer);
+            volumeControl.Setup(manager!, controlsContainer!);
             
             // Setup headphone control panel - below volume control with extra spacing
             headphoneControlPanel = gameObject.AddComponent<HeadphoneControlPanel>();
-            headphoneControlPanel.Setup(manager, controlsContainer);
+            headphoneControlPanel.Setup(manager!, controlsContainer!);
             
             // Setup playlist panel - uses the parent container for full screen management
             playlistPanel = gameObject.AddComponent<PlaylistPanel>();
-            playlistPanel.Setup(manager, parentContainer, this);
+            playlistPanel.Setup(manager!, parentContainer!, this);
             
             // Create playlist toggle button in the controls container so it shifts with other controls
-            playlistPanel.CreateToggleButton(controlsContainer);
+            playlistPanel.CreateToggleButton(controlsContainer!);
         }
 
         public void OnPlaylistToggle(bool isOpen)
