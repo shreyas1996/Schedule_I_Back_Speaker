@@ -146,7 +146,9 @@ namespace BackSpeakerMod.Core.System
                 audioManager?.Initialize(audioSource);
                 if (Features.AutoLoadTracks)
                 {
-                    audioManager?.LoadTracks();
+                    // Load default session (Jukebox) to ensure immediate music availability
+                    // Other sessions will load on-demand when users switch tabs
+                    audioManager?.LoadDefaultSession();
                 }
             }
             OnSpeakerAttached?.Invoke(audioSource);
@@ -265,6 +267,103 @@ namespace BackSpeakerMod.Core.System
 
         #endregion
 
+        #region Music Source Management
+
+        public void SetMusicSource(MusicSourceType sourceType)
+        {
+            try
+            {
+                audioManager?.SetActiveSession(sourceType);
+                LoggingSystem.Info($"Active session changed to: {sourceType}", "SystemManager");
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to set active session to {sourceType}: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public MusicSourceType GetCurrentMusicSource()
+        {
+            try
+            {
+                return audioManager?.GetCurrentMusicSource() ?? MusicSourceType.Jukebox;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to get current music source: {ex.Message}", "SystemManager");
+                return MusicSourceType.Jukebox;
+            }
+        }
+
+        public List<(MusicSourceType type, string name, bool available)> GetAvailableMusicSources()
+        {
+            try
+            {
+                // Return available music sources
+                return new List<(MusicSourceType, string, bool)>
+                {
+                    (MusicSourceType.Jukebox, "In-Game Jukebox", true),
+                    (MusicSourceType.LocalFolder, "Local Music", true),
+                    (MusicSourceType.YouTube, "YouTube Music", true)
+                };
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to get available music sources: {ex.Message}", "SystemManager");
+                return new List<(MusicSourceType, string, bool)>();
+            }
+        }
+
+        public void LoadTracksFromCurrentSource()
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    var activeSession = sessionManager.GetActiveSession();
+                    sessionManager.LoadTracksForSession(activeSession.SourceType);
+                    LoggingSystem.Info($"Loading tracks for active session: {activeSession.DisplayName}", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load tracks from current source: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public void ForceLoadFromSource(MusicSourceType sourceType)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    // First set the active session to match the source type
+                    sessionManager.SetActiveSession(sourceType);
+                    
+                    // Then force load tracks from that source (bypassing availability checks)
+                    sessionManager.ForceLoadTracksForSession(sourceType);
+                    
+                    LoggingSystem.Info($"Force loading tracks from source: {sourceType}", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to force load tracks from source {sourceType}: {ex.Message}", "SystemManager");
+            }
+        }
+
+        #endregion
+
         #region Headphone API
 
         public bool AttachHeadphones()
@@ -275,7 +374,8 @@ namespace BackSpeakerMod.Core.System
                 playerAttachment?.TriggerManualAttachment();
                 if (Features.AutoLoadTracks)
                 {
-                    audioManager?.LoadTracks();
+                    // Load default session (Jukebox) to ensure immediate music availability
+                    audioManager?.LoadDefaultSession();
                 }
             }
             return success;
@@ -328,7 +428,8 @@ namespace BackSpeakerMod.Core.System
                     playerAttachment?.TriggerManualAttachment();
                     if (Features.AutoLoadTracks)
                     {
-                        audioManager?.LoadTracks();
+                        // Load default session (Jukebox) to ensure immediate music availability
+                        audioManager?.LoadDefaultSession();
                     }
                 }
                 else if (!nowAttached && wasAttached)

@@ -10,12 +10,11 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
 {
     /// <summary>
     /// High-level manager for audio functionality
-    /// Orchestrates audio controller and track loading
+    /// Now uses AudioSessionManager for individualized tab sessions
     /// </summary>
     public class AudioManager
     {
-        private readonly AudioController audioController;
-        private readonly TrackLoader trackLoader;
+        private readonly AudioSessionManager sessionManager;
         private bool isInitialized = false;
         
         /// <summary>
@@ -24,18 +23,16 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         public event Action? OnTracksReloaded;
 
         /// <summary>
-        /// Initialize audio manager
+        /// Initialize audio manager with session-based approach
         /// </summary>
         public AudioManager()
         {
-            audioController = new AudioController();
-            trackLoader = new TrackLoader();
+            sessionManager = new AudioSessionManager();
             
             // Wire up events
-            trackLoader.OnTracksLoaded += OnTracksLoaded;
-            audioController.OnTracksChanged += () => OnTracksReloaded?.Invoke();
+            sessionManager.OnTracksReloaded += () => OnTracksReloaded?.Invoke();
             
-            LoggingSystem.Info("AudioManager initialized", "Audio");
+            LoggingSystem.Info("AudioManager initialized with session management", "Audio");
         }
 
         /// <summary>
@@ -49,15 +46,18 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
                 return false;
             }
 
-            LoggingSystem.Info("Initializing audio system", "Audio");
+            LoggingSystem.Info("Initializing audio system with sessions", "Audio");
 
             try
             {
-                audioController.Initialize(audioSource);
-                isInitialized = true;
+                isInitialized = sessionManager.Initialize(audioSource);
                 
-                LoggingSystem.Info("Audio system initialized successfully", "Audio");
-                return true;
+                if (isInitialized)
+                {
+                    LoggingSystem.Info("Audio system with sessions initialized successfully", "Audio");
+                }
+                
+                return isInitialized;
             }
             catch (Exception ex)
             {
@@ -71,12 +71,12 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         /// </summary>
         public void Reset()
         {
-            audioController?.Reset();
+            sessionManager?.Reset();
             isInitialized = false;
         }
 
         /// <summary>
-        /// Load tracks from jukebox
+        /// Load tracks for current active session
         /// </summary>
         public void LoadTracks()
         {
@@ -86,8 +86,25 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
                 return;
             }
 
-            LoggingSystem.Info("Loading tracks", "Audio");
-            trackLoader.LoadJukeboxTracks();
+            var activeSession = sessionManager.GetActiveSession();
+            LoggingSystem.Info($"Loading tracks for active session: {activeSession.DisplayName}", "Audio");
+            sessionManager.LoadTracksForSession(activeSession.SourceType);
+        }
+
+        /// <summary>
+        /// Load tracks for the default session (Jukebox) when system initializes
+        /// This ensures users have music available immediately when headphones are attached
+        /// </summary>
+        public void LoadDefaultSession()
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("Audio system not initialized", "Audio");
+                return;
+            }
+
+            LoggingSystem.Info("Loading default session (Jukebox) for immediate music availability", "Audio");
+            sessionManager.LoadTracksForSession(MusicSourceType.Jukebox);
         }
 
         /// <summary>
@@ -100,7 +117,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
 
             try
             {
-                audioController.Update();
+                sessionManager.Update();
             }
             catch (Exception ex)
             {
@@ -108,45 +125,41 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             }
         }
 
-        /// <summary>
-        /// Handle tracks loaded event
-        /// </summary>
-        private void OnTracksLoaded(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
-        {
-            audioController.SetTracks(tracks, trackInfo);
-            LoggingSystem.Info($"Audio manager loaded {tracks.Count} tracks", "Audio");
-        }
+        // Audio Control API - delegates to session manager
+        public void Play() => sessionManager?.Play();
+        public void Pause() => sessionManager?.Pause();
+        public void TogglePlayPause() => sessionManager?.TogglePlayPause();
+        public void SetVolume(float volume) => sessionManager?.SetVolume(volume);
+        public void NextTrack() => sessionManager?.NextTrack();
+        public void PreviousTrack() => sessionManager?.PreviousTrack();
+        public void PlayTrack(int index) => sessionManager?.PlayTrack(sessionManager.GetActiveSession().SourceType, index);
+        public void SeekToTime(float time) => sessionManager?.SeekToTime(time);
+        public void SeekToProgress(float progress) => sessionManager?.SeekToProgress(progress);
 
-        // Audio Control API
-        public void Play() => audioController?.Play();
-        public void Pause() => audioController?.Pause();
-        public void TogglePlayPause() => audioController?.TogglePlayPause();
-        public void SetVolume(float volume) => audioController?.SetVolume(volume);
-        public void NextTrack() => audioController?.NextTrack();
-        public void PreviousTrack() => audioController?.PreviousTrack();
-        public void PlayTrack(int index) => audioController?.PlayTrack(index);
-        public void SeekToTime(float time) => audioController?.SeekToTime(time);
-        public void SeekToProgress(float progress) => audioController?.SeekToProgress(progress);
-
-        // Audio State Properties
-        public bool IsPlaying => audioController?.IsPlaying ?? false;
-        public float CurrentVolume => audioController?.CurrentVolume ?? 0.5f;
-        public int GetTrackCount() => audioController?.GetTrackCount() ?? 0;
-        public float CurrentTime => audioController?.CurrentTime ?? 0f;
-        public float TotalTime => audioController?.TotalTime ?? 0f;
-        public float Progress => audioController?.Progress ?? 0f;
-        public int CurrentTrackIndex => audioController?.CurrentTrackIndex ?? 0;
-        public bool IsAudioReady() => audioController?.IsAudioReady() ?? false;
+        // Audio State Properties - delegates to session manager
+        public bool IsPlaying => sessionManager?.IsPlaying ?? false;
+        public float CurrentVolume => sessionManager?.CurrentVolume ?? 0.5f;
+        public int GetTrackCount() => sessionManager?.GetTrackCount() ?? 0;
+        public float CurrentTime => sessionManager?.CurrentTime ?? 0f;
+        public float TotalTime => sessionManager?.TotalTime ?? 0f;
+        public float Progress => sessionManager?.Progress ?? 0f;
+        public int CurrentTrackIndex => sessionManager?.CurrentTrackIndex ?? 0;
+        public bool IsAudioReady() => sessionManager?.IsAudioReady() ?? false;
         
         public RepeatMode RepeatMode 
         { 
-            get => audioController?.RepeatMode ?? RepeatMode.None;
-            set { if (audioController != null) audioController.RepeatMode = value; }
+            get => sessionManager?.RepeatMode ?? RepeatMode.None;
+            set { if (sessionManager != null) sessionManager.RepeatMode = value; }
         }
 
-        public string GetCurrentTrackInfo() => audioController?.GetCurrentTrackInfo() ?? "No Track";
-        public string GetCurrentArtistInfo() => audioController?.GetCurrentArtistInfo() ?? "Unknown Artist";
-        public List<(string title, string artist)> GetAllTracks() => audioController?.GetAllTracks() ?? new List<(string, string)>();
+        public string GetCurrentTrackInfo() => sessionManager?.GetCurrentTrackInfo() ?? "No Track";
+        public string GetCurrentArtistInfo() => sessionManager?.GetCurrentArtistInfo() ?? "Unknown Artist";
+        public List<(string title, string artist)> GetAllTracks() => sessionManager?.GetAllTracks() ?? new List<(string, string)>();
+
+        // Session Management API
+        public void SetActiveSession(MusicSourceType sessionType) => sessionManager?.SetActiveSession(sessionType);
+        public void LoadTracksForSession(MusicSourceType sessionType) => sessionManager?.LoadTracksForSession(sessionType);
+        public MusicSourceType GetCurrentMusicSource() => sessionManager?.GetCurrentMusicSource() ?? MusicSourceType.Jukebox;
 
         /// <summary>
         /// Get system status
@@ -159,13 +172,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             if (!isInitialized)
                 return "Audio system not initialized";
                 
-            var trackCount = GetTrackCount();
-            if (trackCount == 0)
-                return "No tracks loaded";
-                
-            var currentTrack = GetCurrentTrackInfo();
-            var status = IsPlaying ? "Playing" : "Paused";
-            return $"{status}: {currentTrack} ({CurrentTrackIndex + 1}/{trackCount})";
+            return sessionManager?.GetStatus() ?? "Session manager not available";
         }
 
         /// <summary>
@@ -177,13 +184,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             
             try
             {
-                // Pause any playing audio
-                Pause();
-                
-                // Unsubscribe from events
-                if (trackLoader != null)
-                    trackLoader.OnTracksLoaded -= OnTracksLoaded;
-                
+                sessionManager?.Shutdown();
                 isInitialized = false;
                 LoggingSystem.Info("Audio manager shutdown completed", "Audio");
             }
@@ -194,13 +195,8 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         }
 
         /// <summary>
-        /// Get audio controller for direct access (if needed)
+        /// Get session manager for direct access (if needed)
         /// </summary>
-        public AudioController GetAudioController() => audioController;
-
-        /// <summary>
-        /// Get track loader for direct access (if needed)
-        /// </summary>
-        public TrackLoader GetTrackLoader() => trackLoader;
+        public AudioSessionManager GetSessionManager() => sessionManager;
     }
 } 
