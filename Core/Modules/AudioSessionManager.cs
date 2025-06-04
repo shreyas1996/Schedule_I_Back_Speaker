@@ -68,7 +68,7 @@ namespace BackSpeakerMod.Core.Modules
         
         /// <summary>
         /// Set which session is currently being viewed in the UI
-        /// This should NOT affect currently playing music settings
+        /// This should stop current playback from other sessions when switching tabs
         /// </summary>
         public void SetActiveSession(MusicSourceType sessionType)
         {
@@ -76,9 +76,18 @@ namespace BackSpeakerMod.Core.Modules
             
             LoggingSystem.Info($"Switching UI view from {currentActiveSession} to {sessionType}", "AudioSessionManager");
             
-            // REMOVED: Don't save/apply settings when just switching UI tabs
-            // The currently playing music should keep using its original session's settings
-            // Only apply settings when actually starting playback from a session
+            // STOP CURRENT PLAYBACK when switching tabs
+            if (globalPlayingSession.HasValue && globalPlayingSession != sessionType)
+            {
+                LoggingSystem.Debug($"Stopping playback from {globalPlayingSession} session due to tab switch", "AudioSessionManager");
+                var previousSession = sessions[globalPlayingSession.Value];
+                if (audioController.IsPlaying)
+                {
+                    previousSession.Pause(audioController.CurrentTime);
+                    audioController.Pause();
+                }
+                globalPlayingSession = null; // Clear the playing session
+            }
             
             currentActiveSession = sessionType;
             
@@ -278,13 +287,27 @@ namespace BackSpeakerMod.Core.Modules
         public float CurrentVolume => GetActiveSession().Volume;
         public bool IsAudioReady() => audioController.IsAudioReady();
         
-        // Audio control methods
+        // Audio control methods - now session-specific
         public void Play()
         {
+            // If there's a global playing session, resume it
             if (globalPlayingSession.HasValue)
             {
                 audioController.Play();
                 sessions[globalPlayingSession.Value].Resume();
+            }
+            // Otherwise, try to start playing from the active session if it has tracks
+            else
+            {
+                var activeSession = GetActiveSession();
+                if (activeSession.HasTracks)
+                {
+                    PlayTrack(currentActiveSession, activeSession.CurrentTrackIndex);
+                }
+                else
+                {
+                    LoggingSystem.Warning($"Cannot play - {activeSession.DisplayName} has no tracks", "AudioSessionManager");
+                }
             }
         }
         
@@ -307,6 +330,7 @@ namespace BackSpeakerMod.Core.Modules
         
         public void NextTrack()
         {
+            // Only work on the currently playing session
             if (globalPlayingSession.HasValue)
             {
                 var session = sessions[globalPlayingSession.Value];
@@ -315,16 +339,45 @@ namespace BackSpeakerMod.Core.Modules
                     PlayTrack(globalPlayingSession.Value, session.CurrentTrackIndex);
                 }
             }
+            // If nothing is playing, but the active session has tracks, start from there
+            else
+            {
+                var activeSession = GetActiveSession();
+                if (activeSession.HasTracks)
+                {
+                    activeSession.NextTrack();
+                    PlayTrack(currentActiveSession, activeSession.CurrentTrackIndex);
+                }
+                else
+                {
+                    LoggingSystem.Warning($"Cannot go to next track - {activeSession.DisplayName} has no tracks", "AudioSessionManager");
+                }
+            }
         }
         
         public void PreviousTrack()
         {
+            // Only work on the currently playing session
             if (globalPlayingSession.HasValue)
             {
                 var session = sessions[globalPlayingSession.Value];
                 if (session.PreviousTrack())
                 {
                     PlayTrack(globalPlayingSession.Value, session.CurrentTrackIndex);
+                }
+            }
+            // If nothing is playing, but the active session has tracks, start from there
+            else
+            {
+                var activeSession = GetActiveSession();
+                if (activeSession.HasTracks)
+                {
+                    activeSession.PreviousTrack();
+                    PlayTrack(currentActiveSession, activeSession.CurrentTrackIndex);
+                }
+                else
+                {
+                    LoggingSystem.Warning($"Cannot go to previous track - {activeSession.DisplayName} has no tracks", "AudioSessionManager");
                 }
             }
         }

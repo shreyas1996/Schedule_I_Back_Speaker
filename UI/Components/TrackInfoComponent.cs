@@ -45,15 +45,15 @@ namespace BackSpeakerMod.UI.Components
             
             var artRect = albumArtContainer.AddComponent<RectTransform>();
             // Position album art in left portion, properly constrained
-            artRect.anchorMin = new Vector2(0.05f, 0.1f);  // 5% from left, 10% from bottom
-            artRect.anchorMax = new Vector2(0.35f, 0.9f);  // 35% from left, 90% from bottom
+            artRect.anchorMin = new Vector2(0.05f, 0.05f);  // 5% from left, 5% from bottom
+            artRect.anchorMax = new Vector2(0.35f, 0.85f);  // 35% from left, 85% from bottom
             artRect.offsetMin = Vector2.zero;
             artRect.offsetMax = Vector2.zero;
             artRect.anchoredPosition = Vector2.zero;
             
             // Album art background
             var background = albumArtContainer.AddComponent<Image>();
-            background.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+            background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
             
             // Album art image
             albumArt = albumArtContainer.AddComponent<Image>();
@@ -90,19 +90,19 @@ namespace BackSpeakerMod.UI.Components
             
             var detailsRect = detailsContainer.AddComponent<RectTransform>();
             // Position track details to the right of album art
-            detailsRect.anchorMin = new Vector2(0.4f, 0.1f);   // Start after album art
-            detailsRect.anchorMax = new Vector2(0.95f, 0.9f);  // Almost full width, proper height
+            detailsRect.anchorMin = new Vector2(0.4f, 0.05f);   // Start after album art
+            detailsRect.anchorMax = new Vector2(0.95f, 0.85f);  // Almost full width, proper height
             detailsRect.offsetMin = Vector2.zero;
             detailsRect.offsetMax = Vector2.zero;
             detailsRect.anchoredPosition = Vector2.zero;
             
             // Create text lines with relative positioning
-            float lineSpacing = 0.2f; // 20% of container height per line
-            float startY = 0.8f;      // Start near top
+            float lineSpacing = 0.18f; // 20% of container height per line
+            float startY = 0.9f;      // Start near top
             
             // 🎵 Now Playing: "Track Name"
             nowPlayingText = CreateTextLine(detailsContainer, "NowPlaying", 
-                "🎵 No Track Selected", startY, 14, FontStyle.Bold);
+                "🎵 No Track Selected", startY, 15, FontStyle.Bold);
             
             // 🎤 Artist: "Artist Name"
             artistText = CreateTextLine(detailsContainer, "Artist", 
@@ -110,11 +110,11 @@ namespace BackSpeakerMod.UI.Components
             
             // 💿 Album: "Album Name"
             albumText = CreateTextLine(detailsContainer, "Album", 
-                "💿 Album: Unknown", startY - (lineSpacing * 2), 12, FontStyle.Normal);
+                "💿 Album: Unknown", startY - (lineSpacing * 2), 11, FontStyle.Normal);
             
             // 📊 Source: "Music Source"
             sourceText = CreateTextLine(detailsContainer, "Source", 
-                "📊 Source: None", startY - (lineSpacing * 3), 12, FontStyle.Normal);
+                "📊 Source: None", startY - (lineSpacing * 3), 11, FontStyle.Normal);
         }
         
         private Text CreateTextLine(GameObject parent, string name, string text, float yPercent, int fontSize, FontStyle fontStyle)
@@ -126,8 +126,8 @@ namespace BackSpeakerMod.UI.Components
             // Use relative positioning based on percentage
             textRect.anchorMin = new Vector2(0f, yPercent - 0.15f);  // Text line height
             textRect.anchorMax = new Vector2(1f, yPercent);           // Full width
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            textRect.offsetMin = new Vector2(5f, 0f);
+            textRect.offsetMax = new Vector2(-5f, 0f);
             textRect.anchoredPosition = Vector2.zero;
             
             var textComponent = textObj.AddComponent<Text>();
@@ -137,6 +137,8 @@ namespace BackSpeakerMod.UI.Components
             textComponent.color = Color.white;
             textComponent.alignment = TextAnchor.MiddleLeft;
             textComponent.fontStyle = fontStyle;
+            textComponent.horizontalOverflow = HorizontalWrapMode.Overflow; // Allow text to show even if long
+            textComponent.verticalOverflow = VerticalWrapMode.Overflow;
             
             return textComponent;
         }
@@ -203,11 +205,11 @@ namespace BackSpeakerMod.UI.Components
                 }
                 
                 // Priority 4: Show actual track info
-                if (!string.IsNullOrEmpty(currentTrackInfo) && currentTrackInfo != "No Track")
+                if (!string.IsNullOrEmpty(currentTrackInfo) && currentTrackInfo != "No Track" && currentTrackInfo != "Unknown Track")
                 {
                     // Display real track information
                     var playState = isPlaying ? "Now Playing" : "Paused";
-                    nowPlayingText!.text = $"🎵 {playState}: \"{currentTrackInfo}\"";
+                    nowPlayingText!.text = $"{playState}: \"{currentTrackInfo}\"";
                     
                     // Display artist info - show the actual artist from track data
                     if (!string.IsNullOrEmpty(currentArtist) && currentArtist != "Unknown Artist")
