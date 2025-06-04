@@ -168,11 +168,11 @@ namespace BackSpeakerMod.UI.Components
         {
             currentTab = newTab;
             
-            // Switch music source
+            // Switch active session in the manager
             if (manager != null)
             {
                 manager.SetMusicSource(newTab);
-                LoggingSystem.Info($"Content area switched to {newTab}", "UI");
+                LoggingSystem.Info($"Content area switched to {newTab} session", "UI");
             }
             
             // Update all components for the new tab
@@ -180,7 +180,7 @@ namespace BackSpeakerMod.UI.Components
             playlistToggle?.UpdateForTab(newTab);
             helpText?.UpdateForTab(newTab);
             
-            // Force content update
+            // Force content update to show session-specific data
             UpdateContent();
         }
         

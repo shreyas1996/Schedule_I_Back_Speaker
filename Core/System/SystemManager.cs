@@ -146,7 +146,9 @@ namespace BackSpeakerMod.Core.System
                 audioManager?.Initialize(audioSource);
                 if (Features.AutoLoadTracks)
                 {
-                    audioManager?.LoadTracks();
+                    // Load default session (Jukebox) to ensure immediate music availability
+                    // Other sessions will load on-demand when users switch tabs
+                    audioManager?.LoadDefaultSession();
                 }
             }
             OnSpeakerAttached?.Invoke(audioSource);
@@ -271,20 +273,12 @@ namespace BackSpeakerMod.Core.System
         {
             try
             {
-                var trackLoader = audioManager?.GetTrackLoader();
-                if (trackLoader != null)
-                {
-                    trackLoader.SetMusicSource(sourceType);
-                    LoggingSystem.Info($"Music source changed to: {sourceType}", "SystemManager");
-                }
-                else
-                {
-                    LoggingSystem.Warning("Cannot change music source - TrackLoader not available", "SystemManager");
-                }
+                audioManager?.SetActiveSession(sourceType);
+                LoggingSystem.Info($"Active session changed to: {sourceType}", "SystemManager");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Failed to set music source to {sourceType}: {ex.Message}", "SystemManager");
+                LoggingSystem.Error($"Failed to set active session to {sourceType}: {ex.Message}", "SystemManager");
             }
         }
 
@@ -292,8 +286,7 @@ namespace BackSpeakerMod.Core.System
         {
             try
             {
-                var trackLoader = audioManager?.GetTrackLoader();
-                return trackLoader?.GetCurrentSourceType() ?? MusicSourceType.Jukebox;
+                return audioManager?.GetCurrentMusicSource() ?? MusicSourceType.Jukebox;
             }
             catch (Exception ex)
             {
@@ -306,8 +299,13 @@ namespace BackSpeakerMod.Core.System
         {
             try
             {
-                var trackLoader = audioManager?.GetTrackLoader();
-                return trackLoader?.GetAvailableSources() ?? new List<(MusicSourceType, string, bool)>();
+                // Return available music sources
+                return new List<(MusicSourceType, string, bool)>
+                {
+                    (MusicSourceType.Jukebox, "In-Game Jukebox", true),
+                    (MusicSourceType.LocalFolder, "Local Music", true),
+                    (MusicSourceType.YouTube, "YouTube Music", true)
+                };
             }
             catch (Exception ex)
             {
@@ -320,15 +318,16 @@ namespace BackSpeakerMod.Core.System
         {
             try
             {
-                var trackLoader = audioManager?.GetTrackLoader();
-                if (trackLoader != null)
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
                 {
-                    trackLoader.LoadTracksFromCurrentSource();
-                    LoggingSystem.Info("Loading tracks from current source", "SystemManager");
+                    var activeSession = sessionManager.GetActiveSession();
+                    sessionManager.LoadTracksForSession(activeSession.SourceType);
+                    LoggingSystem.Info($"Loading tracks for active session: {activeSession.DisplayName}", "SystemManager");
                 }
                 else
                 {
-                    LoggingSystem.Warning("Cannot load tracks - TrackLoader not available", "SystemManager");
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
                 }
             }
             catch (Exception ex)
@@ -349,7 +348,8 @@ namespace BackSpeakerMod.Core.System
                 playerAttachment?.TriggerManualAttachment();
                 if (Features.AutoLoadTracks)
                 {
-                    audioManager?.LoadTracks();
+                    // Load default session (Jukebox) to ensure immediate music availability
+                    audioManager?.LoadDefaultSession();
                 }
             }
             return success;
@@ -402,7 +402,8 @@ namespace BackSpeakerMod.Core.System
                     playerAttachment?.TriggerManualAttachment();
                     if (Features.AutoLoadTracks)
                     {
-                        audioManager?.LoadTracks();
+                        // Load default session (Jukebox) to ensure immediate music availability
+                        audioManager?.LoadDefaultSession();
                     }
                 }
                 else if (!nowAttached && wasAttached)

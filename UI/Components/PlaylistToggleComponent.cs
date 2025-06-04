@@ -336,9 +336,27 @@ namespace BackSpeakerMod.UI.Components
             layoutElement.minHeight = 40f;
             layoutElement.preferredHeight = 40f;
             
-            // Track item background
+            // Check if this is the currently playing track
+            var currentTrackIndex = manager?.CurrentTrackIndex ?? -1;
+            var isCurrentTrack = (index == currentTrackIndex && manager?.IsPlaying == true);
+            
+            // Track item background - highlight current track with tab theme color
             var itemBg = trackItem.AddComponent<Image>();
-            itemBg.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            if (isCurrentTrack)
+            {
+                // Use theme color for currently playing track
+                itemBg.color = currentTab switch
+                {
+                    MusicSourceType.Jukebox => new Color(0.2f, 0.7f, 0.2f, 0.6f),      // Green
+                    MusicSourceType.LocalFolder => new Color(0.2f, 0.4f, 0.8f, 0.6f),  // Blue
+                    MusicSourceType.YouTube => new Color(0.8f, 0.2f, 0.2f, 0.6f),      // Red
+                    _ => new Color(0.5f, 0.5f, 0.5f, 0.6f)
+                };
+            }
+            else
+            {
+                itemBg.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            }
             
             // Track name text
             var trackText = new GameObject("TrackText");
@@ -351,11 +369,12 @@ namespace BackSpeakerMod.UI.Components
             textRect.offsetMax = Vector2.zero;
             
             var text = trackText.AddComponent<Text>();
-            text.text = $"{index + 1}. {trackName}";
+            text.text = isCurrentTrack ? $"🎵 {index + 1}. {trackName}" : $"{index + 1}. {trackName}";
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = 12;
-            text.color = Color.white;
+            text.color = isCurrentTrack ? Color.white : Color.white;
             text.alignment = TextAnchor.MiddleLeft;
+            text.fontStyle = isCurrentTrack ? FontStyle.Bold : FontStyle.Normal;
             
             // Play button for track
             var playTrackBtn = new GameObject("PlayButton");
@@ -380,7 +399,7 @@ namespace BackSpeakerMod.UI.Components
             playTextRect.offsetMax = Vector2.zero;
             
             var playTextComponent = playBtnText.AddComponent<Text>();
-            playTextComponent.text = "►";
+            playTextComponent.text = isCurrentTrack ? "⏸" : "►";  // Show pause if currently playing
             playTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             playTextComponent.fontSize = 10;
             playTextComponent.color = Color.white;

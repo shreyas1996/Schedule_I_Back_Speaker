@@ -159,15 +159,15 @@ namespace BackSpeakerMod
                 LoggingSystem.Error($"✗ Failed to register LocalFolderMusicProvider: {ex}", "Mod");
             }
 
-            try {
-                LoggingSystem.Info("Registering TrackLoader...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.TrackLoader>();
-                LoggingSystem.Info("✓ TrackLoader registered successfully", "Mod");
-            }
-            catch (System.Exception ex)
-            {
-                LoggingSystem.Error($"✗ Failed to register TrackLoader: {ex}", "Mod");
-            }
+            // try {
+            //     LoggingSystem.Info("Registering TrackLoader...", "Mod");
+            //     ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.TrackLoader>();
+            //     LoggingSystem.Info("✓ TrackLoader registered successfully", "Mod");
+            // }
+            // catch (System.Exception ex)
+            // {
+            //     LoggingSystem.Error($"✗ Failed to register TrackLoader: {ex}", "Mod");
+            // }
 
             LoggingSystem.Info("Il2Cpp type registration completed", "Mod");
         }

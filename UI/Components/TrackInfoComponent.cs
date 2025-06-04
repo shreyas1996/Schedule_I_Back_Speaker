@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
+using BackSpeakerMod.Core.Modules;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -208,10 +209,10 @@ namespace BackSpeakerMod.UI.Components
                     var playState = isPlaying ? "Now Playing" : "Paused";
                     nowPlayingText!.text = $"🎵 {playState}: \"{currentTrackInfo}\"";
                     
-                    // Display artist info or fallback
+                    // Display artist info - show the actual artist from track data
                     if (!string.IsNullOrEmpty(currentArtist) && currentArtist != "Unknown Artist")
                     {
-                        artistText!.text = $"🎤 Artist: \"{currentArtist}\"";
+                        artistText!.text = $"🎤 Artist: {currentArtist}";
                     }
                     else
                     {
@@ -221,7 +222,17 @@ namespace BackSpeakerMod.UI.Components
                     // Show track position
                     var currentIndex = manager.CurrentTrackIndex;
                     albumText!.text = $"💿 Track {currentIndex + 1} of {trackCount}";
-                    sourceText!.text = "📊 Source: In-Game Music";
+                    
+                    // Show current music source
+                    var currentSource = manager.GetCurrentMusicSource();
+                    var sourceDisplay = currentSource switch
+                    {
+                        MusicSourceType.Jukebox => "In-Game Jukebox",
+                        MusicSourceType.LocalFolder => "Local Music",
+                        MusicSourceType.YouTube => "YouTube Music",
+                        _ => "Unknown Source"
+                    };
+                    sourceText!.text = $"📊 Source: {sourceDisplay}";
                     
                     // Green when playing, white when paused
                     if (nowPlayingText != null)
