@@ -86,6 +86,7 @@ namespace BackSpeakerMod.Core
         public MusicSourceType GetCurrentMusicSource() => systemManager.GetCurrentMusicSource();
         public List<(MusicSourceType type, string name, bool available)> GetAvailableMusicSources() => systemManager.GetAvailableMusicSources();
         public void LoadTracksFromCurrentSource() => systemManager.LoadTracksFromCurrentSource();
+        public void ForceLoadFromSource(MusicSourceType sourceType) => systemManager.ForceLoadFromSource(sourceType);
 
         // Public API - Player Attachment
         public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();

@@ -50,6 +50,10 @@ namespace BackSpeakerMod.Core.Modules
             try
             {
                 audioController.Initialize(audioSource);
+                
+                // Initialize external music providers now that we have a GameObject
+                trackLoader.InitializeExternalProviders(audioSource.gameObject);
+                
                 isInitialized = true;
                 
                 LoggingSystem.Info("AudioSessionManager initialized successfully", "AudioSessionManager");
@@ -106,6 +110,22 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
+        /// Force load tracks for a specific session, bypassing availability checks
+        /// Useful for providers that need initialization (like LocalFolder)
+        /// </summary>
+        public void ForceLoadTracksForSession(MusicSourceType sessionType)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return;
+            }
+            
+            LoggingSystem.Info($"Force loading tracks for session: {sessionType}", "AudioSessionManager");
+            trackLoader.ForceLoadFromSource(sessionType);
+        }
+        
+        /// <summary>
         /// Handle tracks loaded from TrackLoader
         /// </summary>
         private void OnTracksLoaded(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
@@ -114,7 +134,7 @@ namespace BackSpeakerMod.Core.Modules
             if (sessions.ContainsKey(currentSource))
             {
                 sessions[currentSource].LoadTracks(tracks, trackInfo);
-                LoggingSystem.Info($"Loaded {tracks.Count} tracks into {currentSource} session", "AudioSessionManager");
+                // LoggingSystem.Debug($"Loaded {tracks.Count} tracks into {currentSource} session", "AudioSessionManager");
                 
                 // If this is the active session, update the audio controller
                 if (currentSource == currentActiveSession)

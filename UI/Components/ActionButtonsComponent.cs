@@ -169,9 +169,8 @@ namespace BackSpeakerMod.UI.Components
                     return;
                 }
                 
-                // Switch to local music source and load tracks
-                manager?.SetMusicSource(MusicSourceType.LocalFolder);
-                manager?.LoadTracksFromCurrentSource();
+                // Force load from LocalFolder source (this will create folder if needed and switch source)
+                manager?.ForceLoadFromSource(MusicSourceType.LocalFolder);
                 
                 LoggingSystem.Info("Local music refresh initiated", "UI");
                 UpdateLeftButtonFeedback("🔄 Refreshing...", new Color(0.8f, 0.8f, 0.2f, 0.8f));
@@ -288,7 +287,7 @@ namespace BackSpeakerMod.UI.Components
                         rightButtonImage.color = new Color(0.2f, 0.7f, 0.2f, 0.8f); // Green for attach
                     }
                     
-                    LoggingSystem.Debug($"Headphone button updated - Attached: {headphonesAttached}, Status: {status}", "UI");
+                    // LoggingSystem.Debug($"Headphone button updated - Attached: {headphonesAttached}, Status: {status}", "UI");
                 }
                 catch (System.Exception ex)
                 {

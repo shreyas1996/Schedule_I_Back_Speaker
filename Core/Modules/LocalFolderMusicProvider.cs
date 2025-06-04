@@ -4,19 +4,29 @@ using System.IO;
 using UnityEngine;
 using System.Collections;
 using BackSpeakerMod.Core.System;
-using UnityEngine.Networking;
+using BackSpeakerMod.Utils;
 using MelonLoader;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace BackSpeakerMod.Core.Modules
 {
     /// <summary>
-    /// Provides music from local folder files
+    /// Provides music from local folder files using NAudio for reliable audio loading
     /// </summary>
     public class LocalFolderMusicProvider : MonoBehaviour, IMusicSourceProvider
     {
         public MusicSourceType SourceType => MusicSourceType.LocalFolder;
         public string DisplayName => "Local Music Folder";
-        public bool IsAvailable => Directory.Exists(GetMusicFolderPath());
+        public bool IsAvailable 
+        { 
+            get 
+            {
+                // Ensure folder exists before checking availability
+                EnsureMusicFolderExists();
+                return Directory.Exists(GetMusicFolderPath());
+            }
+        }
 
         private Dictionary<string, object> configuration = new Dictionary<string, object>();
 
@@ -24,11 +34,33 @@ namespace BackSpeakerMod.Core.Modules
 
         public void LoadTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
         {
-            var coroutine = LoadLocalTracks(onComplete);
+            var coroutine = LoadLocalTracksCoroutine(onComplete);
             MelonCoroutines.Start(coroutine);
         }
 
-        private IEnumerator LoadLocalTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
+        private IEnumerator LoadLocalTracksCoroutine(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
+        {
+            // Run the async operation and wait for completion
+            Task<(List<AudioClip>, List<(string, string)>)> loadTask = LoadLocalTracksAsync();
+            
+            while (!loadTask.IsCompleted)
+            {
+                yield return null; // Wait one frame
+            }
+            
+            if (loadTask.IsFaulted)
+            {
+                LoggingSystem.Error($"Error loading local tracks: {loadTask.Exception?.Message}", "LocalFolder");
+                onComplete?.Invoke(new List<AudioClip>(), new List<(string, string)>());
+            }
+            else
+            {
+                var (tracks, trackInfo) = loadTask.Result;
+                onComplete?.Invoke(tracks, trackInfo);
+            }
+        }
+
+        private async Task<(List<AudioClip>, List<(string title, string artist)>)> LoadLocalTracksAsync()
         {
             var tracks = new List<AudioClip>();
             var trackInfo = new List<(string title, string artist)>();
@@ -36,77 +68,68 @@ namespace BackSpeakerMod.Core.Modules
             string musicPath = GetMusicFolderPath();
             
             EnsureMusicFolderExists();
+            
+            LoggingSystem.Info($"Loading local tracks from: {musicPath}", "LocalFolder");
 
-            if (Directory.Exists(musicPath))
+            if (!Directory.Exists(musicPath))
             {
-                // Supported audio file extensions
-                string[] extensions = { "*.mp3", "*.wav", "*.ogg", "*.m4a", "*.aac" };
+                LoggingSystem.Warning($"Music directory does not exist: {musicPath}", "LocalFolder");
+                return (tracks, trackInfo);
+            }
+
+            // Get all supported audio files
+            var supportedExtensions = AudioHelper.GetSupportedExtensions();
+            var allFiles = new List<string>();
+            
+            foreach (string extension in supportedExtensions)
+            {
+                var files = Directory.GetFiles(musicPath, "*" + extension, SearchOption.TopDirectoryOnly);
+                allFiles.AddRange(files);
+            }
+
+            LoggingSystem.Info($"Found {allFiles.Count} supported audio files", "LocalFolder");
+
+            // Load files in parallel for better performance
+            var loadTasks = allFiles.Select(async filePath =>
+            {
+                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                LoggingSystem.Debug($"Loading: {fileName}", "LocalFolder");
                 
-                foreach (string extension in extensions)
+                try
                 {
-                    var files = Directory.GetFiles(musicPath, extension, SearchOption.TopDirectoryOnly);
-                    
-                    foreach (string filePath in files)
+                    var clip = await AudioHelper.LoadAudioFileAsync(filePath);
+                    if (clip != null)
                     {
-                        yield return LoadAudioFile(filePath, tracks, trackInfo);
+                        return (clip, FormatTrackTitle(fileName), "Local File");
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning($"Failed to load: {fileName}", "LocalFolder");
+                        return ((AudioClip?)null, "", "");
                     }
                 }
-            }
-
-            LoggingSystem.Info($"Loaded {tracks.Count} local music tracks", "LocalFolder");
-            onComplete?.Invoke(tracks, trackInfo);
-        }
-
-        private IEnumerator LoadAudioFile(string filePath, List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
-        {
-            AudioType audioType = GetAudioType(filePath);
-            
-            if (audioType == AudioType.UNKNOWN)
-            {
-                LoggingSystem.Warning($"Unsupported audio format: {filePath}", "LocalFolder");
-                yield break;
-            }
-
-            string uri = "file://" + filePath.Replace("\\", "/");
-            
-            var request = UnityWebRequestMultimedia.GetAudioClip(uri, audioType);
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
-                if (clip != null)
+                catch (Exception ex)
                 {
-                    string fileName = Path.GetFileNameWithoutExtension(filePath);
-                    clip.name = fileName;
-                    
+                    LoggingSystem.Error($"Exception loading {fileName}: {ex.Message}", "LocalFolder");
+                    return ((AudioClip?)null, "", "");
+                }
+            });
+
+            // Wait for all loading tasks to complete
+            var results = await Task.WhenAll(loadTasks);
+
+            // Add successful results to our lists
+            foreach (var (clip, title, artist) in results)
+            {
+                if (clip != null && !string.IsNullOrEmpty(title))
+                {
                     tracks.Add(clip);
-                    trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
-                    
-                    LoggingSystem.Debug($"Loaded audio file: {fileName}", "LocalFolder");
+                    trackInfo.Add((title, artist));
                 }
             }
-            else
-            {
-                LoggingSystem.Warning($"Failed to load audio file: {filePath} - {request.error}", "LocalFolder");
-            }
-            
-            request.Dispose();
-        }
 
-        private AudioType GetAudioType(string filePath)
-        {
-            string extension = Path.GetExtension(filePath).ToLower();
-            
-            return extension switch
-            {
-                ".mp3" => AudioType.MPEG,
-                ".wav" => AudioType.WAV,
-                ".ogg" => AudioType.OGGVORBIS,
-                ".m4a" => AudioType.MPEG,
-                ".aac" => AudioType.MPEG,
-                _ => AudioType.UNKNOWN
-            };
+            LoggingSystem.Info($"Successfully loaded {tracks.Count} local music tracks", "LocalFolder");
+            return (tracks, trackInfo);
         }
 
         private string FormatTrackTitle(string fileName)
@@ -138,12 +161,12 @@ namespace BackSpeakerMod.Core.Modules
 
 This folder is for your personal music collection.
 
-Supported formats:
+Supported formats (via NAudio):
 - MP3 (recommended)
 - WAV
-- OGG
+- AIFF/AIF
+- WMA
 - M4A
-- AAC
 
 Instructions:
 1. Copy your music files to this folder
@@ -152,8 +175,8 @@ Instructions:
 
 Tips:
 - Use descriptive filenames for better organization
-- MP3 format provides best compatibility
-- Avoid very large files that may cause memory issues
+- MP3 format provides best compatibility and file size
+- NAudio handles most common audio formats reliably
 
 Enjoy your music!
 ";
@@ -203,15 +226,20 @@ Enjoy your music!
         {
             configuration["MusicFolderPath"] = GetMusicFolderPath();
             configuration["IsAvailable"] = IsAvailable;
-            configuration["SupportedFormats"] = new[] { "MP3", "WAV", "OGG", "M4A", "AAC" };
+            configuration["SupportedFormats"] = AudioHelper.GetSupportedExtensions();
             
             try
             {
                 string musicPath = GetMusicFolderPath();
                 if (Directory.Exists(musicPath))
                 {
-                    var files = Directory.GetFiles(musicPath, "*.*", SearchOption.TopDirectoryOnly);
-                    configuration["FileCount"] = files.Length;
+                    var supportedExtensions = AudioHelper.GetSupportedExtensions();
+                    int fileCount = 0;
+                    foreach (string ext in supportedExtensions)
+                    {
+                        fileCount += Directory.GetFiles(musicPath, "*" + ext, SearchOption.TopDirectoryOnly).Length;
+                    }
+                    configuration["FileCount"] = fileCount;
                 }
                 else
                 {

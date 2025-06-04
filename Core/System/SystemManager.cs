@@ -336,6 +336,32 @@ namespace BackSpeakerMod.Core.System
             }
         }
 
+        public void ForceLoadFromSource(MusicSourceType sourceType)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    // First set the active session to match the source type
+                    sessionManager.SetActiveSession(sourceType);
+                    
+                    // Then force load tracks from that source (bypassing availability checks)
+                    sessionManager.ForceLoadTracksForSession(sourceType);
+                    
+                    LoggingSystem.Info($"Force loading tracks from source: {sourceType}", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to force load tracks from source {sourceType}: {ex.Message}", "SystemManager");
+            }
+        }
+
         #endregion
 
         #region Headphone API

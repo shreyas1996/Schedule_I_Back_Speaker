@@ -48,19 +48,29 @@ namespace BackSpeakerMod.Core.Modules
             }
         }
 
-        public void InitializeExternalProviders(GameObject parentObject)
+        public void InitializeExternalProviders(GameObject? parentObject)
         {
+            if (parentObject == null)
+            {
+                LoggingSystem.Error("Parent object is null. Cannot initialize external providers.", "Audio");
+                return;
+            }
+
             try
             {
+                LoggingSystem.Info($"Initializing external providers on GameObject: {parentObject.name}", "Audio");
+                
                 // Initialize local folder provider
                 var localProvider = parentObject.AddComponent<LocalFolderMusicProvider>();
                 musicProviders[MusicSourceType.LocalFolder] = localProvider;
+                LoggingSystem.Info($"Added LocalFolderMusicProvider - Available: {localProvider.IsAvailable}", "Audio");
 
                 // Initialize YouTube provider
                 var youtubeProvider = parentObject.AddComponent<YouTubeMusicProvider>();
                 musicProviders[MusicSourceType.YouTube] = youtubeProvider;
+                LoggingSystem.Info($"Added YouTubeMusicProvider - Available: {youtubeProvider.IsAvailable}", "Audio");
 
-                LoggingSystem.Info("TrackLoader: External music providers initialized", "Audio");
+                LoggingSystem.Info($"TrackLoader: External music providers initialized. Total providers: {musicProviders.Count}", "Audio");
             }
             catch (Exception ex)
             {
@@ -73,6 +83,8 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public void SetMusicSource(MusicSourceType sourceType)
         {
+            LoggingSystem.Info($"SetMusicSource called: {sourceType} (current: {currentSourceType}, loading: {isLoading})", "Audio");
+            
             if (currentSourceType == sourceType || isLoading)
             {
                 return;
@@ -80,26 +92,67 @@ namespace BackSpeakerMod.Core.Modules
 
             if (!musicProviders.ContainsKey(sourceType))
             {
-                LoggingSystem.Warning($"Music provider not available: {sourceType}", "Audio");
+                LoggingSystem.Warning($"Music provider not available: {sourceType}. Available providers: [{string.Join(", ", musicProviders.Keys)}]", "Audio");
                 return;
             }
 
             var provider = musicProviders[sourceType];
-            if (!provider.IsAvailable)
-            {
-                LoggingSystem.Warning($"Music provider not available: {provider.DisplayName}", "Audio");
-                OnMusicSourceChanged?.Invoke(this, new MusicSourceChangedEventArgs(
-                    currentSourceType, sourceType, false, $"{provider.DisplayName} is not available"));
-                return;
-            }
-
+            
+            // Always switch to the requested source, even if initially unavailable
+            // Some providers (like LocalFolder) need to be activated to become available
             var previousSource = currentSourceType;
             currentSourceType = sourceType;
+
+            if (!provider.IsAvailable)
+            {
+                LoggingSystem.Info($"Switching to {provider.DisplayName} (will attempt initialization)...", "Audio");
+            }
+            else
+            {
+                LoggingSystem.Info($"Switching to {provider.DisplayName}...", "Audio");
+            }
 
             OnMusicSourceChanged?.Invoke(this, new MusicSourceChangedEventArgs(
                 previousSource, currentSourceType, false, $"Switching to {provider.DisplayName}..."));
 
             LoadTracksFromCurrentSource();
+        }
+
+        /// <summary>
+        /// Force load tracks from a specific source, regardless of availability status
+        /// Useful for initializing providers that need activation
+        /// </summary>
+        public void ForceLoadFromSource(MusicSourceType sourceType)
+        {
+            LoggingSystem.Info($"ForceLoadFromSource called: {sourceType}", "Audio");
+            
+            if (!musicProviders.ContainsKey(sourceType))
+            {
+                LoggingSystem.Warning($"Cannot force load - provider not found: {sourceType}", "Audio");
+                return;
+            }
+
+            if (isLoading)
+            {
+                LoggingSystem.Warning("Track loading already in progress", "Audio");
+                return;
+            }
+
+            var previousSource = currentSourceType;
+            currentSourceType = sourceType;
+            
+            var provider = musicProviders[sourceType];
+            LoggingSystem.Info($"Force loading tracks from: {provider.DisplayName}", "Audio");
+            
+            isLoading = true;
+            provider.LoadTracks((tracks, trackInfo) =>
+            {
+                isLoading = false;
+                OnTracksLoaded?.Invoke(tracks, trackInfo);
+                
+                OnMusicSourceChanged?.Invoke(this, new MusicSourceChangedEventArgs(
+                    previousSource, currentSourceType, true, $"Loaded {tracks.Count} tracks from {provider.DisplayName}"));
+            });
         }
 
         /// <summary>

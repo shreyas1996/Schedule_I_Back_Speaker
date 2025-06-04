@@ -56,6 +56,7 @@
     <EmbeddedResource Include="EmbeddedResources\headphones" /> -->
     <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" /> -->
     <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
+    <EmbeddedResource Include="EmbeddedResources\Libs\AudioImportLib.dll" />
   </ItemGroup>
   
   <ItemGroup>
@@ -67,6 +68,10 @@
     <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
 
     <PackageReference Include="AngleSharp" Version="1.1.2" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+
+    <!-- Audio loading dependencies -->
+    <!-- AudioImportLib is now embedded as a resource and loaded at runtime -->
 
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>

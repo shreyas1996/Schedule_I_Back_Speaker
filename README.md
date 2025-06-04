@@ -43,6 +43,16 @@ A Unity C# mod that provides background music functionality through virtual head
 - Loads from existing jukebox objects
 - Perfect for mod development and debugging
 
+## 🎵 Audio Support
+
+### Local Audio Files
+- **Location**: Create a `MusicPlaylist` folder in your game's root directory
+- **Formats**: MP3, WAV, OGG, FLAC, AIFF, WMA, M4A (powered by embedded AudioImportLib)
+- **Detection**: Automatically scans for supported audio files
+- **Playback**: Real audio decoding and playback (no placeholders!)
+
+**Note**: AudioImportLib is embedded in the mod - no separate installation required! 🎉
+
 ## Installation
 
 ### For Users

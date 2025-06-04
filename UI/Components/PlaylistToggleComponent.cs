@@ -482,7 +482,7 @@ namespace BackSpeakerMod.UI.Components
                 buttonText.text = text;
                 playlistButton.GetComponent<Image>().color = color;
                 
-                LoggingSystem.Debug($"Playlist button updated for {currentTab}: {trackCount} tracks", "UI");
+                // LoggingSystem.Debug($"Playlist button updated for {currentTab}: {trackCount} tracks", "UI");
             }
             catch (System.Exception ex)
             {

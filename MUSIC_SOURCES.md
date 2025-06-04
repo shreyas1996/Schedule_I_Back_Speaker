@@ -183,4 +183,38 @@ Each provider supports configuration through the `GetConfiguration()` and `Apply
 - Added local folder music provider
 - Added YouTube music provider with yt-dlp integration
 - Created unified UI for source selection
-- Maintained backward compatibility with existing jukebox system 
+- Maintained backward compatibility with existing jukebox system
+
+# Music Sources Documentation
+
+This document explains how the Back Speaker Mod handles different music sources and audio loading.
+
+## 🎵 Audio Sources
+
+### 1. Local Folder Music Provider
+
+**Real Audio Playback with Embedded AudioImportLib**
+
+The mod now includes AudioImportLib embedded as a resource, providing professional-grade audio decoding without requiring separate installations.
+
+**How it works:**
+- AudioImportLib.dll is embedded in the mod as a resource
+- Loaded at runtime using reflection and Assembly.Load()
+- Uses BASS audio library internally for robust format support
+- Supports: MP3, WAV, OGG, FLAC, AIFF, WMA, M4A
+
+**Technical Implementation:**
+```csharp
+// Embedded loading approach
+EmbeddedAssemblyLoader.LoadAudioImportLib() // Load embedded DLL
+AudioImportLib.API.LoadAudioClip(filePath, true) // via reflection
+```
+
+**Benefits:**
+- ✅ Real audio decoding and playback
+- ✅ No dependency installation required  
+- ✅ Works in IL2CPP/MelonLoader environment
+- ✅ Wide format support via BASS library
+- ✅ Single-file distribution
+
+// ... existing code ... 
