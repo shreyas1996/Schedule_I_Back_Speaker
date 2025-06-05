@@ -15,7 +15,8 @@ namespace BackSpeakerMod.UI.Components
         private BackSpeakerManager? manager;
         
         // UI Elements
-        private Image? albumArt;
+        private GameObject? _themedArt;
+        private GameObject? _defaultArt;
         private Text? nowPlayingText;
         private Text? artistText;
         private Text? albumText;
@@ -56,31 +57,79 @@ namespace BackSpeakerMod.UI.Components
             background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
             
             // Album art image
-            albumArt = albumArtContainer.AddComponent<Image>();
+            // albumArt = albumArtContainer.AddComponent<Image>();
             
             // Default album art with musical notes
-            CreateDefaultAlbumArt(albumArtContainer);
+            // CreateDefaultAlbumArt(albumArtContainer);
+            CreateThemedAlbumArt(albumArtContainer);
+        }
+
+        private void CreateThemedAlbumArt(GameObject container)
+        {
+            // this function will create a themed album art image from EmbeddedResources based on the current music source
+            var currentSource = manager?.GetCurrentMusicSource();
+            if (currentSource == null) return;
+
+            try {
+                _themedArt = new GameObject("ThemedAlbumArt");
+                _themedArt.transform.SetParent(container.transform, false);
+                
+                var themedArtRect = _themedArt.AddComponent<RectTransform>();
+                themedArtRect.anchorMin = Vector2.zero;
+                themedArtRect.anchorMax = Vector2.one;
+                themedArtRect.offsetMin = Vector2.zero;
+                themedArtRect.offsetMax = Vector2.zero;
+            
+                var themedArtImage = _themedArt.AddComponent<Image>();
+                themedArtImage.sprite = Utils.ResourceLoader.LoadEmbeddedSprite($"BackSpeakerMod.EmbeddedResources.AlbumArt.{currentSource?.ToString().ToLower()}.png");
+                themedArtImage.color = new Color(1f, 1f, 1f, 1f);
+
+                var themedArtText = _themedArt.AddComponent<Text>();
+                themedArtText.text = "🎵 🎶 🎵";
+                themedArtText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            } catch (System.Exception ex) {
+                LoggingSystem.Error($"Error creating themed album art: {ex.Message}", "UI");
+                // fallback to default album art
+                CreateDefaultAlbumArt(container);
+            }
         }
         
         private void CreateDefaultAlbumArt(GameObject container)
         {
             // Create musical note text overlay
-            var noteText = new GameObject("MusicalNotes");
-            noteText.transform.SetParent(container.transform, false);
+            _defaultArt = new GameObject("MusicalNotes");
+            _defaultArt.transform.SetParent(container.transform, false);
             
-            var noteRect = noteText.AddComponent<RectTransform>();
+            var noteRect = _defaultArt.AddComponent<RectTransform>();
             noteRect.anchorMin = Vector2.zero;
             noteRect.anchorMax = Vector2.one;
             noteRect.offsetMin = Vector2.zero;
             noteRect.offsetMax = Vector2.zero;
             
-            var textComponent = noteText.AddComponent<Text>();
+            var textComponent = _defaultArt.AddComponent<Text>();
             textComponent.text = "🎵 🎶 🎵";
             textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             textComponent.fontSize = 24;
             textComponent.color = new Color(0.7f, 0.7f, 0.7f, 1f);
             textComponent.alignment = TextAnchor.MiddleCenter;
             textComponent.fontStyle = FontStyle.Bold;
+        }
+
+        private void UpdateThemedAlbumArt()
+        {
+            if (_themedArt == null) return;
+            try{
+                var currentSource = manager?.GetCurrentMusicSource();
+                if (currentSource == null) return;
+
+                var themedArtImage = _themedArt.GetComponent<Image>();
+                themedArtImage.sprite = Utils.ResourceLoader.LoadEmbeddedSprite($"BackSpeakerMod.EmbeddedResources.AlbumArt.{currentSource?.ToString().ToLower()}.png");
+                themedArtImage.color = new Color(1f, 1f, 1f, 1f);
+            } catch (System.Exception ex) {
+                LoggingSystem.Error($"Error updating themed album art: {ex.Message}", "UI");
+                // fallback to default album art
+                // already showing default album art, so do nothing
+            }
         }
         
         private void CreateTrackDetails()
@@ -155,6 +204,8 @@ namespace BackSpeakerMod.UI.Components
                 var isAudioReady = manager.IsAudioReady();
                 var headphonesAttached = manager.AreHeadphonesAttached();
                 var trackCount = manager.GetTrackCount();
+
+                UpdateThemedAlbumArt(); // update the themed album art based on the current music source
                 
                 // Priority 1: Check if headphones are attached
                 if (!headphonesAttached)

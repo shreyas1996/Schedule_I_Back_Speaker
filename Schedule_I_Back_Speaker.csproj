@@ -58,9 +58,9 @@
     <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
     <EmbeddedResource Include="EmbeddedResources\Libs\AudioImportLib.dll" />
     <!-- Album Art Images -->
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\local_folder.png" />
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\jukebox_retro.png" />
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\youtube_play.png" />
+    <EmbeddedResource Include="EmbeddedResources\AlbumArt\localfolder.png" />
+    <EmbeddedResource Include="EmbeddedResources\AlbumArt\jukebox.png" />
+    <EmbeddedResource Include="EmbeddedResources\AlbumArt\youtube.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_vinyl.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_headphones.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_waves.png" />
