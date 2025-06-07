@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -78,7 +79,7 @@ namespace BackSpeakerMod.UI.Components
             
             var text = textObj.AddComponent<Text>();
             text.text = tabText;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            FontHelper.SetSafeFont(text);
             text.fontSize = 14;
             text.color = Color.white;
             text.alignment = TextAnchor.MiddleCenter;
@@ -106,8 +107,8 @@ namespace BackSpeakerMod.UI.Components
             statusRect.offsetMax = new Vector2(-10f, 0f);
             
             statusText = statusObj.AddComponent<Text>();
-            statusText.text = "Status: Loading...";
-            statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            statusText.text = "Loading...";
+            FontHelper.SetSafeFont(statusText);
             statusText.fontSize = 12;
             statusText.color = new Color(0.8f, 0.8f, 0.8f, 1f);
             statusText.alignment = TextAnchor.MiddleRight;

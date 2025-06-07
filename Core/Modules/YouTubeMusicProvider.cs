@@ -6,19 +6,19 @@ using System.Collections;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Utils;
 using System.Linq;
-using UnityEngine.Networking;
+using System.Threading.Tasks;
 using MelonLoader;
 
 namespace BackSpeakerMod.Core.Modules
 {
     /// <summary>
-    /// Provides music from YouTube (placeholder implementation)
+    /// Provides music from YouTube downloads using yt-dlp
     /// </summary>
     public class YouTubeMusicProvider : MonoBehaviour, IMusicSourceProvider
     {
         public MusicSourceType SourceType => MusicSourceType.YouTube;
         public string DisplayName => "YouTube Music";
-        public bool IsAvailable => true; // Simple implementation
+        public bool IsAvailable => true;
 
         private Dictionary<string, object> configuration = new Dictionary<string, object>();
         private readonly Dictionary<string, AudioClip> cachedClips = new Dictionary<string, AudioClip>();
@@ -28,8 +28,28 @@ namespace BackSpeakerMod.Core.Modules
 
         private void Awake()
         {
-            downloadPath = Path.Combine(GetCacheDirectory(), "YouTube");
+            InitializeYouTubeProvider();
+        }
+
+        private void InitializeYouTubeProvider()
+        {
+            // Use the same cache directory as YoutubeHelper
+            var gameDirectory = Directory.GetCurrentDirectory();
+            downloadPath = Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache", "YouTube");
+            
+            // Ensure directory exists
+            if (!Directory.Exists(downloadPath))
+            {
+                Directory.CreateDirectory(downloadPath);
+                LoggingSystem.Info($"Created YouTube cache directory: {downloadPath}", "YouTube");
+            }
+            
+            // Ensure yt-dlp is available
+            EmbeddedYtDlpLoader.EnsureYtDlpPresent();
+            EmbeddedYtDlpLoader.EnsureFFMPEGPresent();
+            
             InitializeConfiguration();
+            LoggingSystem.Info("YouTube music provider initialized", "YouTube");
         }
 
         public void LoadTracks(Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
@@ -37,87 +57,149 @@ namespace BackSpeakerMod.Core.Modules
             var tracks = new List<AudioClip>();
             var trackInfo = new List<(string title, string artist)>();
             
-            var coroutine = LoadCachedTracks(tracks, trackInfo, onComplete);
-            MelonCoroutines.Start(coroutine);
+            // Use async loading instead of coroutines
+            LoadCachedTracksAsync(tracks, trackInfo, onComplete);
         }
 
-        private IEnumerator LoadCachedTracks(List<AudioClip> tracks, List<(string title, string artist)> trackInfo, Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
+        private async void LoadCachedTracksAsync(List<AudioClip> tracks, List<(string title, string artist)> trackInfo, Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
         {
-            if (downloadPath != null && Directory.Exists(downloadPath))
+            try
             {
-                var audioFiles = Directory.GetFiles(downloadPath, "*.mp3", SearchOption.TopDirectoryOnly);
-                
-                foreach (string filePath in audioFiles)
+                if (downloadPath != null && Directory.Exists(downloadPath))
                 {
-                    yield return LoadCachedAudioFile(filePath, tracks, trackInfo);
+                    var audioFiles = Directory.GetFiles(downloadPath, "*.mp3", SearchOption.TopDirectoryOnly);
+                    LoggingSystem.Info($"Found {audioFiles.Length} YouTube audio files", "YouTube");
+                    
+                    foreach (string filePath in audioFiles)
+                    {
+                        await LoadCachedAudioFileAsync(filePath, tracks, trackInfo);
+                    }
                 }
+                else
+                {
+                    LoggingSystem.Warning("YouTube cache directory not found", "YouTube");
+                }
+                
+                LoggingSystem.Info($"Loaded {tracks.Count} cached YouTube tracks", "YouTube");
+                onComplete?.Invoke(tracks, trackInfo);
             }
-            
-            LoggingSystem.Info($"Loaded {tracks.Count} cached YouTube tracks", "YouTube");
-            onComplete?.Invoke(tracks, trackInfo);
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error loading cached tracks: {ex.Message}", "YouTube");
+                onComplete?.Invoke(tracks, trackInfo); // Return what we have
+            }
         }
 
-        private IEnumerator LoadCachedAudioFile(string filePath, List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
+        private async Task LoadCachedAudioFileAsync(string filePath, List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
         {
-            string uri = "file://" + filePath.Replace("\\", "/");
-            
-            var request = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.MPEG);
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
+            try
             {
-                AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
+                LoggingSystem.Debug($"Loading YouTube audio file: {filePath}", "YouTube");
+                
+                // Use the existing AudioHelper system
+                var clip = await AudioHelper.LoadAudioFileAsync(filePath);
+                
                 if (clip != null)
                 {
                     string fileName = Path.GetFileNameWithoutExtension(filePath);
                     clip.name = fileName;
                     
                     tracks.Add(clip);
-                    trackInfo.Add((FormatYouTubeTitle(fileName), "YouTube"));
+                    var (title, artist) = ParseYouTubeFileName(fileName);
+                    trackInfo.Add((title, artist));
                     
                     if (!cachedClips.ContainsKey(fileName))
                     {
                         cachedClips[fileName] = clip;
                     }
+                    
+                    LoggingSystem.Info($"Loaded YouTube track: {title} by {artist}", "YouTube");
+                }
+                else
+                {
+                    LoggingSystem.Warning($"AudioHelper returned null for: {filePath}", "YouTube");
                 }
             }
-            
-            request.Dispose();
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error loading audio file {filePath}: {ex.Message}", "YouTube");
+            }
         }
 
         /// <summary>
-        /// Placeholder download method (simplified for now)
+        /// Parse YouTube filename to extract title and artist
+        /// yt-dlp typically downloads files with format: "Title.mp3" or "Artist - Title.mp3"
         /// </summary>
-        public void DownloadFromYouTube(string url, Action<AudioClip, (string title, string artist)>? onComplete)
+        private (string title, string artist) ParseYouTubeFileName(string fileName)
+        {
+            try
+            {
+                // Clean up the filename
+                string cleanName = fileName.Replace("_", " ").Trim();
+                
+                // Check if it contains " - " separator (common format: Artist - Title)
+                if (cleanName.Contains(" - "))
+                {
+                    var parts = cleanName.Split(new string[] { " - " }, 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return (parts[1].Trim(), parts[0].Trim());
+                    }
+                }
+                
+                // If no separator, treat entire name as title
+                return (cleanName, "YouTube");
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Warning($"Error parsing filename {fileName}: {ex.Message}", "YouTube");
+                return (fileName, "YouTube");
+            }
+        }
+
+        /// <summary>
+        /// Download a song from YouTube URL
+        /// </summary>
+        public void DownloadFromYouTube(string url, Action<bool, string>? onComplete)
         {
             LoggingSystem.Info($"YouTube download requested: {url}", "YouTube");
-            LoggingSystem.Info("YouTube download feature coming soon! For now, add MP3 files manually to the cache folder.", "YouTube");
             
-            // Return placeholder response
-            onComplete?.Invoke(null!, ("YouTube feature under development", "Coming Soon"));
+            try
+            {
+                YoutubeHelper.DownloadSong(url, (output) =>
+                {
+                    bool success = !string.IsNullOrEmpty(output);
+                    string message = success ? "Download completed successfully" : "Download failed";
+                    
+                    LoggingSystem.Info($"Download result: {message}", "YouTube");
+                    onComplete?.Invoke(success, message);
+                });
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Download error: {ex.Message}", "YouTube");
+                onComplete?.Invoke(false, $"Download error: {ex.Message}");
+            }
         }
 
-        private string FormatYouTubeTitle(string fileName)
+        /// <summary>
+        /// Get song details from YouTube URL
+        /// </summary>
+        public void GetSongDetails(string url, Action<List<SongDetails>> onComplete)
         {
-            return fileName
-                .Replace("_", " ")
-                .Replace("-", " - ")
-                .Trim();
-        }
-
-        private string GetCacheDirectory()
-        {
-            string gameDirectory = Directory.GetCurrentDirectory();
-            return Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache");
+            LoggingSystem.Info($"Getting song details for: {url}", "YouTube");
+            YoutubeHelper.GetSongDetails(url, onComplete);
         }
 
         private void InitializeConfiguration()
         {
-            configuration["Library"] = "Simple Implementation";
+            configuration["Library"] = "yt-dlp YouTube Downloader";
             configuration["DownloadPath"] = downloadPath ?? "";
             configuration["MaxCacheSize"] = maxCacheSize;
-            configuration["ExternalDependencies"] = "None";
-            configuration["Note"] = "YouTube integration simplified for better compatibility";
+            configuration["ExternalDependencies"] = "yt-dlp.exe (embedded)";
+            configuration["SupportedFormats"] = "MP3 (extracted from best audio)";
+            configuration["AudioLoader"] = "AudioHelper (same as local music)";
+            configuration["Note"] = "Downloads YouTube audio using yt-dlp, loads using existing audio system";
         }
 
         public Dictionary<string, object> GetConfiguration()
@@ -127,12 +209,42 @@ namespace BackSpeakerMod.Core.Modules
 
         public void ApplyConfiguration(Dictionary<string, object> config)
         {
-            // Configuration options could be added here in the future
+            // Future configuration options could be added here
+            if (config.ContainsKey("MaxCacheSize"))
+            {
+                // Could implement cache size limits
+            }
         }
 
         public void Cleanup()
         {
             cachedClips.Clear();
+            LoggingSystem.Info("YouTube provider cleaned up", "YouTube");
+        }
+
+        /// <summary>
+        /// Clear all cached downloads
+        /// </summary>
+        public void ClearCache()
+        {
+            try
+            {
+                if (downloadPath != null && Directory.Exists(downloadPath))
+                {
+                    var files = Directory.GetFiles(downloadPath, "*.mp3");
+                    foreach (var file in files)
+                    {
+                        File.Delete(file);
+                    }
+                    LoggingSystem.Info($"Cleared {files.Length} cached YouTube files", "YouTube");
+                }
+                
+                cachedClips.Clear();
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error clearing cache: {ex.Message}", "YouTube");
+            }
         }
     }
 } 

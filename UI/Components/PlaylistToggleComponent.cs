@@ -4,6 +4,7 @@ using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
 using System.Collections.Generic;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -51,9 +52,9 @@ namespace BackSpeakerMod.UI.Components
             textRect.offsetMax = new Vector2(-10f, 0f);
             
             buttonText = textObj.AddComponent<Text>();
-            buttonText.text = "♫ Jukebox Playlist (0 tracks)";
-            buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            buttonText.fontSize = 14;
+            buttonText.text = "📋 Playlist";
+            FontHelper.SetSafeFont(buttonText);
+            buttonText.fontSize = 12;
             buttonText.color = Color.white;
             buttonText.alignment = TextAnchor.MiddleCenter;
             buttonText.fontStyle = FontStyle.Bold;
@@ -199,9 +200,9 @@ namespace BackSpeakerMod.UI.Components
             headerRect.offsetMax = new Vector2(-10f, 0f);
             
             var headerText = header.AddComponent<Text>();
-            headerText.text = $"{currentTab} Playlist";
-            headerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            headerText.fontSize = 18;
+            headerText.text = "📋 Playlist";
+            FontHelper.SetSafeFont(headerText);
+            headerText.fontSize = 16;
             headerText.color = Color.white;
             headerText.alignment = TextAnchor.MiddleLeft;
             headerText.fontStyle = FontStyle.Bold;
@@ -229,8 +230,8 @@ namespace BackSpeakerMod.UI.Components
             closeTextRect.offsetMax = Vector2.zero;
             
             var closeTextComponent = closeText.AddComponent<Text>();
-            closeTextComponent.text = "X";
-            closeTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            closeTextComponent.text = "❌";
+            FontHelper.SetSafeFont(closeTextComponent);
             closeTextComponent.fontSize = 16;
             closeTextComponent.color = Color.white;
             closeTextComponent.alignment = TextAnchor.MiddleCenter;
@@ -301,13 +302,9 @@ namespace BackSpeakerMod.UI.Components
                 noTracksObj.transform.SetParent(content.transform, false);
                 
                 var noTracksText = noTracksObj.AddComponent<Text>();
-                noTracksText.text = $"No tracks loaded for {currentTab}\n\n" +
-                                  "• Attach headphones first\n" +
-                                  "• Use the reload button to load tracks\n" +
-                                  "• For local music: place files in game folder\n" +
-                                  "• For YouTube: search and cache videos";
-                noTracksText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                noTracksText.fontSize = 12;
+                noTracksText.text = "No tracks available";
+                FontHelper.SetSafeFont(noTracksText);
+                noTracksText.fontSize = 14;
                 noTracksText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
                 noTracksText.alignment = TextAnchor.MiddleCenter;
                 noTracksText.fontStyle = FontStyle.Italic;
@@ -369,8 +366,8 @@ namespace BackSpeakerMod.UI.Components
             textRect.offsetMax = Vector2.zero;
             
             var text = trackText.AddComponent<Text>();
-            text.text = isCurrentTrack ? $"🎵 {index + 1}. {trackName}" : $"{index + 1}. {trackName}";
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text = trackName;
+            FontHelper.SetSafeFont(text);
             text.fontSize = 12;
             text.color = isCurrentTrack ? Color.white : Color.white;
             text.alignment = TextAnchor.MiddleLeft;
@@ -399,9 +396,9 @@ namespace BackSpeakerMod.UI.Components
             playTextRect.offsetMax = Vector2.zero;
             
             var playTextComponent = playBtnText.AddComponent<Text>();
-            playTextComponent.text = isCurrentTrack ? "⏸" : "►";  // Show pause if currently playing
-            playTextComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            playTextComponent.fontSize = 10;
+            playTextComponent.text = "▶";
+            FontHelper.SetSafeFont(playTextComponent);
+            playTextComponent.fontSize = 12;
             playTextComponent.color = Color.white;
             playTextComponent.alignment = TextAnchor.MiddleCenter;
             
@@ -473,10 +470,10 @@ namespace BackSpeakerMod.UI.Components
                 
                 var (text, color) = currentTab switch
                 {
-                    MusicSourceType.Jukebox => ($"♫ Jukebox Playlist ({trackCount} tracks)", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
-                    MusicSourceType.LocalFolder => ($"♫ Local Playlist ({trackCount} tracks)", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
-                    MusicSourceType.YouTube => ($"♫ YouTube Playlist ({trackCount} tracks)", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
-                    _ => ($"♫ Playlist ({trackCount} tracks)", new Color(0.5f, 0.5f, 0.5f, 0.8f))
+                    MusicSourceType.Jukebox => ($"📋 Jukebox Playlist ({trackCount} tracks)", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
+                    MusicSourceType.LocalFolder => ($"📋 Local Playlist ({trackCount} tracks)", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
+                    MusicSourceType.YouTube => ($"📋 YouTube Playlist ({trackCount} tracks)", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
+                    _ => ($"📋 Playlist ({trackCount} tracks)", new Color(0.5f, 0.5f, 0.5f, 0.8f))
                 };
                 
                 buttonText.text = text;
@@ -487,7 +484,7 @@ namespace BackSpeakerMod.UI.Components
             catch (System.Exception ex)
             {
                 LoggingSystem.Error($"Failed to update playlist button: {ex.Message}", "UI");
-                buttonText.text = $"♫ Playlist Error";
+                buttonText.text = $"📋 Playlist Error";
                 playlistButton.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
             }
         }

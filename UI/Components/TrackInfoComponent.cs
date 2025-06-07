@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -85,8 +86,9 @@ namespace BackSpeakerMod.UI.Components
                 themedArtImage.color = new Color(1f, 1f, 1f, 1f);
 
                 var themedArtText = _themedArt.AddComponent<Text>();
-                themedArtText.text = "🎵 🎶 🎵";
-                themedArtText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                themedArtText.text = "♫";
+                FontHelper.SetSafeFont(themedArtText);
+                themedArtText.fontSize = 24;
             } catch (System.Exception ex) {
                 LoggingSystem.Error($"Error creating themed album art: {ex.Message}", "UI");
                 // fallback to default album art
@@ -107,8 +109,8 @@ namespace BackSpeakerMod.UI.Components
             noteRect.offsetMax = Vector2.zero;
             
             var textComponent = _defaultArt.AddComponent<Text>();
-            textComponent.text = "🎵 🎶 🎵";
-            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            textComponent.text = "🎵 🎶 ��";
+            FontHelper.SetSafeFont(textComponent);
             textComponent.fontSize = 24;
             textComponent.color = new Color(0.7f, 0.7f, 0.7f, 1f);
             textComponent.alignment = TextAnchor.MiddleCenter;
@@ -181,7 +183,7 @@ namespace BackSpeakerMod.UI.Components
             
             var textComponent = textObj.AddComponent<Text>();
             textComponent.text = text;
-            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            FontHelper.SetSafeFont(textComponent);
             textComponent.fontSize = fontSize;
             textComponent.color = Color.white;
             textComponent.alignment = TextAnchor.MiddleLeft;

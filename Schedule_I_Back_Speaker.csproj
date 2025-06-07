@@ -57,6 +57,8 @@
     <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" /> -->
     <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
     <EmbeddedResource Include="EmbeddedResources\Libs\AudioImportLib.dll" />
+    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\yt-dlp.exe" />
+    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\ffmpeg.exe" />
     <!-- Album Art Images -->
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\localfolder.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\jukebox.png" />
@@ -76,6 +78,7 @@
 
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
     <!-- Audio loading dependencies -->
     <!-- AudioImportLib is now embedded as a resource and loaded at runtime -->
