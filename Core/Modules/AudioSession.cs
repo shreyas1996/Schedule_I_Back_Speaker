@@ -392,5 +392,33 @@ namespace BackSpeakerMod.Core.Modules
             var status = isPaused ? "Paused" : "Ready";
             return $"{DisplayName}: {status} - Track {currentTrackIndex + 1}/{tracks.Count} - {GetCurrentTrackInfo()}";
         }
+        
+        /// <summary>
+        /// Initialize cached songs for YouTube session (called after system is ready)
+        /// </summary>
+        public void InitializeCachedSongs(YouTubeMusicProvider? youtubeProvider)
+        {
+            if (!IsYouTubeSession)
+            {
+                LoggingSystem.Warning("InitializeCachedSongs called on non-YouTube session", "AudioSession");
+                return;
+            }
+            
+            if (youtubePlaylist == null)
+            {
+                LoggingSystem.Warning("YouTube playlist not available for cached song initialization", "AudioSession");
+                return;
+            }
+            
+            if (youtubeProvider != null)
+            {
+                youtubeProvider.AddCachedSongsToPlaylist(youtubePlaylist);
+                LoggingSystem.Info($"Initialized YouTube session with cached songs - Total: {youtubePlaylist.Count}", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Warning("YouTube provider not available for cached song initialization", "AudioSession");
+            }
+        }
     }
 } 

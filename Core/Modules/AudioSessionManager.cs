@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Utils;
@@ -14,6 +15,7 @@ namespace BackSpeakerMod.Core.Modules
     {
         private readonly Dictionary<MusicSourceType, AudioSession> sessions;
         private readonly AudioController audioController;
+        private readonly YouTubeStreamingController youtubeStreamingController;
         private readonly TrackLoader trackLoader;
         
         private MusicSourceType currentActiveSession = MusicSourceType.Jukebox;
@@ -28,6 +30,7 @@ namespace BackSpeakerMod.Core.Modules
         {
             sessions = new Dictionary<MusicSourceType, AudioSession>();
             audioController = new AudioController();
+            youtubeStreamingController = new YouTubeStreamingController();
             trackLoader = new TrackLoader();
             
             // Create sessions for each music source
@@ -51,9 +54,17 @@ namespace BackSpeakerMod.Core.Modules
             try
             {
                 audioController.Initialize(audioSource);
+                youtubeStreamingController.Initialize(audioSource);
+                
+                // Wire up YouTube streaming events
+                youtubeStreamingController.OnTrackChanged += () => OnTracksReloaded?.Invoke();
+                youtubeStreamingController.OnPlaylistChanged += () => OnTracksReloaded?.Invoke();
                 
                 // Initialize external music providers now that we have a GameObject
                 trackLoader.InitializeExternalProviders(audioSource.gameObject);
+                
+                // Initialize cached songs for YouTube session after providers are ready
+                InitializeYouTubeCachedSongs();
                 
                 isInitialized = true;
                 
@@ -64,6 +75,32 @@ namespace BackSpeakerMod.Core.Modules
             {
                 LoggingSystem.Error($"AudioSessionManager initialization failed: {ex.Message}", "AudioSessionManager");
                 return false;
+            }
+        }
+        
+        /// <summary>
+        /// Initialize cached songs for the YouTube session
+        /// </summary>
+        private void InitializeYouTubeCachedSongs()
+        {
+            try
+            {
+                var youtubeProvider = trackLoader.GetYouTubeProvider();
+                var youtubeSession = sessions[MusicSourceType.YouTube];
+                
+                if (youtubeProvider != null && youtubeSession != null)
+                {
+                    youtubeSession.InitializeCachedSongs(youtubeProvider);
+                    LoggingSystem.Info("YouTube session initialized with cached songs", "AudioSessionManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Could not initialize YouTube cached songs - provider or session not available", "AudioSessionManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error initializing YouTube cached songs: {ex.Message}", "AudioSessionManager");
             }
         }
         
@@ -82,15 +119,34 @@ namespace BackSpeakerMod.Core.Modules
             {
                 LoggingSystem.Debug($"Stopping playback from {globalPlayingSession} session due to tab switch", "AudioSessionManager");
                 var previousSession = sessions[globalPlayingSession.Value];
-                if (audioController.IsPlaying)
+                
+                // Handle YouTube vs regular audio differently
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    youtubeStreamingController.Pause();
+                    previousSession.Pause(youtubeStreamingController.CurrentTime);
+                }
+                else if (audioController.IsPlaying)
                 {
                     previousSession.Pause(audioController.CurrentTime);
                     audioController.Pause();
                 }
+                
                 globalPlayingSession = null; // Clear the playing session
             }
             
             currentActiveSession = sessionType;
+            
+            // Set up YouTube streaming controller for YouTube sessions
+            if (sessionType == MusicSourceType.YouTube)
+            {
+                var youtubeSession = sessions[MusicSourceType.YouTube];
+                if (youtubeSession.YouTubePlaylist != null)
+                {
+                    youtubeStreamingController.SetPlaylist(youtubeSession.YouTubePlaylist);
+                    LoggingSystem.Debug("YouTube streaming controller configured for YouTube session", "AudioSessionManager");
+                }
+            }
             
             // Auto-load tracks if this session is empty (first time access)
             var session = sessions[sessionType];
@@ -201,6 +257,13 @@ namespace BackSpeakerMod.Core.Modules
             var currentSource = trackLoader.GetCurrentSourceType();
             if (sessions.ContainsKey(currentSource))
             {
+                // Skip loading tracks into YouTube sessions - they use playlist system instead
+                if (currentSource == MusicSourceType.YouTube)
+                {
+                    LoggingSystem.Debug("Skipping track loading for YouTube session - uses playlist system", "AudioSessionManager");
+                    return;
+                }
+                
                 sessions[currentSource].LoadTracks(tracks, trackInfo);
                 // LoggingSystem.Debug($"Loaded {tracks.Count} tracks into {currentSource} session", "AudioSessionManager");
                 
@@ -228,7 +291,14 @@ namespace BackSpeakerMod.Core.Modules
             if (globalPlayingSession.HasValue && globalPlayingSession != sessionType)
             {
                 var previousSession = sessions[globalPlayingSession.Value];
-                if (audioController.IsPlaying)
+                
+                // Handle YouTube vs regular audio differently
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    youtubeStreamingController.Pause();
+                    previousSession.Pause(youtubeStreamingController.CurrentTime);
+                }
+                else if (audioController.IsPlaying)
                 {
                     previousSession.Pause(audioController.CurrentTime);
                     audioController.Pause();
@@ -244,31 +314,84 @@ namespace BackSpeakerMod.Core.Modules
                 SetActiveSession(sessionType);
             }
             
-            // Load the entire session's playlist into audio controller for proper repeat functionality
-            if (session.HasTracks)
+            // Handle YouTube streaming vs regular audio playback
+            if (sessionType == MusicSourceType.YouTube)
             {
-                var allClips = session.GetAllClips();
-                var allTracks = session.GetAllTracks();
-                
-                if (allClips.Count > 0 && allTracks.Count > 0)
+                // Use YouTube streaming controller
+                if (session.YouTubePlaylist != null)
                 {
-                    // Load entire playlist into audio controller
-                    audioController.SetTracks(allClips, allTracks);
+                    youtubeStreamingController.SetPlaylist(session.YouTubePlaylist);
                     
-                    // Apply this session's settings to audio controller
-                    audioController.SetVolume(session.Volume);
-                    audioController.RepeatMode = session.RepeatMode;
+                    // Start streaming playback asynchronously
+                    _ = StartYouTubeStream(trackIndex, session);
                     
-                    // Play the specific track index
-                    audioController.PlayTrack(trackIndex);
-                    session.Resume();
-                    
-                    LoggingSystem.Info($"Playing track {trackIndex + 1}/{allClips.Count} from {sessionType} session (Volume: {session.Volume:P0}, Repeat: {session.RepeatMode})", "AudioSessionManager");
+                    LoggingSystem.Info($"Starting YouTube stream for track {trackIndex + 1}/{session.TrackCount}", "AudioSessionManager");
                     return true;
+                }
+                else
+                {
+                    LoggingSystem.Warning("YouTube session has no playlist", "AudioSessionManager");
+                    return false;
+                }
+            }
+            else
+            {
+                // Use regular audio controller for non-YouTube sessions
+                if (session.HasTracks)
+                {
+                    var allClips = session.GetAllClips();
+                    var allTracks = session.GetAllTracks();
+                    
+                    if (allClips.Count > 0 && allTracks.Count > 0)
+                    {
+                        // Load entire playlist into audio controller
+                        audioController.SetTracks(allClips, allTracks);
+                        
+                        // Apply this session's settings to audio controller
+                        audioController.SetVolume(session.Volume);
+                        audioController.RepeatMode = session.RepeatMode;
+                        
+                        // Play the specific track index
+                        audioController.PlayTrack(trackIndex);
+                        session.Resume();
+                        
+                        LoggingSystem.Info($"Playing track {trackIndex + 1}/{allClips.Count} from {sessionType} session (Volume: {session.Volume:P0}, Repeat: {session.RepeatMode})", "AudioSessionManager");
+                        return true;
+                    }
                 }
             }
             
             return false;
+        }
+        
+        /// <summary>
+        /// Helper method to start YouTube streaming asynchronously
+        /// </summary>
+        private async Task StartYouTubeStream(int trackIndex, AudioSession session)
+        {
+            try
+            {
+                // Apply session settings
+                youtubeStreamingController.SetVolume(session.Volume);
+                youtubeStreamingController.RepeatMode = session.RepeatMode;
+                
+                bool success = await youtubeStreamingController.PlayTrack(trackIndex);
+                if (success)
+                {
+                    session.Resume();
+                    LoggingSystem.Info($"YouTube stream started successfully for track {trackIndex + 1}", "AudioSessionManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning($"Failed to start YouTube stream for track {trackIndex + 1}", "AudioSessionManager");
+                    globalPlayingSession = null; // Clear playing session on failure
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error starting YouTube stream: {ex.Message}", "AudioSessionManager");
+                globalPlayingSession = null; // Clear playing session on error
+            }
         }
         
         /// <summary>
@@ -290,12 +413,14 @@ namespace BackSpeakerMod.Core.Modules
         /// <summary>
         /// Check if any session is currently playing
         /// </summary>
-        public bool IsPlaying => globalPlayingSession.HasValue && audioController.IsPlaying;
+        public bool IsPlaying => globalPlayingSession.HasValue && 
+            (globalPlayingSession == MusicSourceType.YouTube ? youtubeStreamingController.IsPlaying : audioController.IsPlaying);
         
         /// <summary>
         /// Check if the active session is the one that's playing
         /// </summary>
-        public bool IsActiveSessionPlaying => globalPlayingSession == currentActiveSession && audioController.IsPlaying;
+        public bool IsActiveSessionPlaying => globalPlayingSession == currentActiveSession && 
+            (globalPlayingSession == MusicSourceType.YouTube ? youtubeStreamingController.IsPlaying : audioController.IsPlaying);
         
         /// <summary>
         /// Get current music source that's actually playing (not just active in UI)
@@ -306,10 +431,16 @@ namespace BackSpeakerMod.Core.Modules
         public int GetTrackCount() => GetActiveSession().TrackCount;
         public string GetCurrentTrackInfo() 
         {
-            if (globalPlayingSession.HasValue && audioController.IsPlaying)
+            if (globalPlayingSession.HasValue)
             {
-                // When music is playing, get track info from AudioController (which has current track index)
-                return audioController.GetCurrentTrackInfo();
+                if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
+                {
+                    return youtubeStreamingController.GetCurrentTrackInfo();
+                }
+                else if (audioController.IsPlaying)
+                {
+                    return audioController.GetCurrentTrackInfo();
+                }
             }
             // Otherwise get from active session
             return GetActiveSession().GetCurrentTrackInfo();
@@ -317,10 +448,16 @@ namespace BackSpeakerMod.Core.Modules
         
         public string GetCurrentArtistInfo() 
         {
-            if (globalPlayingSession.HasValue && audioController.IsPlaying)
+            if (globalPlayingSession.HasValue)
             {
-                // When music is playing, get artist info from AudioController (which has current track index)
-                return audioController.GetCurrentArtistInfo();
+                if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
+                {
+                    return youtubeStreamingController.GetCurrentArtistInfo();
+                }
+                else if (audioController.IsPlaying)
+                {
+                    return audioController.GetCurrentArtistInfo();
+                }
             }
             // Otherwise get from active session
             return GetActiveSession().GetCurrentArtistInfo();
@@ -331,20 +468,31 @@ namespace BackSpeakerMod.Core.Modules
         {
             get
             {
-                if (globalPlayingSession.HasValue && audioController.IsPlaying)
+                if (globalPlayingSession.HasValue)
                 {
-                    // When music is playing, get current index from AudioController
-                    return audioController.CurrentTrackIndex;
+                    if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
+                    {
+                        return youtubeStreamingController.CurrentTrackIndex;
+                    }
+                    else if (audioController.IsPlaying)
+                    {
+                        return audioController.CurrentTrackIndex;
+                    }
                 }
                 // Otherwise get from active session
                 return GetActiveSession().CurrentTrackIndex;
             }
         }
-        public float CurrentTime => IsActiveSessionPlaying ? audioController.CurrentTime : GetActiveSession().SavedProgress;
-        public float TotalTime => IsActiveSessionPlaying ? audioController.TotalTime : 0f;
-        public float Progress => IsActiveSessionPlaying ? audioController.Progress : 0f;
+        public float CurrentTime => IsActiveSessionPlaying ? 
+            (globalPlayingSession == MusicSourceType.YouTube ? youtubeStreamingController.CurrentTime : audioController.CurrentTime) : 
+            GetActiveSession().SavedProgress;
+        public float TotalTime => IsActiveSessionPlaying ? 
+            (globalPlayingSession == MusicSourceType.YouTube ? youtubeStreamingController.TotalTime : audioController.TotalTime) : 0f;
+        public float Progress => IsActiveSessionPlaying ? 
+            (globalPlayingSession == MusicSourceType.YouTube ? youtubeStreamingController.Progress : audioController.Progress) : 0f;
         public float CurrentVolume => GetActiveSession().Volume;
-        public bool IsAudioReady() => audioController.IsAudioReady();
+        public bool IsAudioReady() => globalPlayingSession == MusicSourceType.YouTube ? 
+            youtubeStreamingController.IsAudioReady : audioController.IsAudioReady();
         
         // Audio control methods - now session-specific
         public void Play()
@@ -352,8 +500,16 @@ namespace BackSpeakerMod.Core.Modules
             // If there's a global playing session, resume it
             if (globalPlayingSession.HasValue)
             {
-                audioController.Play();
-                sessions[globalPlayingSession.Value].Resume();
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    youtubeStreamingController.Play();
+                    sessions[globalPlayingSession.Value].Resume();
+                }
+                else
+                {
+                    audioController.Play();
+                    sessions[globalPlayingSession.Value].Resume();
+                }
             }
             // Otherwise, try to start playing from the active session if it has tracks
             else
@@ -372,10 +528,19 @@ namespace BackSpeakerMod.Core.Modules
         
         public void Pause()
         {
-            if (globalPlayingSession.HasValue && audioController.IsPlaying)
+            if (globalPlayingSession.HasValue)
             {
-                sessions[globalPlayingSession.Value].Pause(audioController.CurrentTime);
-                audioController.Pause();
+                if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
+                {
+                    var currentTime = youtubeStreamingController.CurrentTime;
+                    youtubeStreamingController.Pause();
+                    sessions[globalPlayingSession.Value].Pause(currentTime);
+                }
+                else if (audioController.IsPlaying)
+                {
+                    sessions[globalPlayingSession.Value].Pause(audioController.CurrentTime);
+                    audioController.Pause();
+                }
             }
         }
         
@@ -393,7 +558,13 @@ namespace BackSpeakerMod.Core.Modules
             if (globalPlayingSession.HasValue)
             {
                 var session = sessions[globalPlayingSession.Value];
-                if (session.NextTrack())
+                
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    // Handle YouTube streaming asynchronously
+                    HandleYouTubeNextTrack(session);
+                }
+                else if (session.NextTrack())
                 {
                     PlayTrack(globalPlayingSession.Value, session.CurrentTrackIndex);
                 }
@@ -420,7 +591,13 @@ namespace BackSpeakerMod.Core.Modules
             if (globalPlayingSession.HasValue)
             {
                 var session = sessions[globalPlayingSession.Value];
-                if (session.PreviousTrack())
+                
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    // Handle YouTube streaming asynchronously
+                    HandleYouTubePreviousTrack(session);
+                }
+                else if (session.PreviousTrack())
                 {
                     PlayTrack(globalPlayingSession.Value, session.CurrentTrackIndex);
                 }
@@ -441,6 +618,54 @@ namespace BackSpeakerMod.Core.Modules
             }
         }
         
+        /// <summary>
+        /// Helper method to handle YouTube next track asynchronously
+        /// </summary>
+        private void HandleYouTubeNextTrack(AudioSession session)
+        {
+            try
+            {
+                bool success = youtubeStreamingController.NextTrack();
+                if (success)
+                {
+                    // Session track index is updated by the streaming controller
+                    LoggingSystem.Debug("YouTube next track completed successfully", "AudioSessionManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("YouTube next track failed", "AudioSessionManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error handling YouTube next track: {ex.Message}", "AudioSessionManager");
+            }
+        }
+        
+        /// <summary>
+        /// Helper method to handle YouTube previous track asynchronously
+        /// </summary>
+        private void HandleYouTubePreviousTrack(AudioSession session)
+        {
+            try
+            {
+                bool success = youtubeStreamingController.PreviousTrack();
+                if (success)
+                {
+                    // Session track index is updated by the streaming controller
+                    LoggingSystem.Debug("YouTube previous track completed successfully", "AudioSessionManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("YouTube previous track failed", "AudioSessionManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error handling YouTube previous track: {ex.Message}", "AudioSessionManager");
+            }
+        }
+        
         public void SetVolume(float volume)
         {
             // Save to active session (for UI display and future playback)
@@ -449,8 +674,16 @@ namespace BackSpeakerMod.Core.Modules
             // Only apply to audio controller if the active session is currently playing
             if (globalPlayingSession.HasValue && globalPlayingSession == currentActiveSession)
             {
-                audioController.SetVolume(volume);
-                LoggingSystem.Debug($"Applied volume {volume:P0} to currently playing session: {currentActiveSession}", "AudioSessionManager");
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    youtubeStreamingController.SetVolume(volume);
+                    LoggingSystem.Debug($"Applied volume {volume:P0} to currently playing YouTube session: {currentActiveSession}", "AudioSessionManager");
+                }
+                else
+                {
+                    audioController.SetVolume(volume);
+                    LoggingSystem.Debug($"Applied volume {volume:P0} to currently playing session: {currentActiveSession}", "AudioSessionManager");
+                }
             }
             else
             {
@@ -458,8 +691,29 @@ namespace BackSpeakerMod.Core.Modules
             }
         }
         
-        public void SeekToTime(float time) => audioController.SeekToTime(time);
-        public void SeekToProgress(float progress) => audioController.SeekToProgress(progress);
+        public void SeekToTime(float time)
+        {
+            if (globalPlayingSession == MusicSourceType.YouTube)
+            {
+                youtubeStreamingController.SeekToTime(time);
+            }
+            else
+            {
+                audioController.SeekToTime(time);
+            }
+        }
+        
+        public void SeekToProgress(float progress)
+        {
+            if (globalPlayingSession == MusicSourceType.YouTube)
+            {
+                youtubeStreamingController.SeekToProgress(progress);
+            }
+            else
+            {
+                audioController.SeekToProgress(progress);
+            }
+        }
         
         public RepeatMode RepeatMode
         {
@@ -469,11 +723,19 @@ namespace BackSpeakerMod.Core.Modules
                 // Save to active session (for UI display and future playback)
                 GetActiveSession().SetRepeatMode(value);
                 
-                // Only apply to audio controller if the active session is currently playing
+                // Only apply to controller if the active session is currently playing
                 if (globalPlayingSession.HasValue && globalPlayingSession == currentActiveSession)
                 {
-                    audioController.RepeatMode = value;
-                    LoggingSystem.Debug($"Applied repeat mode {value} to currently playing session: {currentActiveSession}", "AudioSessionManager");
+                    if (globalPlayingSession == MusicSourceType.YouTube)
+                    {
+                        youtubeStreamingController.RepeatMode = value;
+                        LoggingSystem.Debug($"Applied repeat mode {value} to currently playing YouTube session: {currentActiveSession}", "AudioSessionManager");
+                    }
+                    else
+                    {
+                        audioController.RepeatMode = value;
+                        LoggingSystem.Debug($"Applied repeat mode {value} to currently playing session: {currentActiveSession}", "AudioSessionManager");
+                    }
                 }
                 else
                 {
@@ -485,12 +747,18 @@ namespace BackSpeakerMod.Core.Modules
         public void Update()
         {
             if (!isInitialized) return;
+            
+            // Update regular audio controller
             audioController.Update();
+            
+            // Update YouTube streaming controller
+            youtubeStreamingController.Update();
         }
         
         public void Reset()
         {
             audioController.Reset();
+            youtubeStreamingController.Reset();
             globalPlayingSession = null;
             
             // Reset all sessions
@@ -545,8 +813,14 @@ namespace BackSpeakerMod.Core.Modules
                 var session = sessions[MusicSourceType.YouTube];
                 bool added = session.AddYouTubeSong(songDetails);
                 
-                if (added && MusicSourceType.YouTube == currentActiveSession)
+                if (added)
                 {
+                    // Update streaming controller if YouTube is the active session
+                    if (MusicSourceType.YouTube == currentActiveSession && session.YouTubePlaylist != null)
+                    {
+                        youtubeStreamingController.SetPlaylist(session.YouTubePlaylist);
+                    }
+                    
                     // Update UI for YouTube session
                     OnTracksReloaded?.Invoke();
                 }
@@ -573,8 +847,14 @@ namespace BackSpeakerMod.Core.Modules
                 var session = sessions[MusicSourceType.YouTube];
                 bool removed = session.RemoveYouTubeSong(url);
                 
-                if (removed && MusicSourceType.YouTube == currentActiveSession)
+                if (removed)
                 {
+                    // Update streaming controller if YouTube is the active session
+                    if (MusicSourceType.YouTube == currentActiveSession && session.YouTubePlaylist != null)
+                    {
+                        youtubeStreamingController.SetPlaylist(session.YouTubePlaylist);
+                    }
+                    
                     // Update UI for YouTube session
                     OnTracksReloaded?.Invoke();
                 }

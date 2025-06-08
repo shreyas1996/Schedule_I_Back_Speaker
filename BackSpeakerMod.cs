@@ -190,5 +190,11 @@ namespace BackSpeakerMod
             // Update music manager for auto-advance functionality
             SpeakerManager?.Update();
         }
+
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            // Core manager is created by Initialization.GameInitializer when conditions are met
+            LoggingSystem.Debug($"Scene loaded: {sceneName} (buildIndex: {buildIndex})", "Mod");
+        }
     }
 } 

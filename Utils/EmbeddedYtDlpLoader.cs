@@ -11,6 +11,8 @@ namespace BackSpeakerMod.Utils
         public static string YtDlpExtractedPath { get; private set; } = Path.Combine("Mods", "BackSpeaker", "Tools", YtDlpFileName);
         public static string FFMPEGFileName => "ffmpeg.exe";
         public static string FFMPEGPath { get; private set; } = Path.Combine("Mods", "BackSpeaker", "Tools", FFMPEGFileName);
+        public static string FFProbeFileName => "ffprobe.exe";
+        public static string FFProbePath { get; private set; } = Path.Combine("Mods", "BackSpeaker", "Tools", FFProbeFileName);
         
         public static bool EnsureYtDlpPresent()
         {
@@ -28,6 +30,8 @@ namespace BackSpeakerMod.Utils
                 YtDlpExtractedPath = "yt-dlp"; // Use system command
                 return true;
             }
+
+            LoggingSystem.Debug("yt-dlp not found in system PATH or Tools folder", "EmbeddedYtDlpLoader");
 
             // Create Tools directory if it doesn't exist
             var directory = Path.GetDirectoryName(YtDlpExtractedPath);
@@ -69,6 +73,36 @@ namespace BackSpeakerMod.Utils
             // Extract from embedded resources
             return ExtractEmbeddedExecutable("ffmpeg.exe", FFMPEGPath);
         }
+
+        public static bool EnsureFFProbePresent()
+        {
+            // Check if ffprobe.exe is present in the Tools folder
+            if (File.Exists(FFProbePath))
+            {
+                LoggingSystem.Info($"ffprobe.exe found in Tools folder: {FFProbePath}", "EmbeddedYtDlpLoader"); 
+                return true;
+            }
+
+            // Check if ffprobe exists in system PATH
+            if (IsCommandAvailable("ffprobe"))
+            {
+                LoggingSystem.Info("ffprobe found in system PATH", "EmbeddedYtDlpLoader");
+                FFProbePath = "ffprobe"; // Use system command
+                return true;
+            }
+
+            // Create Tools directory if it doesn't exist   
+            var directory = Path.GetDirectoryName(FFProbePath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                LoggingSystem.Info($"Created Tools directory: {directory}", "EmbeddedYtDlpLoader");
+            }   
+
+            // Extract from embedded resources
+            return ExtractEmbeddedExecutable("ffprobe.exe", FFProbePath);
+        }
+        
         
         private static bool IsCommandAvailable(string command)
         {
@@ -152,6 +186,47 @@ namespace BackSpeakerMod.Utils
             }
 
             return File.Exists(targetPath);
+        }
+
+        /// <summary>
+        /// Check if yt-dlp is available
+        /// </summary>
+        public static bool IsYtDlpAvailable()
+        {
+            try
+            {
+                if (!EnsureYtDlpPresent()) return false;
+                return !string.IsNullOrEmpty(YtDlpExtractedPath) && File.Exists(YtDlpExtractedPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Check if ffmpeg is available
+        /// </summary>
+        public static bool IsFfmpegAvailable()
+        {
+            try
+            {
+                if (!EnsureFFMPEGPresent()) return false;
+                return !string.IsNullOrEmpty(FFMPEGPath) && File.Exists(FFMPEGPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get the yt-dlp executable path
+        /// </summary>
+        public static string GetYtDlpPath()
+        {
+            if (!IsYtDlpAvailable()) return null;
+            return YtDlpExtractedPath;
         }
     }
 }

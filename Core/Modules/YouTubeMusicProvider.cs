@@ -8,11 +8,13 @@ using BackSpeakerMod.Utils;
 using System.Linq;
 using System.Threading.Tasks;
 using MelonLoader;
+using BackSpeakerMod.Core.Features.Audio;
 
 namespace BackSpeakerMod.Core.Modules
 {
     /// <summary>
-    /// Provides music from YouTube downloads using yt-dlp
+    /// YouTube Music Provider - integrates with YouTube playlist system
+    /// Handles cached YouTube audio files and populates the YouTube playlist
     /// </summary>
     public class YouTubeMusicProvider : MonoBehaviour, IMusicSourceProvider
     {
@@ -33,97 +35,248 @@ namespace BackSpeakerMod.Core.Modules
 
         private void InitializeYouTubeProvider()
         {
-            // Use the same cache directory as YoutubeHelper
-            var gameDirectory = Directory.GetCurrentDirectory();
-            downloadPath = Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache", "YouTube");
+            // Set up YouTube download path (same as YoutubeHelper)
+            var modDataPath = Path.Combine(Application.persistentDataPath, "Mods");
+            downloadPath = Path.Combine(modDataPath, "BackSpeakerMod", "Cache", "YouTube");
             
-            // Ensure directory exists
+            // Create directory if it doesn't exist
             if (!Directory.Exists(downloadPath))
             {
                 Directory.CreateDirectory(downloadPath);
-                LoggingSystem.Info($"Created YouTube cache directory: {downloadPath}", "YouTube");
             }
             
-            // Ensure yt-dlp is available
-            EmbeddedYtDlpLoader.EnsureYtDlpPresent();
-            EmbeddedYtDlpLoader.EnsureFFMPEGPresent();
+            LoggingSystem.Info($"YouTube cache directory: {downloadPath}", "YouTube");
             
             InitializeConfiguration();
             LoggingSystem.Info("YouTube music provider initialized", "YouTube");
         }
 
+        /// <summary>
+        /// Load tracks method for compatibility with IMusicSourceProvider interface
+        /// For YouTube, this should populate the YouTube playlist instead of returning AudioClips
+        /// </summary>
         public void LoadTracks(Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
         {
-            var tracks = new List<AudioClip>();
-            var trackInfo = new List<(string title, string artist)>();
+            // For YouTube sessions, we need to populate the playlist instead of returning AudioClips
+            LoggingSystem.Info("Loading YouTube tracks - populating YouTube playlist", "YouTube");
             
-            // Use async loading instead of coroutines
-            LoadCachedTracksAsync(tracks, trackInfo, onComplete);
+            // Load cached songs into the YouTube playlist
+            LoadCachedSongsIntoPlaylist();
+            
+            // Return empty lists since YouTube uses playlist system
+            var emptyTracks = new List<AudioClip>();
+            var emptyTrackInfo = new List<(string title, string artist)>();
+            onComplete?.Invoke(emptyTracks, emptyTrackInfo);
         }
 
-        private async void LoadCachedTracksAsync(List<AudioClip> tracks, List<(string title, string artist)> trackInfo, Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
+        /// <summary>
+        /// Load cached YouTube songs and populate the YouTube playlist
+        /// </summary>
+        private async void LoadCachedSongsIntoPlaylist()
         {
             try
             {
+                // Instead of trying to access SystemManager.Instance, we'll defer the playlist population
+                // until the system is properly initialized and we have access through the proper channels.
+                // For now, we'll log that we found cached files and they will be available when needed.
+                
                 if (downloadPath != null && Directory.Exists(downloadPath))
                 {
                     var audioFiles = Directory.GetFiles(downloadPath, "*.mp3", SearchOption.TopDirectoryOnly);
-                    LoggingSystem.Info($"Found {audioFiles.Length} YouTube audio files", "YouTube");
+                    LoggingSystem.Info($"Found {audioFiles.Length} cached YouTube audio files", "YouTube");
+                    
+                    // We'll cache the SongDetails for these files so they can be accessed later
+                    var cachedSongDetails = new List<SongDetails>();
                     
                     foreach (string filePath in audioFiles)
                     {
-                        await LoadCachedAudioFileAsync(filePath, tracks, trackInfo);
+                        try
+                        {
+                            var songDetails = await CreateSongDetailsFromCachedFile(filePath);
+                            if (songDetails != null)
+                            {
+                                cachedSongDetails.Add(songDetails);
+                                LoggingSystem.Debug($"Cached song details for: {songDetails.title}", "YouTube");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggingSystem.Warning($"Error processing cached file {filePath}: {ex.Message}", "YouTube");
+                        }
                     }
+                    
+                    LoggingSystem.Info($"Prepared {cachedSongDetails.Count} cached YouTube songs for playlist population", "YouTube");
+                    
+                    // Store the cached song details for later use
+                    // They will be added to the playlist when the system initializes and calls AddCachedSongsToPlaylist
+                    _cachedSongDetails = cachedSongDetails;
                 }
                 else
                 {
                     LoggingSystem.Warning("YouTube cache directory not found", "YouTube");
                 }
-                
-                LoggingSystem.Info($"Loaded {tracks.Count} cached YouTube tracks", "YouTube");
-                onComplete?.Invoke(tracks, trackInfo);
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error loading cached tracks: {ex.Message}", "YouTube");
-                onComplete?.Invoke(tracks, trackInfo); // Return what we have
+                LoggingSystem.Error($"Error loading cached songs into playlist: {ex.Message}", "YouTube");
             }
         }
-
-        private async Task LoadCachedAudioFileAsync(string filePath, List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
+        
+        // Store cached song details for later playlist population
+        private List<SongDetails> _cachedSongDetails = new List<SongDetails>();
+        
+        /// <summary>
+        /// Add cached songs to a YouTube playlist (called by external systems)
+        /// </summary>
+        public void AddCachedSongsToPlaylist(YouTubePlaylist playlist)
         {
             try
             {
-                LoggingSystem.Debug($"Loading YouTube audio file: {filePath}", "YouTube");
-                
-                // Use the existing AudioHelper system
-                var clip = await AudioHelper.LoadAudioFileAsync(filePath);
-                
-                if (clip != null)
+                if (_cachedSongDetails.Count == 0)
                 {
-                    string fileName = Path.GetFileNameWithoutExtension(filePath);
-                    clip.name = fileName;
-                    
-                    tracks.Add(clip);
-                    var (title, artist) = ParseYouTubeFileName(fileName);
-                    trackInfo.Add((title, artist));
-                    
-                    if (!cachedClips.ContainsKey(fileName))
+                    LoggingSystem.Debug("No cached songs to add to playlist", "YouTube");
+                    return;
+                }
+                
+                int addedCount = 0;
+                foreach (var songDetails in _cachedSongDetails)
+                {
+                    if (!playlist.ContainsSong(songDetails.url ?? ""))
                     {
-                        cachedClips[fileName] = clip;
+                        bool added = playlist.AddSong(songDetails);
+                        if (added)
+                        {
+                            addedCount++;
+                            LoggingSystem.Debug($"Added cached song to playlist: {songDetails.title}", "YouTube");
+                        }
                     }
-                    
-                    LoggingSystem.Info($"Loaded YouTube track: {title} by {artist}", "YouTube");
+                    else
+                    {
+                        LoggingSystem.Debug($"Song already in playlist: {songDetails.title}", "YouTube");
+                        addedCount++;
+                    }
                 }
-                else
-                {
-                    LoggingSystem.Warning($"AudioHelper returned null for: {filePath}", "YouTube");
-                }
+                
+                LoggingSystem.Info($"Added {addedCount} cached YouTube songs to playlist", "YouTube");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error loading audio file {filePath}: {ex.Message}", "YouTube");
+                LoggingSystem.Error($"Error adding cached songs to playlist: {ex.Message}", "YouTube");
             }
+        }
+
+        /// <summary>
+        /// Create SongDetails object from a cached audio file
+        /// </summary>
+        private async Task<SongDetails?> CreateSongDetailsFromCachedFile(string filePath)
+        {
+            try
+            {
+                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                var (title, artist) = ParseYouTubeFileName(fileName);
+                
+                // Extract video ID from filename (assumes filename format includes video ID)
+                string videoId = ExtractVideoIdFromFileName(fileName);
+                
+                // Create SongDetails object
+                var songDetails = new SongDetails
+                {
+                    title = title,
+                    artist = artist,
+                    id = videoId,
+                    url = $"https://www.youtube.com/watch?v={videoId}",
+                    isDownloaded = true,
+                    cachedFilePath = filePath,
+                    downloadTimestamp = File.GetCreationTime(filePath)
+                };
+
+                // Get file size
+                try
+                {
+                    songDetails.fileSizeBytes = new FileInfo(filePath).Length;
+                }
+                catch (Exception ex)
+                {
+                    LoggingSystem.Warning($"Could not get file size for {filePath}: {ex.Message}", "YouTube");
+                }
+
+                // Try to get duration from audio file
+                try
+                {
+                    var audioClip = await AudioHelper.LoadAudioFileAsync(filePath);
+                    if (audioClip != null)
+                    {
+                        songDetails.duration = (int)audioClip.length;
+                        
+                        // Cache the clip for potential immediate playback
+                        if (!cachedClips.ContainsKey(fileName))
+                        {
+                            cachedClips[fileName] = audioClip;
+                        }
+                        
+                        LoggingSystem.Debug($"Created SongDetails for cached file: {title} ({audioClip.length:F1}s)", "YouTube");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingSystem.Warning($"Could not load audio to get duration for {filePath}: {ex.Message}", "YouTube");
+                }
+
+                return songDetails;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error creating SongDetails from cached file {filePath}: {ex.Message}", "YouTube");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Extract video ID from filename
+        /// Assumes filename contains the YouTube video ID (11 characters)
+        /// </summary>
+        private string ExtractVideoIdFromFileName(string fileName)
+        {
+            try
+            {
+                // Look for 11-character sequences that could be video IDs
+                // YouTube video IDs are exactly 11 characters long
+                for (int i = 0; i <= fileName.Length - 11; i++)
+                {
+                    string candidate = fileName.Substring(i, 11);
+                    
+                    // Check if it looks like a video ID (alphanumeric, underscore, hyphen)
+                    if (IsValidYouTubeVideoId(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                
+                // If no valid video ID found, use a hash of the filename
+                return fileName.GetHashCode().ToString("X8");
+            }
+            catch
+            {
+                return fileName.GetHashCode().ToString("X8");
+            }
+        }
+
+        /// <summary>
+        /// Check if a string looks like a valid YouTube video ID
+        /// </summary>
+        private bool IsValidYouTubeVideoId(string candidate)
+        {
+            if (candidate.Length != 11) return false;
+            
+            foreach (char c in candidate)
+            {
+                if (!char.IsLetterOrDigit(c) && c != '_' && c != '-')
+                {
+                    return false;
+                }
+            }
+            
+            return true;
         }
 
         /// <summary>
@@ -166,13 +319,25 @@ namespace BackSpeakerMod.Core.Modules
             
             try
             {
-                YoutubeHelper.DownloadSong(url, (output) =>
+                // First get song details, then download
+                YoutubeHelper.GetSongDetails(url, (songDetailsList) =>
                 {
-                    bool success = !string.IsNullOrEmpty(output);
-                    string message = success ? "Download completed successfully" : "Download failed";
-                    
-                    LoggingSystem.Info($"Download result: {message}", "YouTube");
-                    onComplete?.Invoke(success, message);
+                    if (songDetailsList != null && songDetailsList.Count > 0)
+                    {
+                        var songDetails = songDetailsList[0]; // Take the first song
+                        
+                        YoutubeHelper.DownloadSong(songDetails, (success) =>
+                        {
+                            string message = success ? "Download completed successfully" : "Download failed";
+                            LoggingSystem.Info($"Download result: {message}", "YouTube");
+                            onComplete?.Invoke(success, message);
+                        });
+                    }
+                    else
+                    {
+                        LoggingSystem.Error("Could not get song details for download", "YouTube");
+                        onComplete?.Invoke(false, "Could not get song details for download");
+                    }
                 });
             }
             catch (Exception ex)
@@ -193,13 +358,13 @@ namespace BackSpeakerMod.Core.Modules
 
         private void InitializeConfiguration()
         {
-            configuration["Library"] = "yt-dlp YouTube Downloader";
+            configuration["Library"] = "yt-dlp YouTube Streaming";
             configuration["DownloadPath"] = downloadPath ?? "";
             configuration["MaxCacheSize"] = maxCacheSize;
             configuration["ExternalDependencies"] = "yt-dlp.exe (embedded)";
-            configuration["SupportedFormats"] = "MP3 (extracted from best audio)";
-            configuration["AudioLoader"] = "AudioHelper (same as local music)";
-            configuration["Note"] = "Downloads YouTube audio using yt-dlp, loads using existing audio system";
+            configuration["SupportedFormats"] = "MP3 (cached) + Streaming";
+            configuration["AudioLoader"] = "YouTube Streaming System";
+            configuration["Note"] = "Uses playlist-based streaming with smart caching";
         }
 
         public Dictionary<string, object> GetConfiguration()

@@ -59,6 +59,7 @@
     <EmbeddedResource Include="EmbeddedResources\Libs\AudioImportLib.dll" />
     <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\yt-dlp.exe" />
     <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\ffmpeg.exe" />
+    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\ffprobe.exe" />
     <!-- Album Art Images -->
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\localfolder.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\jukebox.png" />

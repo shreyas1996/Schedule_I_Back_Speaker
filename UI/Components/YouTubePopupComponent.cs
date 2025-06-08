@@ -339,10 +339,11 @@ public class YouTubePopupComponent : MonoBehaviour
             headerBg.color = new Color(0.25f, 0.25f, 0.25f, 1f);
 
             // Column headers
-            CreateHeaderColumn(headerContainer, "🎵 Title", 0f, 0.4f);
-            CreateHeaderColumn(headerContainer, "🎤 Artist", 0.4f, 0.65f);
-            CreateHeaderColumn(headerContainer, "⏱️ Duration", 0.65f, 0.8f);
-            CreateHeaderColumn(headerContainer, "➕/➖ Playlist", 0.8f, 1f);
+            CreateHeaderColumn(headerContainer, "🎵 Title", 0f, 0.35f);
+            CreateHeaderColumn(headerContainer, "🎤 Artist", 0.35f, 0.55f);
+            CreateHeaderColumn(headerContainer, "⏱️ Duration", 0.55f, 0.7f);
+            CreateHeaderColumn(headerContainer, "📥 Status", 0.7f, 0.85f);
+            CreateHeaderColumn(headerContainer, "➕/➖", 0.85f, 1f);
         }
 
         private void CreateHeaderColumn(GameObject parent, string text, float xMin, float xMax)
@@ -422,6 +423,7 @@ public class YouTubePopupComponent : MonoBehaviour
             // Hide other columns for placeholder
             placeholderRow.transform.Find("Artist").gameObject.SetActive(false);
             placeholderRow.transform.Find("Duration").gameObject.SetActive(false);
+            placeholderRow.transform.Find("Status").gameObject.SetActive(false);
             placeholderRow.transform.Find("Actions").gameObject.SetActive(false);
         }
 
@@ -438,10 +440,11 @@ public class YouTubePopupComponent : MonoBehaviour
             rowBg.color = new Color(0.1f, 0.1f, 0.1f, 0.5f);
 
             // Create columns
-            CreateRowColumn(rowObj, "Title", 0f, 0.4f);
-            CreateRowColumn(rowObj, "Artist", 0.4f, 0.65f);
-            CreateRowColumn(rowObj, "Duration", 0.65f, 0.8f);
-            CreateActionsColumn(rowObj, 0.8f, 1f);
+            CreateRowColumn(rowObj, "Title", 0f, 0.35f);
+            CreateRowColumn(rowObj, "Artist", 0.35f, 0.55f);
+            CreateRowColumn(rowObj, "Duration", 0.55f, 0.7f);
+            CreateRowColumn(rowObj, "Status", 0.7f, 0.85f);
+            CreateActionsColumn(rowObj, 0.85f, 1f);
 
             songRows.Add(rowObj);
             return rowObj;
@@ -503,62 +506,158 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void ClearSongRows()
         {
-            foreach (var row in songRows)
+            try
             {
-                if (row != null)
-                    Destroy(row);
+                foreach (var row in songRows)
+                {
+                    if (row != null)
+                    {
+                        // Clear any button listeners to prevent memory leaks
+                        var buttons = row.GetComponentsInChildren<Button>();
+                        foreach (var button in buttons)
+                        {
+                            button?.onClick?.RemoveAllListeners();
+                        }
+                        
+                        // Destroy the GameObject
+                        Destroy(row);
+                    }
+                }
+                songRows.Clear();
+                
+                LoggingSystem.Debug($"Cleared {songRows.Count} song rows from UI", "UI");
             }
-            songRows.Clear();
+            catch (Exception ex)
+            {
+                LoggingSystem.Warning($"Error clearing song rows: {ex.Message}", "UI");
+                // Try to clear the list anyway
+                songRows.Clear();
+            }
         }
 
         private void PopulateSongTable(List<SongDetails> songs)
         {
-            ClearSongRows();
-            
-            if (songs == null || songs.Count == 0)
+            try
             {
-                ShowPlaceholder();
-                return;
-            }
+                // Clear existing rows to prevent memory leaks
+                ClearSongRows();
+                
+                if (songs == null || songs.Count == 0)
+                {
+                    ShowPlaceholder();
+                    return;
+                }
 
-            foreach (var song in songs)
+                // Limit the number of songs to prevent UI overload (MacBook Air safety)
+                const int maxSongsToDisplay = 50;
+                if (songs.Count > maxSongsToDisplay)
+                {
+                    LoggingSystem.Warning($"Limiting display to {maxSongsToDisplay} songs (of {songs.Count} total) to prevent UI overload", "UI");
+                    songs = songs.Take(maxSongsToDisplay).ToList();
+                }
+
+                foreach (var song in songs)
+                {
+                    try
+                    {
+                        var row = CreateSongRow();
+                        if (row == null) continue;
+                        
+                        // Populate columns with null safety
+                        var titleText = row.transform.Find("Title")?.GetComponent<Text>();
+                        if (titleText != null)
+                            titleText.text = song.title ?? "Unknown Title";
+                        
+                        var artistText = row.transform.Find("Artist")?.GetComponent<Text>();
+                        if (artistText != null)
+                            artistText.text = song.GetArtist();
+                        
+                        var durationText = row.transform.Find("Duration")?.GetComponent<Text>();
+                        if (durationText != null)
+                            durationText.text = song.GetFormattedDuration();
+                        
+                        // Populate status column
+                        var statusText = row.transform.Find("Status")?.GetComponent<Text>();
+                        if (statusText != null)
+                        {
+                            statusText.text = song.GetDownloadStatus();
+                            
+                            // Set status color based on download state
+                            if (song.downloadFailed)
+                            {
+                                statusText.color = new Color(1f, 0.3f, 0.3f, 1f); // Red for failed
+                            }
+                            else if (song.isDownloaded)
+                            {
+                                statusText.color = new Color(0.3f, 1f, 0.3f, 1f); // Green for downloaded
+                            }
+                            else if (song.isDownloading)
+                            {
+                                statusText.color = new Color(1f, 1f, 0.3f, 1f); // Yellow for downloading
+                            }
+                            else
+                            {
+                                statusText.color = new Color(0.7f, 0.7f, 0.7f, 1f); // Gray for pending
+                            }
+                        }
+                        
+                        // Setup toggle button for this specific song
+                        var actionsColumn = row.transform.Find("Actions");
+                        if (actionsColumn != null)
+                        {
+                            var toggleBtn = actionsColumn.GetComponent<Button>();
+                            var btnImage = actionsColumn.GetComponent<Image>();
+                            var btnText = actionsColumn.transform.Find("Text")?.GetComponent<Text>();
+                            
+                            if (toggleBtn != null && btnImage != null && btnText != null)
+                            {
+                                var songUrl = song.url; // Capture for closure
+                                var songTitle = song.title ?? "Unknown Title";
+                                var songArtist = song.GetArtist();
+                                
+                                // Check if song is already in playlist and update button appearance
+                                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
+                                if (inPlaylist)
+                                {
+                                    btnText.text = "➖";
+                                    btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
+                                }
+                                else
+                                {
+                                    btnText.text = "➕";
+                                    btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
+                                }
+                                
+                                // Clear any existing listeners to prevent memory leaks
+                                toggleBtn.onClick.RemoveAllListeners();
+                                toggleBtn.onClick.AddListener((UnityEngine.Events.UnityAction)(() => OnSongTogglePlaylistClicked(songUrl, songTitle, songArtist)));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingSystem.Warning($"Error creating UI row for song '{song.title}': {ex.Message}", "UI");
+                        // Continue with other songs
+                    }
+                }
+                
+                LoggingSystem.Debug($"Successfully populated song table with {songs.Count} songs", "UI");
+            }
+            catch (Exception ex)
             {
-                var row = CreateSongRow();
+                LoggingSystem.Error($"Critical error in PopulateSongTable: {ex.Message}", "UI");
+                LoggingSystem.Error($"Stack trace: {ex.StackTrace}", "UI");
                 
-                // Populate columns
-                var titleText = row.transform.Find("Title").GetComponent<Text>();
-                titleText.text = song.title ?? "Unknown Title";
-                
-                var artistText = row.transform.Find("Artist").GetComponent<Text>();
-                artistText.text = song.GetArtist();
-                
-                var durationText = row.transform.Find("Duration").GetComponent<Text>();
-                durationText.text = song.GetFormattedDuration();
-                
-                // Setup toggle button for this specific song
-                var actionsColumn = row.transform.Find("Actions");
-                var toggleBtn = actionsColumn.GetComponent<Button>();
-                var btnImage = actionsColumn.GetComponent<Image>();
-                var btnText = actionsColumn.transform.Find("Text").GetComponent<Text>();
-                
-                var songUrl = song.url; // Capture for closure
-                var songTitle = song.title ?? "Unknown Title";
-                var songArtist = song.GetArtist();
-                
-                // Check if song is already in playlist and update button appearance
-                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
-                if (inPlaylist)
+                // Show placeholder on error
+                try
                 {
-                    btnText.text = "➖";
-                    btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
+                    ClearSongRows();
+                    ShowPlaceholder();
                 }
-                else
+                catch
                 {
-                    btnText.text = "➕";
-                    btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
+                    // Silent fallback
                 }
-                
-                toggleBtn.onClick.AddListener((UnityEngine.Events.UnityAction)(() => OnSongTogglePlaylistClicked(songUrl, songTitle, songArtist)));
             }
         }
 
@@ -703,6 +802,20 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void OnSongDetailsReceived(List<SongDetails> songDetails)
         {
+            // With MelonCoroutines, callbacks are already on the main thread
+            if (!UnityEngine.Application.isPlaying)
+            {
+                LoggingSystem.Warning("OnSongDetailsReceived called when application not playing", "UI");
+                return;
+            }
+            
+            // Direct call since we're now using Unity-safe coroutines throughout
+            ProcessSongDetailsOnMainThread(songDetails);
+        }
+        
+        private void ProcessSongDetailsOnMainThread(List<SongDetails> songDetails)
+        {
+            // This method runs on the main thread and is safe for UI operations
             isSearching = false;
             UpdateButtonStates();
             
@@ -718,7 +831,7 @@ public class YouTubePopupComponent : MonoBehaviour
                 LoggingSystem.Info($"Song details: {songDetails.Count} songs found", "UI");
                 currentSongDetails = songDetails;
                 
-                // Populate the table with songs
+                // Populate the table with songs (safe on main thread)
                 PopulateSongTable(songDetails);
                 
                 var statusMessage = songDetails.Count == 1 ? 
@@ -732,6 +845,7 @@ public class YouTubePopupComponent : MonoBehaviour
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error processing song details: {ex.Message}", "UI");
+                LoggingSystem.Error($"Stack trace: {ex.StackTrace}", "UI");
                 UpdateStatus("❌ Error processing song details", Color.red);
                 ShowPlaceholder();
                 currentSongDetails = null;
@@ -759,13 +873,61 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void ClosePopup()
         {
-            if (popupContainer != null)
+            try
             {
-                Destroy(popupContainer);
+                LoggingSystem.Debug("Closing YouTube popup and cleaning up resources", "UI");
+                
+                // Clear search state
+                isSearching = false;
+                isDownloading = false;
+                
+                // Clear song data
+                currentSongDetails = null;
+                
+                // Clear UI rows to prevent memory leaks
+                ClearSongRows();
+                
+                // Clean up UI elements
+                if (popupContainer != null)
+                {
+                    // Remove all button listeners from the entire popup
+                    var allButtons = popupContainer.GetComponentsInChildren<Button>();
+                    foreach (var button in allButtons)
+                    {
+                        button?.onClick?.RemoveAllListeners();
+                    }
+                    
+                    Destroy(popupContainer);
+                    popupContainer = null;
+                }
+                
+                // Clear references
+                searchBarInputField = null;
+                searchButton = null;
+                cancelButton = null;
+                statusText = null;
+                songTableContainer = null;
+                songTableContent = null;
+                songTableScrollRect = null;
+                
+                LoggingSystem.Debug("YouTube popup cleanup completed", "UI");
             }
-            
-            // Destroy this component
-            Destroy(this);
+            catch (Exception ex)
+            {
+                LoggingSystem.Warning($"Error during popup cleanup: {ex.Message}", "UI");
+            }
+            finally
+            {
+                // Always destroy this component
+                try
+                {
+                    Destroy(this);
+                }
+                catch
+                {
+                    // Silent fallback
+                }
+            }
         }
 
         private void UpdateButtonStates()

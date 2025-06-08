@@ -153,5 +153,76 @@ namespace BackSpeakerMod.Utils
         {
             return EmbeddedAssemblyLoader.IsAudioImportLibAvailable();
         }
+
+        /// <summary>
+        /// Load an audio clip directly from a streaming URL using AudioImportLib
+        /// This enables real-time streaming without downloading files first
+        /// </summary>
+        public static async Task<AudioClip?> LoadAudioFromUrlAsync(string url, string clipName = "StreamedAudio")
+        {
+            try
+            {
+                LoggingSystem.Info($"Loading audio from URL with AudioImportLib: {clipName}", "AudioHelper");
+                LoggingSystem.Debug($"Streaming URL: {url}", "AudioHelper");
+
+                // Use embedded AudioImportLib for URL streaming
+                return await Task.Run(() => LoadAudioFromUrlWithEmbeddedAudioImportLib(url, clipName));
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load audio from URL {url}: {ex.Message}", "AudioHelper");
+                return null;
+            }
+        }
+
+        private static AudioClip? LoadAudioFromUrlWithEmbeddedAudioImportLib(string url, string clipName)
+        {
+            try
+            {
+                // Check if AudioImportLib is available
+                if (!EmbeddedAssemblyLoader.IsAudioImportLibAvailable())
+                {
+                    LoggingSystem.Warning("AudioImportLib not available for URL streaming, creating placeholder clip", "AudioHelper");
+                    return CreatePlaceholderClip(clipName + " (AudioImportLib unavailable)");
+                }
+
+                // Get the LoadAudioClip method via reflection
+                var loadMethod = EmbeddedAssemblyLoader.GetLoadAudioClipMethod();
+                if (loadMethod == null)
+                {
+                    LoggingSystem.Warning("Could not get LoadAudioClip method from AudioImportLib for URL streaming", "AudioHelper");
+                    return CreatePlaceholderClip(clipName + " (Method not found)");
+                }
+
+                LoggingSystem.Debug($"Calling AudioImportLib.API.LoadAudioClip via reflection for URL: {clipName}", "AudioHelper");
+                
+                // Call AudioImportLib.API.LoadAudioClip(url, true) via reflection
+                // AudioImportLib should support HTTP URLs directly via BASS library
+                object?[] parameters = { url, true };
+                var result = loadMethod.Invoke(null, parameters);
+                
+                var clip = result as AudioClip;
+                
+                if (clip != null)
+                {
+                    // Set a proper name for the clip
+                    clip.name = clipName;
+                    
+                    LoggingSystem.Info($"Successfully loaded streaming audio via AudioImportLib: {clipName} ({clip.length:F1}s, {clip.frequency}Hz, {clip.channels}ch)", "AudioHelper");
+                    return clip;
+                }
+                else
+                {
+                    LoggingSystem.Warning($"AudioImportLib returned null for URL stream: {clipName}", "AudioHelper");
+                    return CreatePlaceholderClip(clipName + " (LoadFailed)");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"AudioImportLib failed to load URL stream {clipName}: {ex.Message}", "AudioHelper");
+                LoggingSystem.Debug($"URL that failed: {url}", "AudioHelper");
+                return CreatePlaceholderClip(clipName + " (Error)");
+            }
+        }
     }
 } 
