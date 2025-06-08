@@ -7,6 +7,7 @@ using BackSpeakerMod.Core.Features.Audio.Managers;
 using BackSpeakerMod.Core.Common.Managers;
 using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.Configuration;
+using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.Core.System
 {
@@ -359,6 +360,116 @@ namespace BackSpeakerMod.Core.System
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Failed to force load tracks from source {sourceType}: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public void AddTrackToSession(MusicSourceType sessionType, AudioClip audioClip, string title, string artist)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    sessionManager.AddTrackToSession(sessionType, audioClip, title, artist);
+                    LoggingSystem.Info($"Added track '{title}' to {sessionType} session", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to add track to {sessionType} session: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public void AddTracksToSession(MusicSourceType sessionType, List<AudioClip> audioClips, List<(string title, string artist)> trackInfo)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    sessionManager.AddTracksToSession(sessionType, audioClips, trackInfo);
+                    LoggingSystem.Info($"Added {audioClips.Count} tracks to {sessionType} session", "SystemManager");
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to add tracks to {sessionType} session: {ex.Message}", "SystemManager");
+            }
+        }
+
+        public bool AddYouTubeSong(SongDetails songDetails)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    bool added = sessionManager.AddYouTubeSong(songDetails);
+                    if (added)
+                    {
+                        LoggingSystem.Info($"Added YouTube song '{songDetails.title}' to playlist", "SystemManager");
+                    }
+                    return added;
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to add YouTube song: {ex.Message}", "SystemManager");
+                return false;
+            }
+        }
+
+        public bool RemoveYouTubeSong(string url)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                if (sessionManager != null)
+                {
+                    bool removed = sessionManager.RemoveYouTubeSong(url);
+                    if (removed)
+                    {
+                        LoggingSystem.Info($"Removed YouTube song from playlist", "SystemManager");
+                    }
+                    return removed;
+                }
+                else
+                {
+                    LoggingSystem.Warning("Session manager not available", "SystemManager");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to remove YouTube song: {ex.Message}", "SystemManager");
+                return false;
+            }
+        }
+
+        public bool ContainsYouTubeSong(string url)
+        {
+            try
+            {
+                var sessionManager = audioManager?.GetSessionManager();
+                return sessionManager?.ContainsYouTubeSong(url) ?? false;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to check YouTube song: {ex.Message}", "SystemManager");
+                return false;
             }
         }
 

@@ -7,24 +7,31 @@ using BackSpeakerMod.UI.Helpers;
 using Newtonsoft.Json;
 using System;
 using BackSpeakerMod.Core.Features.Audio;
+using System.Collections.Generic;
+using System.Linq;
+using BackSpeakerMod.Core.Modules;
 
 namespace BackSpeakerMod.UI.Components
 {
-    public class YouTubePopupComponent : MonoBehaviour
-    {
-        private BackSpeakerManager manager;
+public class YouTubePopupComponent : MonoBehaviour
+{
+    private BackSpeakerManager manager;
 
         // UI Elements - stored as class members to avoid scope issues
         private GameObject popupContainer;
         private InputField searchBarInputField;
         private Button searchButton;
-        private Button downloadButton;
         private Button cancelButton;
-        private Text songInfoText;
         private Text statusText;
         
+        // Song table elements
+        private GameObject songTableContainer;
+        private GameObject songTableContent;
+        private ScrollRect songTableScrollRect;
+        private List<GameObject> songRows = new List<GameObject>();
+        
         // Current song details
-        private SongDetails currentSongDetails;
+        private List<SongDetails> currentSongDetails;
         private bool isSearching = false;
         private bool isDownloading = false;
         
@@ -32,13 +39,13 @@ namespace BackSpeakerMod.UI.Components
         private float loadingDots = 0f;
         private const float LoadingSpeed = 2f;
 
-        public YouTubePopupComponent() : base() { }
+    public YouTubePopupComponent() : base() { }
 
-        public void Setup(BackSpeakerManager manager)
-        {
-            LoggingSystem.Info("YouTube popup component setup", "UI");
-            this.manager = manager;
-        }
+    public void Setup(BackSpeakerManager manager)
+    {
+        LoggingSystem.Info("YouTube popup component setup", "UI");
+        this.manager = manager;
+    }
 
         void Update()
         {
@@ -64,9 +71,9 @@ namespace BackSpeakerMod.UI.Components
             }
         }
 
-        public void OpenYouTubeSearchPopup()
-        {
-            LoggingSystem.Info("YouTube popup component shown", "UI");
+    public void OpenYouTubeSearchPopup()
+    {
+        LoggingSystem.Info("YouTube popup component shown", "UI");
             try
             {
                 CreatePopupUI();
@@ -84,11 +91,11 @@ namespace BackSpeakerMod.UI.Components
             popupContainer = new GameObject("YouTubeSearchPopupContainer");
             popupContainer.transform.SetParent(this.transform.parent, false);  // Use parent instead of this.transform
             
-            var popupRect = popupContainer.AddComponent<RectTransform>();
-            popupRect.anchorMin = Vector2.zero;
-            popupRect.anchorMax = Vector2.one;
-            popupRect.offsetMin = Vector2.zero;
-            popupRect.offsetMax = Vector2.zero;
+        var popupRect = popupContainer.AddComponent<RectTransform>();
+        popupRect.anchorMin = Vector2.zero;
+        popupRect.anchorMax = Vector2.one;
+        popupRect.offsetMin = Vector2.zero;
+        popupRect.offsetMax = Vector2.zero;
 
             // Make sure it appears on top
             popupContainer.transform.SetAsLastSibling();
@@ -138,7 +145,7 @@ namespace BackSpeakerMod.UI.Components
             }
             
             try {
-                // Song Info Display
+                // Song Info Display (Table)
                 CreateSongInfoDisplay(contentArea);
             }
             catch (Exception ex)
@@ -290,203 +297,375 @@ namespace BackSpeakerMod.UI.Components
 
         private void CreateSongInfoDisplay(GameObject parent)
         {
-            LoggingSystem.Debug("CreateSongInfoDisplay: Starting", "UI");
+            LoggingSystem.Debug("Creating song info table display", "UI");
             
-            if (parent == null)
-            {
-                LoggingSystem.Error("CreateSongInfoDisplay: parent is null!", "UI");
-                throw new ArgumentNullException(nameof(parent));
-            }
-            LoggingSystem.Debug("CreateSongInfoDisplay: parent is valid", "UI");
+            // Main container for the song table
+            songTableContainer = new GameObject("SongTableContainer");
+            songTableContainer.transform.SetParent(parent.transform, false);
             
-            var infoContainer = new GameObject("SongInfoContainer");
-            LoggingSystem.Debug("CreateSongInfoDisplay: Created infoContainer GameObject", "UI");
-            
-            if (parent.transform == null)
-            {
-                LoggingSystem.Error("CreateSongInfoDisplay: parent.transform is null!", "UI");
-                throw new ArgumentNullException("parent.transform");
-            }
-            
-            infoContainer.transform.SetParent(parent.transform, false);
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set parent transform", "UI");
-            
-            var infoRect = infoContainer.AddComponent<RectTransform>();
-            LoggingSystem.Debug("CreateSongInfoDisplay: Added RectTransform component", "UI");
-            
-            infoRect.anchorMin = new Vector2(0.05f, 0.35f);
-            infoRect.anchorMax = new Vector2(0.95f, 0.55f);
-            infoRect.offsetMin = Vector2.zero;
-            infoRect.offsetMax = Vector2.zero;
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set RectTransform properties", "UI");
+            var tableRect = songTableContainer.AddComponent<RectTransform>();
+            tableRect.anchorMin = new Vector2(0.05f, 0.25f);
+            tableRect.anchorMax = new Vector2(0.95f, 0.55f);
+            tableRect.offsetMin = Vector2.zero;
+            tableRect.offsetMax = Vector2.zero;
 
-            // Background
-            var infoBg = infoContainer.AddComponent<Image>();
-            LoggingSystem.Debug("CreateSongInfoDisplay: Added Image component", "UI");
-            
-            infoBg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set Image color", "UI");
+            // Background for table
+            var tableBg = songTableContainer.AddComponent<Image>();
+            tableBg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
 
-            // Debug the GameObject state before adding Text component
-            LoggingSystem.Debug($"CreateSongInfoDisplay: About to add Text component to infoContainer", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer name: {(infoContainer != null ? infoContainer.name : "NULL")}", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer active: {(infoContainer != null ? infoContainer.activeInHierarchy.ToString() : "NULL")}", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer activeSelf: {(infoContainer != null ? infoContainer.activeSelf.ToString() : "NULL")}", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer transform: {(infoContainer != null && infoContainer.transform != null ? "Valid" : "NULL")}", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer has RectTransform: {(infoContainer != null && infoContainer.GetComponent<RectTransform>() != null ? "Yes" : "No")}", "UI");
-            LoggingSystem.Debug($"CreateSongInfoDisplay: infoContainer has Image: {(infoContainer != null && infoContainer.GetComponent<Image>() != null ? "Yes" : "No")}", "UI");
+            // Create header row
+            CreateTableHeader(songTableContainer);
 
-            // Create a separate GameObject for the Text component to avoid potential conflicts
-            LoggingSystem.Debug("CreateSongInfoDisplay: Creating separate GameObject for Text component", "UI");
-            var textContainer = new GameObject("SongInfoText");
-            LoggingSystem.Debug("CreateSongInfoDisplay: Created textContainer GameObject", "UI");
-            
-            textContainer.transform.SetParent(infoContainer.transform, false);
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set textContainer parent", "UI");
-            
-            // Setup RectTransform for the text container to fill the info container
-            var textRect = textContainer.AddComponent<RectTransform>();
-            LoggingSystem.Debug("CreateSongInfoDisplay: Added RectTransform to textContainer", "UI");
-            
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(10f, 10f);  // Built-in padding
-            textRect.offsetMax = new Vector2(-10f, -10f);
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set textContainer RectTransform properties", "UI");
+            // Create scrollable content area
+            CreateScrollableContent(songTableContainer);
 
-            try 
-            {
-                songInfoText = textContainer.AddComponent<Text>();
-                LoggingSystem.Debug($"CreateSongInfoDisplay: AddComponent<Text>() returned: {(songInfoText != null ? "Valid Text Component" : "NULL")}", "UI");
-            }
-            catch (System.Exception ex)
-            {
-                LoggingSystem.Error($"CreateSongInfoDisplay: Exception during AddComponent<Text>(): {ex.Message}", "UI");
-                LoggingSystem.Error($"CreateSongInfoDisplay: Exception stack trace: {ex.StackTrace}", "UI");
-                throw;
-            }
+            // Show placeholder initially
+            ShowPlaceholder();
+        }
+
+        private void CreateTableHeader(GameObject parent)
+        {
+            var headerContainer = new GameObject("TableHeader");
+            headerContainer.transform.SetParent(parent.transform, false);
             
-            if (songInfoText == null)
-            {
-                LoggingSystem.Error("CreateSongInfoDisplay: songInfoText is null after AddComponent!", "UI");
-                LoggingSystem.Error($"CreateSongInfoDisplay: textContainer state when Text is null - Name: {textContainer?.name}, Active: {textContainer?.activeInHierarchy}", "UI");
-                throw new System.Exception("Failed to add Text component");
-            }
+            var headerRect = headerContainer.AddComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0f, 0.8f);
+            headerRect.anchorMax = new Vector2(1f, 1f);
+            headerRect.offsetMin = Vector2.zero;
+            headerRect.offsetMax = Vector2.zero;
+
+            // Header background
+            var headerBg = headerContainer.AddComponent<Image>();
+            headerBg.color = new Color(0.25f, 0.25f, 0.25f, 1f);
+
+            // Column headers
+            CreateHeaderColumn(headerContainer, "🎵 Title", 0f, 0.4f);
+            CreateHeaderColumn(headerContainer, "🎤 Artist", 0.4f, 0.65f);
+            CreateHeaderColumn(headerContainer, "⏱️ Duration", 0.65f, 0.8f);
+            CreateHeaderColumn(headerContainer, "➕/➖ Playlist", 0.8f, 1f);
+        }
+
+        private void CreateHeaderColumn(GameObject parent, string text, float xMin, float xMax)
+        {
+            var columnObj = new GameObject($"Header_{text}");
+            columnObj.transform.SetParent(parent.transform, false);
             
-            songInfoText.text = "Enter a YouTube URL and click 'Get Song Info' to see details here.";
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set text content", "UI");
+            var columnRect = columnObj.AddComponent<RectTransform>();
+            columnRect.anchorMin = new Vector2(xMin, 0f);
+            columnRect.anchorMax = new Vector2(xMax, 1f);
+            columnRect.offsetMin = new Vector2(5f, 0f);
+            columnRect.offsetMax = new Vector2(-5f, 0f);
+
+            var columnText = columnObj.AddComponent<Text>();
+            columnText.text = text;
+            FontHelper.SetSafeFont(columnText);
+            columnText.fontSize = 11;
+            columnText.color = Color.white;
+            columnText.alignment = TextAnchor.MiddleLeft;
+            columnText.fontStyle = FontStyle.Bold;
+        }
+
+        private void CreateScrollableContent(GameObject parent)
+        {
+            // Scrollable area
+            var scrollContainer = new GameObject("ScrollContainer");
+            scrollContainer.transform.SetParent(parent.transform, false);
+            
+            var scrollRect = scrollContainer.AddComponent<RectTransform>();
+            scrollRect.anchorMin = new Vector2(0f, 0f);
+            scrollRect.anchorMax = new Vector2(1f, 0.8f);
+            scrollRect.offsetMin = Vector2.zero;
+            scrollRect.offsetMax = Vector2.zero;
+
+            // Add ScrollRect component
+            songTableScrollRect = scrollContainer.AddComponent<ScrollRect>();
+            songTableScrollRect.horizontal = false;
+            songTableScrollRect.vertical = true;
+
+            // Create content container
+            songTableContent = new GameObject("TableContent");
+            songTableContent.transform.SetParent(scrollContainer.transform, false);
+            
+            var contentRect = songTableContent.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+
+            // Add VerticalLayoutGroup for automatic row spacing
+            var layoutGroup = songTableContent.AddComponent<VerticalLayoutGroup>();
+            layoutGroup.childAlignment = TextAnchor.UpperCenter;
+            layoutGroup.childControlHeight = false;
+            layoutGroup.childControlWidth = true;
+            layoutGroup.childForceExpandHeight = false;
+            layoutGroup.childForceExpandWidth = true;
+            layoutGroup.spacing = 2f;
+
+            // Add ContentSizeFitter for automatic sizing
+            var sizeFitter = songTableContent.AddComponent<ContentSizeFitter>();
+            sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            songTableScrollRect.content = contentRect;
+        }
+
+        private void ShowPlaceholder()
+        {
+            ClearSongRows();
+            
+            var placeholderRow = CreateSongRow();
+            var placeholderText = placeholderRow.transform.Find("Title").GetComponent<Text>();
+            placeholderText.text = "Enter a YouTube URL and click 'Get Song Info' to see songs here...";
+            placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            placeholderText.fontStyle = FontStyle.Italic;
+            
+            // Hide other columns for placeholder
+            placeholderRow.transform.Find("Artist").gameObject.SetActive(false);
+            placeholderRow.transform.Find("Duration").gameObject.SetActive(false);
+            placeholderRow.transform.Find("Actions").gameObject.SetActive(false);
+        }
+
+        private GameObject CreateSongRow()
+        {
+            var rowObj = new GameObject("SongRow");
+            rowObj.transform.SetParent(songTableContent.transform, false);
+            
+            var rowRect = rowObj.AddComponent<RectTransform>();
+            rowRect.sizeDelta = new Vector2(0f, 30f); // Fixed height for rows
+
+            // Row background (alternating colors can be added here)
+            var rowBg = rowObj.AddComponent<Image>();
+            rowBg.color = new Color(0.1f, 0.1f, 0.1f, 0.5f);
+
+            // Create columns
+            CreateRowColumn(rowObj, "Title", 0f, 0.4f);
+            CreateRowColumn(rowObj, "Artist", 0.4f, 0.65f);
+            CreateRowColumn(rowObj, "Duration", 0.65f, 0.8f);
+            CreateActionsColumn(rowObj, 0.8f, 1f);
+
+            songRows.Add(rowObj);
+            return rowObj;
+        }
+
+        private void CreateRowColumn(GameObject parent, string columnName, float xMin, float xMax)
+        {
+            var columnObj = new GameObject(columnName);
+            columnObj.transform.SetParent(parent.transform, false);
+            
+            var columnRect = columnObj.AddComponent<RectTransform>();
+            columnRect.anchorMin = new Vector2(xMin, 0f);
+            columnRect.anchorMax = new Vector2(xMax, 1f);
+            columnRect.offsetMin = new Vector2(5f, 2f);
+            columnRect.offsetMax = new Vector2(-5f, -2f);
+
+            var columnText = columnObj.AddComponent<Text>();
+            columnText.text = "";
+            FontHelper.SetSafeFont(columnText);
+            columnText.fontSize = 10;
+            columnText.color = Color.white;
+            columnText.alignment = TextAnchor.MiddleLeft;
+            columnText.verticalOverflow = VerticalWrapMode.Truncate;
+            columnText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        }
+
+        private void CreateActionsColumn(GameObject parent, float xMin, float xMax)
+        {
+            var columnObj = new GameObject("Actions");
+            columnObj.transform.SetParent(parent.transform, false);
+            
+            var columnRect = columnObj.AddComponent<RectTransform>();
+            columnRect.anchorMin = new Vector2(xMin, 0f);
+            columnRect.anchorMax = new Vector2(xMax, 1f);
+            columnRect.offsetMin = new Vector2(2f, 2f);
+            columnRect.offsetMax = new Vector2(-2f, -2f);
+
+            // Single Add/Remove button that fills the entire column
+            var toggleBtn = columnObj.AddComponent<Button>();
+            var btnImage = columnObj.AddComponent<Image>();
+            btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Default to green (Add)
+            toggleBtn.targetGraphic = btnImage;
+
+            var btnText = new GameObject("Text");
+            btnText.transform.SetParent(columnObj.transform, false);
+            var btnTextRect = btnText.AddComponent<RectTransform>();
+            btnTextRect.anchorMin = Vector2.zero;
+            btnTextRect.anchorMax = Vector2.one;
+            btnTextRect.offsetMin = Vector2.zero;
+            btnTextRect.offsetMax = Vector2.zero;
+
+            var btnTextComponent = btnText.AddComponent<Text>();
+            btnTextComponent.text = "➕";
+            FontHelper.SetSafeFont(btnTextComponent);
+            btnTextComponent.fontSize = 12;
+            btnTextComponent.color = Color.white;
+            btnTextComponent.alignment = TextAnchor.MiddleCenter;
+        }
+
+        private void ClearSongRows()
+        {
+            foreach (var row in songRows)
+            {
+                if (row != null)
+                    Destroy(row);
+            }
+            songRows.Clear();
+        }
+
+        private void PopulateSongTable(List<SongDetails> songs)
+        {
+            ClearSongRows();
+            
+            if (songs == null || songs.Count == 0)
+            {
+                ShowPlaceholder();
+                return;
+            }
+
+            foreach (var song in songs)
+            {
+                var row = CreateSongRow();
+                
+                // Populate columns
+                var titleText = row.transform.Find("Title").GetComponent<Text>();
+                titleText.text = song.title ?? "Unknown Title";
+                
+                var artistText = row.transform.Find("Artist").GetComponent<Text>();
+                artistText.text = song.GetArtist();
+                
+                var durationText = row.transform.Find("Duration").GetComponent<Text>();
+                durationText.text = song.GetFormattedDuration();
+                
+                // Setup toggle button for this specific song
+                var actionsColumn = row.transform.Find("Actions");
+                var toggleBtn = actionsColumn.GetComponent<Button>();
+                var btnImage = actionsColumn.GetComponent<Image>();
+                var btnText = actionsColumn.transform.Find("Text").GetComponent<Text>();
+                
+                var songUrl = song.url; // Capture for closure
+                var songTitle = song.title ?? "Unknown Title";
+                var songArtist = song.GetArtist();
+                
+                // Check if song is already in playlist and update button appearance
+                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
+                if (inPlaylist)
+                {
+                    btnText.text = "➖";
+                    btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
+                }
+                else
+                {
+                    btnText.text = "➕";
+                    btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
+                }
+                
+                toggleBtn.onClick.AddListener((UnityEngine.Events.UnityAction)(() => OnSongTogglePlaylistClicked(songUrl, songTitle, songArtist)));
+            }
+        }
+
+        private void OnSongTogglePlaylistClicked(string songUrl, string songTitle, string songArtist)
+        {
+            LoggingSystem.Info($"Toggle playlist button clicked for song: {songTitle} by {songArtist}", "UI");
             
             try
             {
-                FontHelper.SetSafeFont(songInfoText);
-                LoggingSystem.Debug("CreateSongInfoDisplay: FontHelper.SetSafeFont completed", "UI");
+                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
+                
+                if (inPlaylist)
+                {
+                    // Remove from playlist
+                    UpdateStatus($"🎵 Removing '{songTitle}' from playlist...", Color.yellow);
+                    
+                    bool removed = manager?.RemoveYouTubeSong(songUrl) ?? false;
+                    if (removed)
+                    {
+                        UpdateStatus($"✅ Removed '{songTitle}' from YouTube playlist!", Color.green);
+                        LoggingSystem.Info($"Successfully removed '{songTitle}' from YouTube playlist", "UI");
+                        
+                        // Switch to YouTube tab to show the updated playlist
+                        manager?.SetMusicSource(MusicSourceType.YouTube);
+                        
+                        // Update the button in the table
+                        RefreshSongButtonStates();
+                    }
+                    else
+                    {
+                        UpdateStatus($"❌ Failed to remove '{songTitle}' from playlist", Color.red);
+                    }
+                }
+                else
+                {
+                    // Add to playlist
+                    UpdateStatus($"🎵 Adding '{songTitle}' to playlist...", Color.yellow);
+                    
+                    // Create SongDetails from the current data
+                    var songDetails = currentSongDetails?.FirstOrDefault(s => s.url == songUrl);
+                    if (songDetails != null)
+                    {
+                        bool added = manager?.AddYouTubeSong(songDetails) ?? false;
+                        if (added)
+                        {
+                            UpdateStatus($"✅ Added '{songTitle}' to YouTube playlist!", Color.green);
+                            LoggingSystem.Info($"Successfully added '{songTitle}' to YouTube playlist", "UI");
+                            
+                            // Switch to YouTube tab to show the added song
+                            manager?.SetMusicSource(MusicSourceType.YouTube);
+                            
+                            // Update the button in the table
+                            RefreshSongButtonStates();
+                        }
+                        else
+                        {
+                            UpdateStatus($"❌ Failed to add '{songTitle}' to playlist (may already exist)", Color.red);
+                        }
+                    }
+                    else
+                    {
+                        UpdateStatus($"❌ Song details not found for '{songTitle}'", Color.red);
+                    }
+                }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                LoggingSystem.Error($"CreateSongInfoDisplay: FontHelper.SetSafeFont failed: {ex.Message}", "UI");
-                // Continue without font, Unity will use default
+                UpdateStatus($"❌ Error toggling '{songTitle}' in playlist", Color.red);
+                LoggingSystem.Error($"Error toggling song in playlist: {ex.Message}", "UI");
             }
-            
-            songInfoText.fontSize = 12;
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set fontSize", "UI");
-            
-            songInfoText.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set text color", "UI");
-            
-            songInfoText.alignment = TextAnchor.UpperLeft;
-            LoggingSystem.Debug("CreateSongInfoDisplay: Set text alignment", "UI");
-            
-            LoggingSystem.Debug("CreateSongInfoDisplay: Completed successfully", "UI");
         }
 
-        private void CreateActionButtons(GameObject parent)
+        private void RefreshSongButtonStates()
         {
-            // Download Button
-            var downloadObj = new GameObject("DownloadButton");
-            downloadObj.transform.SetParent(parent.transform, false);
-            
-            var downloadRect = downloadObj.AddComponent<RectTransform>();
-            downloadRect.anchorMin = new Vector2(0.1f, 0.22f);
-            downloadRect.anchorMax = new Vector2(0.45f, 0.3f);
-            downloadRect.offsetMin = Vector2.zero;
-            downloadRect.offsetMax = Vector2.zero;
-
-            var downloadImage = downloadObj.AddComponent<Image>();
-            downloadImage.color = new Color(0.2f, 0.5f, 0.8f, 0.8f);
-
-            downloadButton = downloadObj.AddComponent<Button>();
-            downloadButton.targetGraphic = downloadImage;
-
-            var downloadTextObj = new GameObject("Text");
-            downloadTextObj.transform.SetParent(downloadObj.transform, false);
-            var downloadTextRect = downloadTextObj.AddComponent<RectTransform>();
-            downloadTextRect.anchorMin = Vector2.zero;
-            downloadTextRect.anchorMax = Vector2.one;
-            downloadTextRect.offsetMin = Vector2.zero;
-            downloadTextRect.offsetMax = Vector2.zero;
-
-            var downloadText = downloadTextObj.AddComponent<Text>();
-            downloadText.text = "⬇️ Download";
-            FontHelper.SetSafeFont(downloadText);
-            downloadText.fontSize = 14;
-            downloadText.color = Color.white;
-            downloadText.alignment = TextAnchor.MiddleCenter;
-            downloadText.fontStyle = FontStyle.Bold;
-
-            downloadButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnDownloadButtonClicked);
-
-            // Cancel Button
-            var cancelObj = new GameObject("CancelButton");
-            cancelObj.transform.SetParent(parent.transform, false);
-            
-            var cancelRect = cancelObj.AddComponent<RectTransform>();
-            cancelRect.anchorMin = new Vector2(0.55f, 0.22f);
-            cancelRect.anchorMax = new Vector2(0.9f, 0.3f);
-            cancelRect.offsetMin = Vector2.zero;
-            cancelRect.offsetMax = Vector2.zero;
-
-            var cancelImage = cancelObj.AddComponent<Image>();
-            cancelImage.color = new Color(0.7f, 0.2f, 0.2f, 0.8f);
-
-            cancelButton = cancelObj.AddComponent<Button>();
-            cancelButton.targetGraphic = cancelImage;
-
-            var cancelTextObj = new GameObject("Text");
-            cancelTextObj.transform.SetParent(cancelObj.transform, false);
-            var cancelTextRect = cancelTextObj.AddComponent<RectTransform>();
-            cancelTextRect.anchorMin = Vector2.zero;
-            cancelTextRect.anchorMax = Vector2.one;
-            cancelTextRect.offsetMin = Vector2.zero;
-            cancelTextRect.offsetMax = Vector2.zero;
-
-            var cancelText = cancelTextObj.AddComponent<Text>();
-            cancelText.text = "❌ Cancel";
-            FontHelper.SetSafeFont(cancelText);
-            cancelText.fontSize = 14;
-            cancelText.color = Color.white;
-            cancelText.alignment = TextAnchor.MiddleCenter;
-            cancelText.fontStyle = FontStyle.Bold;
-
-            cancelButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnCancelButtonClicked);
-        }
-
-        private void CreateStatusText(GameObject parent)
-        {
-            var statusObj = new GameObject("StatusText");
-            statusObj.transform.SetParent(parent.transform, false);
-            
-            var statusRect = statusObj.AddComponent<RectTransform>();
-            statusRect.anchorMin = new Vector2(0f, 0.05f);
-            statusRect.anchorMax = new Vector2(1f, 0.18f);
-            statusRect.offsetMin = Vector2.zero;
-            statusRect.offsetMax = Vector2.zero;
-
-            statusText = statusObj.AddComponent<Text>();
-            statusText.text = "💡 Tip: Make sure the YouTube URL is valid and the video is accessible.";
-            FontHelper.SetSafeFont(statusText);
-            statusText.fontSize = 11;
-            statusText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-            statusText.alignment = TextAnchor.UpperCenter;
+            // Update all song buttons to reflect current playlist state
+            foreach (var row in songRows)
+            {
+                if (row == null) continue;
+                
+                var actionsColumn = row.transform.Find("Actions");
+                if (actionsColumn == null) continue;
+                
+                var btnImage = actionsColumn.GetComponent<Image>();
+                var btnText = actionsColumn.transform.Find("Text")?.GetComponent<Text>();
+                
+                if (btnImage == null || btnText == null) continue;
+                
+                // Find the corresponding song in currentSongDetails
+                var titleText = row.transform.Find("Title")?.GetComponent<Text>();
+                if (titleText == null) continue;
+                
+                var matchingSong = currentSongDetails?.FirstOrDefault(s => (s.title ?? "Unknown Title") == titleText.text);
+                if (matchingSong != null)
+                {
+                    bool inPlaylist = manager?.ContainsYouTubeSong(matchingSong.url) ?? false;
+                    if (inPlaylist)
+                    {
+                        btnText.text = "➖";
+                        btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
+                    }
+                    else
+                    {
+                        btnText.text = "➕";
+                        btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
+                    }
+                }
+            }
         }
 
         private void OnSearchButtonClicked()
@@ -506,18 +685,18 @@ namespace BackSpeakerMod.UI.Components
                 return;
             }
 
-            LoggingSystem.Info("Search button clicked", "UI");
-            LoggingSystem.Info("URL: " + url, "UI");
+        LoggingSystem.Info("Search button clicked", "UI");
+        LoggingSystem.Info("URL: " + url, "UI");
             
             isSearching = true;
             loadingDots = 0f; // Reset animation
             UpdateButtonStates();
             
-            // Clear previous song info immediately
-            if (songInfoText != null)
-            {
-                songInfoText.text = "Fetching song details...";
-            }
+            // Show loading in table
+            ShowPlaceholder();
+            var placeholderText = songRows[0].transform.Find("Title").GetComponent<Text>();
+            placeholderText.text = "Fetching song details...";
+            placeholderText.color = Color.yellow;
             
             YoutubeHelper.GetSongDetails(url, OnSongDetailsReceived);
         }
@@ -532,81 +711,44 @@ namespace BackSpeakerMod.UI.Components
                 if (songDetails == null || songDetails.Count == 0)
                 {
                     UpdateStatus("❌ Failed to get song details. Check the URL and try again.", Color.red);
+                    ShowPlaceholder();
                     return;
                 }
 
-                LoggingSystem.Info("Song details: " + songDetails.Count + " songs found", "UI");
-                currentSongDetails = songDetails[0];
+                LoggingSystem.Info($"Song details: {songDetails.Count} songs found", "UI");
+                currentSongDetails = songDetails;
                 
-                if (currentSongDetails == null)
-                {
-                    UpdateStatus("❌ Failed to parse song details", Color.red);
-                    return;
-                }
-
-                var artist = currentSongDetails.GetArtist();
-                var duration = currentSongDetails.GetFormattedDuration();
+                // Populate the table with songs
+                PopulateSongTable(songDetails);
                 
-                var infoText = $"🎵 Title: {currentSongDetails.title}\n" +
-                              $"🎤 Artist: {artist}\n" +
-                              $"⏱️ Duration: {duration}\n" +
-                              $"🆔 Video ID: {currentSongDetails.id}";
+                var statusMessage = songDetails.Count == 1 ? 
+                    "✅ Song details loaded! Click toggle buttons to add/remove songs." :
+                    $"✅ Found {songDetails.Count} songs! Click toggle buttons to add/remove songs from playlist.";
+                    
+                UpdateStatus(statusMessage, Color.green);
                 
-                songInfoText.text = infoText;
-                UpdateStatus("✅ Song details loaded! Ready to download.", Color.green);
-                
-                LoggingSystem.Info($"Song details loaded: {currentSongDetails.title} by {artist}", "UI");
+                LoggingSystem.Info($"Populated song table with {songDetails.Count} songs", "UI");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error parsing song details: {ex.Message}", "UI");
-                UpdateStatus("❌ Error parsing song details", Color.red);
+                LoggingSystem.Error($"Error processing song details: {ex.Message}", "UI");
+                UpdateStatus("❌ Error processing song details", Color.red);
+                ShowPlaceholder();
                 currentSongDetails = null;
             }
         }
 
-        private void OnDownloadButtonClicked()
+        private void OnDownloadAllButtonClicked()
         {
-            if (isDownloading || currentSongDetails == null) return;
-            
-            var url = searchBarInputField.text?.Trim();
-            if (string.IsNullOrEmpty(url))
-            {
-                UpdateStatus("❌ No URL to download", Color.red);
-                return;
-            }
-
-            LoggingSystem.Info("Download button clicked", "UI");
-            LoggingSystem.Info("Downloading URL: " + url, "UI");
-            
-            isDownloading = true;
-            loadingDots = 0f; // Reset animation
-            UpdateButtonStates();
-            
-            YoutubeHelper.DownloadSong(url, OnDownloadCompleted);
+            // This method is no longer used since we're using playlist streaming instead of downloads
+            UpdateStatus("❌ Download functionality has been replaced with playlist streaming", Color.red);
         }
 
         private void OnDownloadCompleted(string output)
         {
+            // This method is no longer used since we're using playlist streaming instead of downloads
             isDownloading = false;
             UpdateButtonStates();
-            
-            LoggingSystem.Info("Download completed: " + output, "UI");
-            
-            if (!string.IsNullOrEmpty(output))
-            {
-                UpdateStatus("✅ Download completed! Reloading YouTube tracks...", Color.green);
-                
-                // Reload YouTube tracks to include the new download
-                manager?.LoadTracksFromCurrentSource();
-                
-                // Close popup after successful download
-                ClosePopup();
-            }
-            else
-            {
-                UpdateStatus("❌ Download failed. Check the logs for details.", Color.red);
-            }
         }
 
         private void OnCancelButtonClicked()
@@ -633,18 +775,6 @@ namespace BackSpeakerMod.UI.Components
                 searchButton.interactable = !isSearching && !isDownloading;
             }
             
-            if (downloadButton != null)
-            {
-                downloadButton.interactable = !isSearching && !isDownloading && currentSongDetails != null;
-                var downloadImage = downloadButton.GetComponent<Image>();
-                if (downloadImage != null)
-                {
-                    downloadImage.color = downloadButton.interactable ? 
-                        new Color(0.2f, 0.5f, 0.8f, 0.8f) : 
-                        new Color(0.3f, 0.3f, 0.3f, 0.5f);
-                }
-            }
-            
             if (cancelButton != null)
             {
                 cancelButton.interactable = !isDownloading;
@@ -658,6 +788,153 @@ namespace BackSpeakerMod.UI.Components
                 statusText.text = message;
                 statusText.color = color;
             }
+        }
+
+        private void CreateActionButtons(GameObject parent)
+        {
+            // Add All to Playlist Button
+            var addAllObj = new GameObject("AddAllButton");
+            addAllObj.transform.SetParent(parent.transform, false);
+            
+            var addAllRect = addAllObj.AddComponent<RectTransform>();
+            addAllRect.anchorMin = new Vector2(0.1f, 0.15f);
+            addAllRect.anchorMax = new Vector2(0.55f, 0.22f);
+            addAllRect.offsetMin = Vector2.zero;
+            addAllRect.offsetMax = Vector2.zero;
+
+            var addAllImage = addAllObj.AddComponent<Image>();
+            addAllImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
+
+            var addAllButton = addAllObj.AddComponent<Button>();
+            addAllButton.targetGraphic = addAllImage;
+
+            var addAllTextObj = new GameObject("Text");
+            addAllTextObj.transform.SetParent(addAllObj.transform, false);
+            var addAllTextRect = addAllTextObj.AddComponent<RectTransform>();
+            addAllTextRect.anchorMin = Vector2.zero;
+            addAllTextRect.anchorMax = Vector2.one;
+            addAllTextRect.offsetMin = Vector2.zero;
+            addAllTextRect.offsetMax = Vector2.zero;
+
+            var addAllText = addAllTextObj.AddComponent<Text>();
+            addAllText.text = "➕ Add All to Playlist";
+            FontHelper.SetSafeFont(addAllText);
+            addAllText.fontSize = 12;
+            addAllText.color = Color.white;
+            addAllText.alignment = TextAnchor.MiddleCenter;
+            addAllText.fontStyle = FontStyle.Bold;
+
+            addAllButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnAddAllToPlaylistButtonClicked);
+
+            // Cancel Button
+            var cancelObj = new GameObject("CancelButton");
+            cancelObj.transform.SetParent(parent.transform, false);
+            
+            var cancelRect = cancelObj.AddComponent<RectTransform>();
+            cancelRect.anchorMin = new Vector2(0.6f, 0.15f);
+            cancelRect.anchorMax = new Vector2(0.9f, 0.22f);
+            cancelRect.offsetMin = Vector2.zero;
+            cancelRect.offsetMax = Vector2.zero;
+
+            var cancelImage = cancelObj.AddComponent<Image>();
+            cancelImage.color = new Color(0.7f, 0.2f, 0.2f, 0.8f);
+
+            cancelButton = cancelObj.AddComponent<Button>();
+            cancelButton.targetGraphic = cancelImage;
+
+            var cancelTextObj = new GameObject("Text");
+            cancelTextObj.transform.SetParent(cancelObj.transform, false);
+            var cancelTextRect = cancelTextObj.AddComponent<RectTransform>();
+            cancelTextRect.anchorMin = Vector2.zero;
+            cancelTextRect.anchorMax = Vector2.one;
+            cancelTextRect.offsetMin = Vector2.zero;
+            cancelTextRect.offsetMax = Vector2.zero;
+
+            var cancelText = cancelTextObj.AddComponent<Text>();
+            cancelText.text = "❌ Cancel";
+            FontHelper.SetSafeFont(cancelText);
+            cancelText.fontSize = 12;
+            cancelText.color = Color.white;
+            cancelText.alignment = TextAnchor.MiddleCenter;
+            cancelText.fontStyle = FontStyle.Bold;
+
+            cancelButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnCancelButtonClicked);
+        }
+
+        private void OnAddAllToPlaylistButtonClicked()
+        {
+            if (currentSongDetails == null || currentSongDetails.Count == 0)
+            {
+                UpdateStatus("❌ No songs to add to playlist", Color.red);
+                return;
+            }
+
+            LoggingSystem.Info($"Add All to Playlist button clicked - {currentSongDetails.Count} songs", "UI");
+            
+            try
+            {
+                UpdateStatus($"🎵 Adding {currentSongDetails.Count} songs to playlist...", Color.yellow);
+                
+                int successCount = 0;
+                int skipCount = 0;
+                
+                foreach (var song in currentSongDetails)
+                {
+                    bool added = manager?.AddYouTubeSong(song) ?? false;
+                    if (added)
+                    {
+                        successCount++;
+                        LoggingSystem.Info($"Added '{song.title}' to YouTube playlist ({successCount}/{currentSongDetails.Count})", "UI");
+                    }
+                    else
+                    {
+                        skipCount++;
+                        LoggingSystem.Info($"Skipped '{song.title}' (already in playlist)", "UI");
+                    }
+                }
+                
+                if (successCount > 0)
+                {
+                    // Switch to YouTube tab to show the added songs
+                    manager?.SetMusicSource(MusicSourceType.YouTube);
+                    
+                    var statusMessage = skipCount > 0 ? 
+                        $"✅ Added {successCount} songs to playlist ({skipCount} already existed)" :
+                        $"✅ Added all {successCount} songs to YouTube playlist!";
+                    UpdateStatus(statusMessage, Color.green);
+                    
+                    // Update button states in the table
+                    RefreshSongButtonStates();
+                }
+                else
+                {
+                    UpdateStatus("ℹ️ All songs are already in the playlist", Color.yellow);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus("❌ Error adding songs to playlist", Color.red);
+                LoggingSystem.Error($"Error in AddAllToPlaylist: {ex.Message}", "UI");
+            }
+        }
+
+        private void CreateStatusText(GameObject parent)
+        {
+            var statusObj = new GameObject("StatusText");
+            statusObj.transform.SetParent(parent.transform, false);
+            
+            var statusRect = statusObj.AddComponent<RectTransform>();
+            statusRect.anchorMin = new Vector2(0f, 0.05f);
+            statusRect.anchorMax = new Vector2(1f, 0.12f);
+            statusRect.offsetMin = Vector2.zero;
+            statusRect.offsetMax = Vector2.zero;
+
+            statusText = statusObj.AddComponent<Text>();
+            statusText.text = "💡 Tip: Enter a YouTube URL or playlist link to add songs to your YouTube playlist.";
+            FontHelper.SetSafeFont(statusText);
+            statusText.fontSize = 11;
+            statusText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            statusText.alignment = TextAnchor.UpperCenter;
         }
     }
 }

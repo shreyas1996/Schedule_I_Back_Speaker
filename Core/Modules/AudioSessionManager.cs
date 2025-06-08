@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using BackSpeakerMod.Core.System;
+using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.Core.Modules
 {
@@ -116,6 +117,64 @@ namespace BackSpeakerMod.Core.Modules
             LoggingSystem.Info($"Loading tracks for session: {sessionType}", "AudioSessionManager");
             trackLoader.SetMusicSource(sessionType);
             trackLoader.LoadTracksFromCurrentSource();
+        }
+        
+        /// <summary>
+        /// Add a single track to a specific session
+        /// </summary>
+        public void AddTrackToSession(MusicSourceType sessionType, AudioClip audioClip, string title, string artist)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return;
+            }
+            
+            if (sessions.ContainsKey(sessionType))
+            {
+                sessions[sessionType].AddTrack(audioClip, title, artist);
+                
+                // If this is the active session, update the audio controller
+                if (sessionType == currentActiveSession)
+                {
+                    var session = sessions[sessionType];
+                    var allClips = session.GetAllClips();
+                    var allTracks = session.GetAllTracks();
+                    audioController.SetTracks(allClips, allTracks);
+                    
+                    // Trigger tracks reloaded event
+                    OnTracksReloaded?.Invoke();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Add multiple tracks to a specific session
+        /// </summary>
+        public void AddTracksToSession(MusicSourceType sessionType, List<AudioClip> audioClips, List<(string title, string artist)> trackInfo)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return;
+            }
+            
+            if (sessions.ContainsKey(sessionType))
+            {
+                sessions[sessionType].AddTracks(audioClips, trackInfo);
+                
+                // If this is the active session, update the audio controller
+                if (sessionType == currentActiveSession)
+                {
+                    var session = sessions[sessionType];
+                    var allClips = session.GetAllClips();
+                    var allTracks = session.GetAllTracks();
+                    audioController.SetTracks(allClips, allTracks);
+                    
+                    // Trigger tracks reloaded event
+                    OnTracksReloaded?.Invoke();
+                }
+            }
         }
         
         /// <summary>
@@ -468,6 +527,92 @@ namespace BackSpeakerMod.Core.Modules
             var activeSession = GetActiveSession();
             var playingStatus = globalPlayingSession.HasValue ? $"Playing: {sessions[globalPlayingSession.Value].DisplayName}" : "No active playback";
             return $"Active: {activeSession.DisplayName} | {playingStatus} | {activeSession.GetStatus()}";
+        }
+        
+        /// <summary>
+        /// Add a YouTube song to the YouTube session playlist
+        /// </summary>
+        public bool AddYouTubeSong(SongDetails songDetails)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return false;
+            }
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                var session = sessions[MusicSourceType.YouTube];
+                bool added = session.AddYouTubeSong(songDetails);
+                
+                if (added && MusicSourceType.YouTube == currentActiveSession)
+                {
+                    // Update UI for YouTube session
+                    OnTracksReloaded?.Invoke();
+                }
+                
+                return added;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Remove a YouTube song from the YouTube session playlist
+        /// </summary>
+        public bool RemoveYouTubeSong(string url)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return false;
+            }
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                var session = sessions[MusicSourceType.YouTube];
+                bool removed = session.RemoveYouTubeSong(url);
+                
+                if (removed && MusicSourceType.YouTube == currentActiveSession)
+                {
+                    // Update UI for YouTube session
+                    OnTracksReloaded?.Invoke();
+                }
+                
+                return removed;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Check if a YouTube song exists in the playlist
+        /// </summary>
+        public bool ContainsYouTubeSong(string url)
+        {
+            if (!isInitialized) return false;
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                return sessions[MusicSourceType.YouTube].ContainsYouTubeSong(url);
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Get YouTube playlist from the session
+        /// </summary>
+        public YouTubePlaylist? GetYouTubePlaylist()
+        {
+            if (!isInitialized) return null;
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                return sessions[MusicSourceType.YouTube].YouTubePlaylist;
+            }
+            
+            return null;
         }
     }
 } 

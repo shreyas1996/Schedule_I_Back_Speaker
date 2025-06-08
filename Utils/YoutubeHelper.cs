@@ -49,7 +49,28 @@ namespace BackSpeakerMod.Utils
                         }
 
                         var ytDlpPath = EmbeddedYtDlpLoader.YtDlpExtractedPath;
-                        var command = $"--print \"%(title)s|%(uploader)s|%(duration)s|%(thumbnail)s|%(webpage_url)s\" \"{url}\"";
+                        var command = "";
+                        // check if the url is a playlist
+                        if (url.Contains("list="))
+                        {
+                            // check if the url has index in it
+                            if (url.Contains("index="))
+                            {
+                                // get the index from the url
+                                var index = url.Split(new string[] { "index=" }, StringSplitOptions.None)[1];
+                                command = "--playlist-items " + index + " --print \"%(title)s|%(uploader)s|%(duration)s|%(thumbnail)s|%(webpage_url)s\" \"" + url + "\"";
+                            }
+                            else
+                            {
+                                command = "--flat-playlist --print \"%(title)s|%(uploader)s|%(duration)s|%(thumbnail)s|%(webpage_url)s\" \"" + url + "\"";
+                            }
+                        }
+                        else
+                        {
+                            command = "--print \"%(title)s|%(uploader)s|%(duration)s|%(thumbnail)s|%(webpage_url)s\" \"" + url + "\"";
+                        }
+
+                        command = "--cookies-from-browser chrome " + command;
                         
                         LoggingSystem.Info($"=== EXECUTING YT-DLP COMMAND ===", "YoutubeHelper");
                         LoggingSystem.Info($"Executable: {ytDlpPath}", "YoutubeHelper");
@@ -107,7 +128,7 @@ namespace BackSpeakerMod.Utils
                             
                             LoggingSystem.Info($"yt-dlp process completed with exit code: {process.ExitCode}", "YoutubeHelper");
                             
-                            if (!string.IsNullOrEmpty(error))
+                            if (!string.IsNullOrEmpty(error) && !error.Contains("ERROR"))
                                 LoggingSystem.Warning($"yt-dlp stderr output: {error}", "YoutubeHelper");
 
                             if (string.IsNullOrEmpty(output) || output.Trim() == "")
@@ -176,6 +197,61 @@ namespace BackSpeakerMod.Utils
             }
         }
 
+        public static async Task<string> GetStreamableUrl(string url)
+        {
+            // get stream url using yt-dlp -g command
+            var ytDlpPath = EmbeddedYtDlpLoader.YtDlpExtractedPath;
+            var command = "";
+            if (url.Contains("list="))
+            {
+                if (url.Contains("index="))
+                {
+                    // get the index from the url
+                    var index = url.Split(new string[] { "index=" }, StringSplitOptions.None)[1];
+                    command = $"-g --playlist-items {index} \"{url}\"";
+                }
+                else
+                {
+                    LoggingSystem.Error("Playlist url not supported", "YoutubeHelper");
+                    return "";
+                }
+            }
+            else
+            {
+                command = $"-g \"{url}\"";
+            }
+            command = "--cookies-from-browser chrome" + command;
+            var result = await Task.Run(() => {
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = ytDlpPath;
+                    process.StartInfo.Arguments = command;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.Start();
+                    process.WaitForExit(30000);
+                    var output = process.StandardOutput.ReadToEnd();
+                    var error = process.StandardError.ReadToEnd();
+                    LoggingSystem.Info($"yt-dlp stream url: {output}", "YoutubeHelper");
+                    LoggingSystem.Info($"yt-dlp stream url error: {error}", "YoutubeHelper");
+                    if(!string.IsNullOrEmpty(error) && error.Contains("ERROR"))
+                    {
+                        LoggingSystem.Error("Error getting stream url", "YoutubeHelper");
+                        return "";
+                    }
+                    if(string.IsNullOrEmpty(output))
+                    {
+                        LoggingSystem.Error("No output from yt-dlp", "YoutubeHelper");
+                        return "";
+                    }
+                    return output;
+                }
+            });
+            return result;
+        }
+
         public static async void DownloadSong(string url, Action<string> onComplete)
         {
             try
@@ -197,7 +273,7 @@ namespace BackSpeakerMod.Utils
                         var cacheDir = GetYouTubeCacheDirectory();
                         var outputTemplate = Path.Combine(cacheDir, "%(title)s.%(ext)s");
                         var ytDlpPath = EmbeddedYtDlpLoader.YtDlpExtractedPath;
-                        var command = $"-f bestaudio --extract-audio --audio-format mp3 -o \"{outputTemplate}\" \"{url}\"";
+                        var command = "-f bestaudio --extract-audio --audio-format mp3 -o \"" + outputTemplate + "\" \"" + url + "\"";
                         
                         LoggingSystem.Info($"=== EXECUTING YT-DLP DOWNLOAD COMMAND ===", "YoutubeHelper");
                         LoggingSystem.Info($"Executable: {ytDlpPath}", "YoutubeHelper");
