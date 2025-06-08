@@ -157,11 +157,22 @@ namespace BackSpeakerMod.Core.Modules
         {
             try
             {
+                // If we don't have cached song details yet, load them first
                 if (_cachedSongDetails.Count == 0)
                 {
-                    LoggingSystem.Debug("No cached songs to add to session", "YouTube");
+                    LoggingSystem.Info("No cached songs loaded yet - loading them now", "YouTube");
+                    var loadTask = LoadCachedSongsIntoPlaylist();
+                    // Since this is called from UI thread, we need to wait synchronously
+                    loadTask.Wait();
+                }
+                
+                if (_cachedSongDetails.Count == 0)
+                {
+                    LoggingSystem.Debug("No cached songs available to add to session", "YouTube");
                     return;
                 }
+                
+                LoggingSystem.Info($"Adding {_cachedSongDetails.Count} cached YouTube songs to session", "YouTube");
                 
                 int addedCount = 0;
                 foreach (var songDetails in _cachedSongDetails)
@@ -182,7 +193,7 @@ namespace BackSpeakerMod.Core.Modules
                     }
                 }
                 
-                LoggingSystem.Info($"Added {addedCount} cached YouTube songs to AudioSession", "YouTube");
+                LoggingSystem.Info($"Successfully added {addedCount} cached YouTube songs to AudioSession (total session tracks: {audioSession.TrackCount})", "YouTube");
             }
             catch (Exception ex)
             {

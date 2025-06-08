@@ -265,10 +265,24 @@ namespace BackSpeakerMod.UI.Components
             scrollRectTransform.anchorMax = Vector2.one;
             scrollRectTransform.offsetMin = Vector2.zero;
             scrollRectTransform.offsetMax = Vector2.zero;
+
+            // Viewport with Mask
+            var viewport = new GameObject("Viewport");
+            viewport.transform.SetParent(scrollView.transform, false);
+            var viewportRect = viewport.AddComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+            var viewportImage = viewport.AddComponent<Image>();
+            viewportImage.color = new Color(0, 0, 0, 0.01f); // Transparent but needed for Mask
+            var viewportMask = viewport.AddComponent<Mask>();
+            viewportMask.showMaskGraphic = false;
+
             
             // Content area
             var content = new GameObject("Content");
-            content.transform.SetParent(scrollView.transform, false);
+            content.transform.SetParent(viewport.transform, false);
             
             var contentRect = content.AddComponent<RectTransform>();
             contentRect.anchorMin = new Vector2(0f, 1f);
@@ -283,11 +297,16 @@ namespace BackSpeakerMod.UI.Components
             contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             
             scrollRect.content = contentRect;
+            scrollRect.viewport = viewportRect;
             scrollRect.vertical = true;
             scrollRect.horizontal = false;
             
             // Add tracks to the list
             PopulateTrackList(content);
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
         }
         
         private void PopulateTrackList(GameObject content)

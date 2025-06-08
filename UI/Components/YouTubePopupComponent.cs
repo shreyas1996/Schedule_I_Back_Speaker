@@ -383,9 +383,22 @@ public class YouTubePopupComponent : MonoBehaviour
             songTableScrollRect.horizontal = false;
             songTableScrollRect.vertical = true;
 
+            // Add Viewport with Mask
+            var viewport = new GameObject("Viewport");
+            viewport.transform.SetParent(scrollContainer.transform, false);
+            var viewportRect = viewport.AddComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+            var viewportImage = viewport.AddComponent<Image>();
+            viewportImage.color = new Color(0, 0, 0, 0.01f); // Transparent but needed for Mask
+            var viewportMask = viewport.AddComponent<Mask>();
+            viewportMask.showMaskGraphic = false;
+
             // Create content container
             songTableContent = new GameObject("TableContent");
-            songTableContent.transform.SetParent(scrollContainer.transform, false);
+            songTableContent.transform.SetParent(viewport.transform, false);
             
             var contentRect = songTableContent.AddComponent<RectTransform>();
             contentRect.anchorMin = new Vector2(0f, 1f);
@@ -402,12 +415,19 @@ public class YouTubePopupComponent : MonoBehaviour
             layoutGroup.childForceExpandHeight = false;
             layoutGroup.childForceExpandWidth = true;
             layoutGroup.spacing = 2f;
+            // layoutGroup.padding = new RectOffset(10, 10, 10, 10);
 
             // Add ContentSizeFitter for automatic sizing
             var sizeFitter = songTableContent.AddComponent<ContentSizeFitter>();
             sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             songTableScrollRect.content = contentRect;
+            songTableScrollRect.viewport = viewportRect;
+            songTableScrollRect.vertical = true;
+            songTableScrollRect.horizontal = false;
+            songTableScrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
         }
 
         private void ShowPlaceholder()

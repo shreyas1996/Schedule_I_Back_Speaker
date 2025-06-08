@@ -332,25 +332,9 @@ namespace BackSpeakerMod.Core.Modules
                 pendingPlaySong = null;
                 isWaitingForDownload = false;
                 isLoading = false;
-                
-                // Try to play next track instead using Unity-safe coroutine
-                MelonCoroutines.Start(NextTrackCoroutine());
             }
             
             OnTrackChanged?.Invoke();
-        }
-        
-        /// <summary>
-        /// Unity-safe coroutine for playing next track
-        /// </summary>
-        private IEnumerator NextTrackCoroutine()
-        {
-            LoggingSystem.Info("Attempting to skip to next track due to download failure", "YouTubeStreaming");
-            
-            // This method is now deprecated since we work with individual songs
-            // It's kept for compatibility but doesn't have a playlist context
-            LoggingSystem.Warning("NextTrack() called but YouTubeStreamingController now works with individual songs", "YouTubeStreaming");
-            yield break;
         }
         
         public void Play()
@@ -420,17 +404,22 @@ namespace BackSpeakerMod.Core.Modules
             // Check if current track ended
             if (!audioSource.isPlaying && isPlaying)
             {
-                LoggingSystem.Debug("YouTube track ended, advancing to next", "YouTubeStreaming");
+                LoggingSystem.Debug("YouTube track ended naturally", "YouTubeStreaming");
                 
                 if (repeatMode == RepeatMode.RepeatOne)
                 {
                     // Restart current track
+                    LoggingSystem.Debug("Repeating current YouTube track", "YouTubeStreaming");
                     audioSource.Play();
                 }
                 else
                 {
-                    // Auto advance to next track using Unity-safe method
-                    MelonCoroutines.Start(NextTrackCoroutine());
+                    // Mark as finished - let the session manager handle next track
+                    isPlaying = false;
+                    LoggingSystem.Info("YouTube track completed - session manager should handle next track", "YouTubeStreaming");
+                    
+                    // Trigger track changed event to notify session manager
+                    OnTrackChanged?.Invoke();
                 }
             }
         }
