@@ -45,6 +45,17 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         }
 
         /// <summary>
+        /// Update headphone system - should be called regularly to monitor camera changes
+        /// </summary>
+        public void Update()
+        {
+            if (isInitialized)
+            {
+                attachment.Update();
+            }
+        }
+
+        /// <summary>
         /// Initialize headphone system (simplified)
         /// </summary>
         public bool Initialize()
@@ -155,6 +166,45 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
                 return $"Assets not loaded ({loader.GetDetailedStatus()})";
             
             return attachment.GetStatus();
+        }
+
+        /// <summary>
+        /// Get detailed status including camera information
+        /// </summary>
+        public string GetDetailedStatus()
+        {
+            if (!FeatureFlags.Headphones.Enabled)
+                return "Disabled";
+            
+            if (!isInitialized)
+                return "Not initialized";
+            
+            if (!loader.IsLoaded)
+                return $"Assets not loaded ({loader.GetDetailedStatus()})";
+            
+            return attachment.GetDetailedStatus();
+        }
+
+        /// <summary>
+        /// Get camera information for debugging
+        /// </summary>
+        public string GetCameraInfo()
+        {
+            if (!isInitialized)
+                return "Not initialized";
+            
+            return attachment.GetCameraInfo();
+        }
+
+        /// <summary>
+        /// Force update headphone visibility (useful for debugging)
+        /// </summary>
+        public void ForceUpdateVisibility()
+        {
+            if (isInitialized)
+            {
+                attachment.ForceUpdateVisibility();
+            }
         }
 
         /// <summary>

@@ -163,8 +163,16 @@ namespace BackSpeakerMod.Core.System
 
         public void Update()
         {
-            if (!isInitialized || !Features.AudioEnabled) return;
-            audioManager?.Update();
+            if (!isInitialized) return;
+            
+            // Update headphone manager for camera tracking
+            headphoneManager?.Update();
+            
+            // Update audio manager if audio is enabled
+            if (Features.AudioEnabled)
+            {
+                audioManager?.Update();
+            }
         }
 
         public void Shutdown()
@@ -475,89 +483,87 @@ namespace BackSpeakerMod.Core.System
 
         #endregion
 
-        #region Headphone API
+        #region Headphone Management
 
         public bool AttachHeadphones()
         {
-            bool success = headphoneManager?.AttachHeadphones() ?? false;
-            if (success)
+            try
             {
-                playerAttachment?.TriggerManualAttachment();
-                if (Features.AutoLoadTracks)
+                if (!AreHeadphonesAttached())
                 {
-                    // Load default session (Jukebox) to ensure immediate music availability
-                    audioManager?.LoadDefaultSession();
+                    LoggingSystem.Info("Attempting to attach headphones", "SystemManager");
+                    bool success = headphoneManager?.AttachHeadphones() ?? false;
+                    if (success)
+                    {
+                        LoggingSystem.Info("✓ Headphones attached successfully", "SystemManager");
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning("Failed to attach headphones", "SystemManager");
+                    }
+                    return success;
+                }
+                else
+                {
+                    LoggingSystem.Info("Headphones already attached", "SystemManager");
+                    return true;
                 }
             }
-            return success;
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"AttachHeadphones failed: {ex.Message}", "SystemManager");
+                return false;
+            }
         }
 
         public bool RemoveHeadphones()
         {
-            LoggingSystem.Debug("Removing headphones", "SystemManager");
-            // Stop music first
-            LoggingSystem.Debug($"Checking if music is playing: {IsPlaying}", "SystemManager");
-            if (IsPlaying) audioManager?.Pause();
-            
-            // Reset audio system
-            LoggingSystem.Debug("Resetting audio system", "SystemManager");
-            audioManager?.Reset();
-            
-            // Detach speaker
-            try {
-                LoggingSystem.Debug("Detaching speaker", "SystemManager");
-                playerAttachment?.DetachSpeaker();
+            try
+            {
+                if (AreHeadphonesAttached())
+                {
+                    LoggingSystem.Info("Removing headphones", "SystemManager");
+                    bool removed = headphoneManager?.RemoveHeadphones() ?? false;
+                    if (removed)
+                    {
+                        LoggingSystem.Info("✓ Headphones removed", "SystemManager");
+                    }
+                    return removed;
+                }
+                else
+                {
+                    LoggingSystem.Info("No headphones to remove", "SystemManager");
+                    return true;
+                }
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Failed to detach speaker: {ex.Message}", "SystemManager");
+                LoggingSystem.Error($"RemoveHeadphones failed: {ex.Message}", "SystemManager");
                 return false;
             }
-            
-            // Remove headphones
-            LoggingSystem.Debug("Removing headphones", "SystemManager");
-            bool removed = headphoneManager?.RemoveHeadphones() ?? false;
-            LoggingSystem.Debug($"Headphone removal result: {removed}", "SystemManager");
-            return removed;
         }
 
         public bool ToggleHeadphones()
         {
-            LoggingSystem.Debug("Toggling headphones", "SystemManager");
-            bool wasAttached = AreHeadphonesAttached();
-            bool success = headphoneManager?.ToggleHeadphones() ?? false;
-            LoggingSystem.Debug($"Toggle headphones result: {success}", "SystemManager");
-            
-            if (success)
+            try
             {
-                LoggingSystem.Debug("Headphones toggled", "SystemManager");
-                bool nowAttached = AreHeadphonesAttached();
-                if (nowAttached && !wasAttached)
-                {
-                    LoggingSystem.Debug("Attaching headphones", "SystemManager");
-                    // Attaching headphones
-                    playerAttachment?.TriggerManualAttachment();
-                    if (Features.AutoLoadTracks)
-                    {
-                        // Load default session (Jukebox) to ensure immediate music availability
-                        audioManager?.LoadDefaultSession();
-                    }
-                }
-                else if (!nowAttached && wasAttached)
-                {
-                    LoggingSystem.Debug("Detaching headphones", "SystemManager");
-                    // Detaching headphones
-                    bool removed = RemoveHeadphones();
-                    LoggingSystem.Debug($"Remove headphones result: {removed}", "SystemManager");
-                    return removed;
-                }
+                bool success = headphoneManager?.ToggleHeadphones() ?? false;
+                string action = AreHeadphonesAttached() ? "attached" : "removed";
+                LoggingSystem.Info($"Headphones {action}", "SystemManager");
+                return success;
             }
-            
-            return success;
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"ToggleHeadphones failed: {ex.Message}", "SystemManager");
+                return false;
+            }
         }
 
         public bool AreHeadphonesAttached() => headphoneManager?.AreHeadphonesAttached ?? false;
         public string GetHeadphoneStatus() => headphoneManager?.GetStatus() ?? "Headphone system not initialized";
+        public string GetDetailedHeadphoneStatus() => headphoneManager?.GetDetailedStatus() ?? "Headphone system not initialized";
+        public string GetHeadphoneCameraInfo() => headphoneManager?.GetCameraInfo() ?? "Camera info not available";
+        public void ForceUpdateHeadphoneVisibility() => headphoneManager?.ForceUpdateVisibility();
 
         #endregion
 
