@@ -156,11 +156,11 @@ namespace BackSpeakerMod.Utils
         /// <summary>
         /// Execute yt-dlp process using coroutines (Unity-safe)
         /// </summary>
-        private static IEnumerator ExecuteYtDlpProcessCoroutine(string ytDlpPath, string arguments, Action<string, int> onComplete)
+        private static IEnumerator ExecuteYtDlpProcessCoroutine(string ytDlpPath, string arguments, Action<string?, int> onComplete)
         {
             LoggingSystem.Info("Starting yt-dlp process execution", "YoutubeHelper");
             
-            Process process = null;
+            Process? process = null;
             string output = "";
             string error = "";
             bool processStarted = false;
@@ -215,14 +215,14 @@ namespace BackSpeakerMod.Utils
                 else
                 {
                     LoggingSystem.Error("Failed to start yt-dlp process", "YoutubeHelper");
-                    onComplete?.Invoke("", -1);
+                    onComplete?.Invoke(null, -1);
                     yield break;
                 }
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error starting yt-dlp process: {ex.Message}", "YoutubeHelper");
-                onComplete?.Invoke("", -1);
+                onComplete?.Invoke(null, -1);
                 yield break;
             }
 
@@ -251,7 +251,7 @@ namespace BackSpeakerMod.Utils
                 {
                     LoggingSystem.Error($"Error killing timed out process: {ex.Message}", "YoutubeHelper");
                 }
-                onComplete?.Invoke("", -1);
+                onComplete?.Invoke(null, -1);
             }
             else
             {
@@ -445,27 +445,25 @@ namespace BackSpeakerMod.Utils
         /// <summary>
         /// Download a song from YouTube using MelonCoroutines (safe for Unity)
         /// </summary>
-        public static void DownloadSong(SongDetails songDetails, Action<bool> onComplete = null)
+        public static void DownloadSong(SongDetails songDetails, Action<bool>? onComplete = null)
         {
-            if (songDetails == null)
+            if (string.IsNullOrEmpty(songDetails?.url))
             {
-                LoggingSystem.Error("songDetails is null", "YoutubeHelper");
+                LoggingSystem.Error("Song URL is null or empty", "YoutubeHelper");
                 onComplete?.Invoke(false);
                 return;
             }
 
-            // Start the coroutine for safe Unity execution
+            LoggingSystem.Info($"Starting download for: {songDetails.title}", "YoutubeHelper");
             MelonCoroutines.Start(DownloadSongCoroutine(songDetails, onComplete));
         }
 
         /// <summary>
         /// Download song coroutine using MelonCoroutines (Unity-safe)
         /// </summary>
-        private static IEnumerator DownloadSongCoroutine(SongDetails songDetails, Action<bool> onComplete)
+        private static IEnumerator DownloadSongCoroutine(SongDetails songDetails, Action<bool>? onComplete)
         {
-            LoggingSystem.Info($"=== STARTING YOUTUBE SONG DOWNLOAD ===", "YoutubeHelper");
-            LoggingSystem.Info($"Song: {songDetails.title} by {songDetails.GetArtist()}", "YoutubeHelper");
-            LoggingSystem.Info($"URL: {songDetails.url}", "YoutubeHelper");
+            LoggingSystem.Info($"🎵 Starting download for: {songDetails.title} by {songDetails.GetArtist()}", "YoutubeHelper");
 
             var cacheDir = GetYouTubeCacheDirectory();
             if (string.IsNullOrEmpty(cacheDir))
@@ -491,8 +489,7 @@ namespace BackSpeakerMod.Utils
                 yield break;
             }
 
-            // Extract video ID and build download arguments
-            var videoId = ExtractVideoId(songDetails.url);
+            var videoId = ExtractVideoId(songDetails.url ?? "");
             if (string.IsNullOrEmpty(videoId))
             {
                 LoggingSystem.Error($"Could not extract video ID from URL: {songDetails.url}", "YoutubeHelper");
@@ -500,15 +497,16 @@ namespace BackSpeakerMod.Utils
                 yield break;
             }
 
-            var arguments = BuildDownloadArguments(songDetails.url, cacheDir, videoId);
+            // Build download arguments
+            var arguments = BuildDownloadArguments(songDetails.url ?? "", cacheDir, videoId);
             LoggingSystem.Debug($"yt-dlp download command: {ytDlpPath} {arguments}", "YoutubeHelper");
 
-            // Execute download process
-            string processOutput = null;
+            // Execute yt-dlp process
+            string? processOutput = null;
             int exitCode = -1;
             bool processCompleted = false;
 
-            // Start the download process coroutine
+            // Start the process execution coroutine
             yield return MelonCoroutines.Start(ExecuteYtDlpProcessCoroutine(ytDlpPath, arguments, (output, code) => {
                 processOutput = output;
                 exitCode = code;

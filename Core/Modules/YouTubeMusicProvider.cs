@@ -60,8 +60,16 @@ namespace BackSpeakerMod.Core.Modules
             // For YouTube sessions, we need to populate the playlist instead of returning AudioClips
             LoggingSystem.Info("Loading YouTube tracks - populating YouTube playlist", "YouTube");
             
-            // Load cached songs into the YouTube playlist
-            LoadCachedSongsIntoPlaylist();
+            // Load cached songs into the YouTube playlist (async)
+            LoadCachedSongsIntoPlaylistAsync(onComplete);
+        }
+
+        /// <summary>
+        /// Load cached YouTube songs and populate the YouTube playlist (async wrapper)
+        /// </summary>
+        private async void LoadCachedSongsIntoPlaylistAsync(Action<List<AudioClip>, List<(string title, string artist)>>? onComplete)
+        {
+            await LoadCachedSongsIntoPlaylist();
             
             // Return empty lists since YouTube uses playlist system
             var emptyTracks = new List<AudioClip>();
@@ -72,53 +80,70 @@ namespace BackSpeakerMod.Core.Modules
         /// <summary>
         /// Load cached YouTube songs and populate the YouTube playlist
         /// </summary>
-        private async void LoadCachedSongsIntoPlaylist()
+        private async Task LoadCachedSongsIntoPlaylist()
         {
             try
             {
-                // Instead of trying to access SystemManager.Instance, we'll defer the playlist population
-                // until the system is properly initialized and we have access through the proper channels.
-                // For now, we'll log that we found cached files and they will be available when needed.
+                LoggingSystem.Info("Loading cached YouTube songs with metadata", "YouTube");
                 
-                if (downloadPath != null && Directory.Exists(downloadPath))
+                // Clean up orphaned metadata first
+                YouTubeMetadataManager.CleanupMetadata();
+                
+                // Get songs that have both metadata and files
+                var cachedSongs = YouTubeMetadataManager.GetCachedSongsWithFiles();
+                
+                if (cachedSongs.Count > 0)
                 {
-                    var audioFiles = Directory.GetFiles(downloadPath, "*.mp3", SearchOption.TopDirectoryOnly);
-                    LoggingSystem.Info($"Found {audioFiles.Length} cached YouTube audio files", "YouTube");
-                    
-                    // We'll cache the SongDetails for these files so they can be accessed later
-                    var cachedSongDetails = new List<SongDetails>();
-                    
-                    foreach (string filePath in audioFiles)
-                    {
-                        try
-                        {
-                            var songDetails = await CreateSongDetailsFromCachedFile(filePath);
-                            if (songDetails != null)
-                            {
-                                cachedSongDetails.Add(songDetails);
-                                LoggingSystem.Debug($"Cached song details for: {songDetails.title}", "YouTube");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggingSystem.Warning($"Error processing cached file {filePath}: {ex.Message}", "YouTube");
-                        }
-                    }
-                    
-                    LoggingSystem.Info($"Prepared {cachedSongDetails.Count} cached YouTube songs for playlist population", "YouTube");
-                    
-                    // Store the cached song details for later use
-                    // They will be added to the playlist when the system initializes and calls AddCachedSongsToPlaylist
-                    _cachedSongDetails = cachedSongDetails;
+                    LoggingSystem.Info($"Found {cachedSongs.Count} cached YouTube songs with metadata", "YouTube");
+                    _cachedSongDetails = cachedSongs;
                 }
                 else
                 {
-                    LoggingSystem.Warning("YouTube cache directory not found", "YouTube");
+                    LoggingSystem.Info("No cached songs with metadata found, scanning for audio files", "YouTube");
+                    
+                    // Fallback: scan for audio files without metadata
+                    if (downloadPath != null && Directory.Exists(downloadPath))
+                    {
+                        var audioFiles = Directory.GetFiles(downloadPath, "*.mp3", SearchOption.TopDirectoryOnly);
+                        LoggingSystem.Info($"Found {audioFiles.Length} cached YouTube audio files", "YouTube");
+                        
+                        var fallbackSongs = new List<SongDetails>();
+                        
+                        foreach (string filePath in audioFiles)
+                        {
+                            try
+                            {
+                                var songDetails = await CreateSongDetailsFromCachedFile(filePath);
+                                if (songDetails != null)
+                                {
+                                    fallbackSongs.Add(songDetails);
+                                    
+                                    // Save metadata for future use
+                                    YouTubeMetadataManager.AddOrUpdateSong(songDetails);
+                                    
+                                    LoggingSystem.Debug($"Created and saved metadata for: {songDetails.title}", "YouTube");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                LoggingSystem.Warning($"Error processing cached file {filePath}: {ex.Message}", "YouTube");
+                            }
+                        }
+                        
+                        _cachedSongDetails = fallbackSongs;
+                        LoggingSystem.Info($"Created metadata for {fallbackSongs.Count} cached songs", "YouTube");
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning("YouTube cache directory not found", "YouTube");
+                        _cachedSongDetails = new List<SongDetails>();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error loading cached songs into playlist: {ex.Message}", "YouTube");
+                _cachedSongDetails = new List<SongDetails>();
             }
         }
         
@@ -126,42 +151,42 @@ namespace BackSpeakerMod.Core.Modules
         private List<SongDetails> _cachedSongDetails = new List<SongDetails>();
         
         /// <summary>
-        /// Add cached songs to a YouTube playlist (called by external systems)
+        /// Add cached songs to a YouTube AudioSession (called by external systems)
         /// </summary>
-        public void AddCachedSongsToPlaylist(YouTubePlaylist playlist)
+        public void AddCachedSongsToSession(AudioSession audioSession)
         {
             try
             {
                 if (_cachedSongDetails.Count == 0)
                 {
-                    LoggingSystem.Debug("No cached songs to add to playlist", "YouTube");
+                    LoggingSystem.Debug("No cached songs to add to session", "YouTube");
                     return;
                 }
                 
                 int addedCount = 0;
                 foreach (var songDetails in _cachedSongDetails)
                 {
-                    if (!playlist.ContainsSong(songDetails.url ?? ""))
+                    if (!audioSession.ContainsYouTubeSong(songDetails.url ?? ""))
                     {
-                        bool added = playlist.AddSong(songDetails);
+                        bool added = audioSession.AddYouTubeSong(songDetails);
                         if (added)
                         {
                             addedCount++;
-                            LoggingSystem.Debug($"Added cached song to playlist: {songDetails.title}", "YouTube");
+                            LoggingSystem.Debug($"Added cached song to session: {songDetails.title}", "YouTube");
                         }
                     }
                     else
                     {
-                        LoggingSystem.Debug($"Song already in playlist: {songDetails.title}", "YouTube");
+                        LoggingSystem.Debug($"Song already in session: {songDetails.title}", "YouTube");
                         addedCount++;
                     }
                 }
                 
-                LoggingSystem.Info($"Added {addedCount} cached YouTube songs to playlist", "YouTube");
+                LoggingSystem.Info($"Added {addedCount} cached YouTube songs to AudioSession", "YouTube");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error adding cached songs to playlist: {ex.Message}", "YouTube");
+                LoggingSystem.Error($"Error adding cached songs to session: {ex.Message}", "YouTube");
             }
         }
 

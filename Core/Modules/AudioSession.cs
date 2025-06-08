@@ -15,12 +15,10 @@ namespace BackSpeakerMod.Core.Modules
         public MusicSourceType SourceType { get; }
         public string DisplayName { get; }
         
-        // Track data (for non-YouTube sources)
-        private List<AudioClip> tracks = new List<AudioClip>();
+        // Unified track data (works for all sources including YouTube)
+        private List<AudioClip?> tracks = new List<AudioClip?>(); // AudioClip can be null for YouTube songs
         private List<(string title, string artist)> trackInfo = new List<(string, string)>();
-        
-        // YouTube playlist (for YouTube source)
-        private YouTubePlaylist? youtubePlaylist;
+        private List<SongDetails?> songDetailsInfo = new List<SongDetails?>(); // YouTube song details when available
         
         // Playback state
         private int currentTrackIndex = 0;
@@ -33,18 +31,15 @@ namespace BackSpeakerMod.Core.Modules
         private RepeatMode repeatMode = RepeatMode.None; // Default no repeat
         
         // Properties
-        public int TrackCount => IsYouTubeSession ? (youtubePlaylist?.Count ?? 0) : tracks.Count;
-        public int CurrentTrackIndex => IsYouTubeSession ? (youtubePlaylist?.CurrentTrackIndex ?? 0) : currentTrackIndex;
-        public bool HasTracks => IsYouTubeSession ? (youtubePlaylist?.HasTracks ?? false) : tracks.Count > 0;
+        public int TrackCount => tracks.Count;
+        public int CurrentTrackIndex => currentTrackIndex;
+        public bool HasTracks => tracks.Count > 0;
         public float SavedProgress => savedProgress;
         public bool IsPaused => isPaused;
         public bool HasBeenPlayed => hasBeenPlayed;
         public float Volume => volume;
         public RepeatMode RepeatMode => repeatMode;
         public bool IsYouTubeSession => SourceType == MusicSourceType.YouTube;
-        
-        // YouTube-specific properties
-        public YouTubePlaylist? YouTubePlaylist => youtubePlaylist;
         
         public AudioSession(MusicSourceType sourceType)
         {
@@ -57,14 +52,7 @@ namespace BackSpeakerMod.Core.Modules
                 _ => sourceType.ToString()
             };
             
-            // Create YouTube playlist for YouTube sessions
-            if (IsYouTubeSession)
-            {
-                youtubePlaylist = new YouTubePlaylist();
-                youtubePlaylist.OnPlaylistChanged += () => LoggingSystem.Debug($"YouTube playlist changed - Total: {youtubePlaylist.Count}", "AudioSession");
-            }
-            
-            LoggingSystem.Info($"Created audio session for {DisplayName}", "AudioSession");
+            LoggingSystem.Info($"Created unified audio session for {DisplayName}", "AudioSession");
         }
         
         /// <summary>
@@ -74,17 +62,22 @@ namespace BackSpeakerMod.Core.Modules
         {
             if (IsYouTubeSession)
             {
-                LoggingSystem.Warning("Cannot load AudioClip tracks into YouTube session - use YouTube playlist methods instead", "AudioSession");
+                LoggingSystem.Warning("Cannot load AudioClip tracks into YouTube session - use YouTube song methods instead", "AudioSession");
                 return;
             }
             
             tracks.Clear();
             trackInfo.Clear();
+            songDetailsInfo.Clear();
             
             if (newTracks != null && newTrackInfo != null)
             {
-                tracks.AddRange(newTracks);
-                trackInfo.AddRange(newTrackInfo);
+                for (int i = 0; i < newTracks.Count && i < newTrackInfo.Count; i++)
+                {
+                    tracks.Add(newTracks[i]);
+                    trackInfo.Add(newTrackInfo[i]);
+                    songDetailsInfo.Add(null); // No YouTube details for regular tracks
+                }
             }
             
             // Reset playback state when new tracks are loaded
@@ -114,6 +107,7 @@ namespace BackSpeakerMod.Core.Modules
             
             tracks.Add(audioClip);
             trackInfo.Add((title, artist));
+            songDetailsInfo.Add(null); // No YouTube details for regular tracks
             
             LoggingSystem.Info($"Session {DisplayName}: Added track '{title}' by '{artist}' - Total tracks: {tracks.Count}", "AudioSession");
         }
@@ -125,7 +119,7 @@ namespace BackSpeakerMod.Core.Modules
         {
             if (IsYouTubeSession)
             {
-                LoggingSystem.Warning("Cannot add AudioClip tracks to YouTube session - use YouTube playlist methods instead", "AudioSession");
+                LoggingSystem.Warning("Cannot add AudioClip tracks to YouTube session - use YouTube song methods instead", "AudioSession");
                 return;
             }
             
@@ -143,6 +137,7 @@ namespace BackSpeakerMod.Core.Modules
                 {
                     tracks.Add(newTracks[i]);
                     trackInfo.Add(newTrackInfo[i]);
+                    songDetailsInfo.Add(null); // No YouTube details for regular tracks
                 }
             }
             
@@ -151,7 +146,7 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
-        /// Add a YouTube song to the YouTube playlist
+        /// Add a YouTube song to the unified playlist
         /// </summary>
         public bool AddYouTubeSong(SongDetails songDetails)
         {
@@ -161,11 +156,29 @@ namespace BackSpeakerMod.Core.Modules
                 return false;
             }
             
-            return youtubePlaylist?.AddSong(songDetails) ?? false;
+            if (songDetails == null)
+            {
+                LoggingSystem.Warning("Cannot add null YouTube song", "AudioSession");
+                return false;
+            }
+            
+            // Check if song already exists
+            if (ContainsYouTubeSong(songDetails.url ?? ""))
+            {
+                LoggingSystem.Info($"YouTube song '{songDetails.title}' already exists in playlist", "AudioSession");
+                return false;
+            }
+            
+            tracks.Add(null); // No AudioClip for YouTube songs
+            trackInfo.Add((songDetails.title ?? "Unknown Title", songDetails.GetArtist()));
+            songDetailsInfo.Add(songDetails);
+            
+            LoggingSystem.Info($"Session {DisplayName}: Added YouTube song '{songDetails.title}' by '{songDetails.GetArtist()}' - Total tracks: {tracks.Count}", "AudioSession");
+            return true;
         }
         
         /// <summary>
-        /// Remove a YouTube song from the YouTube playlist
+        /// Remove a YouTube song from the unified playlist
         /// </summary>
         public bool RemoveYouTubeSong(string url)
         {
@@ -175,7 +188,34 @@ namespace BackSpeakerMod.Core.Modules
                 return false;
             }
             
-            return youtubePlaylist?.RemoveSong(url) ?? false;
+            if (string.IsNullOrEmpty(url))
+            {
+                return false;
+            }
+            
+            // Find the song by URL in songDetailsInfo
+            for (int i = 0; i < songDetailsInfo.Count; i++)
+            {
+                var songDetail = songDetailsInfo[i];
+                if (songDetail != null && songDetail.url == url)
+                {
+                    string title = trackInfo[i].title;
+                    tracks.RemoveAt(i);
+                    trackInfo.RemoveAt(i);
+                    songDetailsInfo.RemoveAt(i);
+                    
+                    // Adjust current track index if needed
+                    if (currentTrackIndex >= i && currentTrackIndex > 0)
+                    {
+                        currentTrackIndex--;
+                    }
+                    
+                    LoggingSystem.Info($"Session {DisplayName}: Removed YouTube song '{title}' - Total tracks: {tracks.Count}", "AudioSession");
+                    return true;
+                }
+            }
+            
+            return false;
         }
         
         /// <summary>
@@ -183,8 +223,30 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public bool ContainsYouTubeSong(string url)
         {
-            if (!IsYouTubeSession) return false;
-            return youtubePlaylist?.ContainsSong(url) ?? false;
+            if (!IsYouTubeSession || string.IsNullOrEmpty(url)) return false;
+            
+            return songDetailsInfo.Any(sd => sd != null && sd.url == url);
+        }
+        
+        /// <summary>
+        /// Get current YouTube song details (null if not YouTube or no current song)
+        /// </summary>
+        public SongDetails? GetCurrentYouTubeSong()
+        {
+            if (!IsYouTubeSession || currentTrackIndex >= songDetailsInfo.Count)
+            {
+                return null;
+            }
+            
+            return songDetailsInfo[currentTrackIndex];
+        }
+        
+        /// <summary>
+        /// Check if current track is a YouTube song
+        /// </summary>
+        public bool IsCurrentTrackYouTube()
+        {
+            return GetCurrentYouTubeSong() != null;
         }
         
         /// <summary>
@@ -192,12 +254,6 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public string GetCurrentTrackInfo()
         {
-            if (IsYouTubeSession)
-            {
-                var currentSong = youtubePlaylist?.GetCurrentSong();
-                return currentSong?.title ?? "No Track";
-            }
-            
             if (!HasTracks || currentTrackIndex >= trackInfo.Count)
                 return "No Track";
                 
@@ -209,12 +265,6 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public string GetCurrentArtistInfo()
         {
-            if (IsYouTubeSession)
-            {
-                var currentSong = youtubePlaylist?.GetCurrentSong();
-                return currentSong?.GetArtist() ?? "Unknown Artist";
-            }
-            
             if (!HasTracks || currentTrackIndex >= trackInfo.Count)
                 return "Unknown Artist";
                 
@@ -226,43 +276,26 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public List<(string title, string artist)> GetAllTracks()
         {
-            if (IsYouTubeSession)
-            {
-                return youtubePlaylist?.GetAllTracksInfo() ?? new List<(string, string)>();
-            }
-            
             return new List<(string, string)>(trackInfo);
         }
         
         /// <summary>
-        /// Get current audio clip (not applicable for YouTube sessions)
+        /// Get current audio clip (not applicable for YouTube songs)
         /// </summary>
         public AudioClip? GetCurrentClip()
         {
-            if (IsYouTubeSession)
-            {
-                LoggingSystem.Warning("GetCurrentClip not applicable for YouTube sessions - use streaming instead", "AudioSession");
-                return null;
-            }
-            
             if (!HasTracks || currentTrackIndex >= tracks.Count)
                 return null;
                 
-            return tracks[currentTrackIndex];
+            return tracks[currentTrackIndex]; // Will be null for YouTube songs
         }
         
         /// <summary>
-        /// Get all audio clips for playlist functionality (not applicable for YouTube sessions)
+        /// Get all audio clips for playlist functionality (excludes YouTube songs)
         /// </summary>
         public List<AudioClip> GetAllClips()
         {
-            if (IsYouTubeSession)
-            {
-                LoggingSystem.Warning("GetAllClips not applicable for YouTube sessions - use streaming instead", "AudioSession");
-                return new List<AudioClip>();
-            }
-            
-            return new List<AudioClip>(tracks);
+            return tracks.Where(t => t != null).Cast<AudioClip>().ToList();
         }
         
         /// <summary>
@@ -270,21 +303,6 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public bool PlayTrack(int index)
         {
-            if (IsYouTubeSession)
-            {
-                if (youtubePlaylist?.SetCurrentTrack(index) == true)
-                {
-                    savedProgress = 0f;
-                    isPaused = false;
-                    hasBeenPlayed = true;
-                    
-                    var currentSong = youtubePlaylist.GetCurrentSong();
-                    LoggingSystem.Info($"Session {DisplayName}: Playing YouTube track {index + 1}/{youtubePlaylist.Count}: {currentSong?.title}", "AudioSession");
-                    return true;
-                }
-                return false;
-            }
-            
             if (index < 0 || index >= tracks.Count)
             {
                 LoggingSystem.Warning($"Session {DisplayName}: Invalid track index {index}", "AudioSession");
@@ -305,11 +323,6 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public bool NextTrack()
         {
-            if (IsYouTubeSession)
-            {
-                return youtubePlaylist?.NextTrack() ?? false;
-            }
-            
             if (!HasTracks) return false;
             
             int nextIndex = (currentTrackIndex + 1) % tracks.Count;
@@ -321,11 +334,6 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public bool PreviousTrack()
         {
-            if (IsYouTubeSession)
-            {
-                return youtubePlaylist?.PreviousTrack() ?? false;
-            }
-            
             if (!HasTracks) return false;
             
             int prevIndex = currentTrackIndex - 1;
@@ -404,16 +412,10 @@ namespace BackSpeakerMod.Core.Modules
                 return;
             }
             
-            if (youtubePlaylist == null)
-            {
-                LoggingSystem.Warning("YouTube playlist not available for cached song initialization", "AudioSession");
-                return;
-            }
-            
             if (youtubeProvider != null)
             {
-                youtubeProvider.AddCachedSongsToPlaylist(youtubePlaylist);
-                LoggingSystem.Info($"Initialized YouTube session with cached songs - Total: {youtubePlaylist.Count}", "AudioSession");
+                youtubeProvider.AddCachedSongsToSession(this);
+                LoggingSystem.Info($"Initialized YouTube session with cached songs - Total: {tracks.Count}", "AudioSession");
             }
             else
             {

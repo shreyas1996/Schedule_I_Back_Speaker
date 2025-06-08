@@ -15,23 +15,23 @@ namespace BackSpeakerMod.UI.Components
 {
 public class YouTubePopupComponent : MonoBehaviour
 {
-    private BackSpeakerManager manager;
+    private BackSpeakerManager? manager;
 
         // UI Elements - stored as class members to avoid scope issues
-        private GameObject popupContainer;
-        private InputField searchBarInputField;
-        private Button searchButton;
-        private Button cancelButton;
-        private Text statusText;
+        private GameObject? popupContainer;
+        private InputField? searchBarInputField;
+        private Button? searchButton;
+        private Button? cancelButton;
+        private Text? statusText;
         
         // Song table elements
-        private GameObject songTableContainer;
-        private GameObject songTableContent;
-        private ScrollRect songTableScrollRect;
+        private GameObject? songTableContainer;
+        private GameObject? songTableContent;
+        private ScrollRect? songTableScrollRect;
         private List<GameObject> songRows = new List<GameObject>();
         
         // Current song details
-        private List<SongDetails> currentSongDetails;
+        private List<SongDetails> currentSongDetails = new List<SongDetails>();
         private bool isSearching = false;
         private bool isDownloading = false;
         

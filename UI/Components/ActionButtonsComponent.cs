@@ -199,20 +199,34 @@ namespace BackSpeakerMod.UI.Components
         
         private void OpenYouTubeSearch()
         {
-            LoggingSystem.Info("Switching to YouTube source", "UI");
+            LoggingSystem.Info("Opening YouTube actions", "UI");
             try
             {
-                // Switch to YouTube source
+                // Check if headphones are attached first
+                bool headphonesAttached = manager?.AreHeadphonesAttached() ?? false;
+                
+                if (!headphonesAttached)
+                {
+                    LoggingSystem.Warning("Headphones not attached - cannot use YouTube", "UI");
+                    UpdateLeftButtonFeedback("🎧 Attach headphones first", new Color(0.8f, 0.4f, 0.2f, 0.8f));
+                    return;
+                }
+
+                // Switch to YouTube source first
                 manager?.SetMusicSource(MusicSourceType.YouTube);
                 
-                LoggingSystem.Info("YouTube source activated", "UI");
+                // Force load cached tracks from YouTube source to refresh playlist
+                manager?.ForceLoadFromSource(MusicSourceType.YouTube);
+                
+                LoggingSystem.Info("YouTube source activated and cached tracks refreshed", "UI");
                 UpdateLeftButtonFeedback("📺 YouTube Ready", new Color(0.8f, 0.2f, 0.2f, 0.8f));
-                // TODO: Implement YouTube search popup when ready
+                
+                // Show the search popup for adding new songs
                 ShowYouTubeSearchPopup();
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"Failed to switch to YouTube: {ex.Message}", "UI");
+                LoggingSystem.Error($"Failed to open YouTube actions: {ex.Message}", "UI");
                 UpdateLeftButtonFeedback("❌ YouTube Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
             }
         }
@@ -274,10 +288,18 @@ namespace BackSpeakerMod.UI.Components
                 popupContainer.transform.SetAsLastSibling();
 
                 var popupComponent = popupContainer.AddComponent<YouTubePopupComponent>();
-                popupComponent.Setup(manager);
-                popupComponent.OpenYouTubeSearchPopup();
-                
-                LoggingSystem.Info("YouTube search popup shown successfully", "UI");
+                if (manager != null)
+                {
+                    popupComponent.Setup(manager);
+                    popupComponent.OpenYouTubeSearchPopup();
+                    
+                    LoggingSystem.Info("YouTube search popup shown successfully", "UI");
+                }
+                else
+                {
+                    LoggingSystem.Error("Manager is null - cannot setup YouTube popup", "UI");
+                    UpdateLeftButtonFeedback("❌ Manager Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+                }
             }
             catch (System.Exception ex)
             {
@@ -337,7 +359,7 @@ namespace BackSpeakerMod.UI.Components
             {
                 MusicSourceType.Jukebox => ("🔄 Reload Jukebox", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
                 MusicSourceType.LocalFolder => ("🔄 Refresh Local Music", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
-                MusicSourceType.YouTube => ("🔍 YouTube Search & Cache", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
+                MusicSourceType.YouTube => ("🔄 Refresh & Search YouTube", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
                 _ => ("🔄 Default Action", new Color(0.5f, 0.5f, 0.5f, 0.8f))
             };
             

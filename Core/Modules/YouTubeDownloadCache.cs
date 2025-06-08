@@ -282,8 +282,8 @@ namespace BackSpeakerMod.Core.Modules
             
             while (true)
             {
-                SongDetails nextSong = null;
-                string videoId = null;
+                SongDetails? nextSong = null;
+                string? videoId = null;
                 
                 // Get next song to download
                 lock (cacheLock)
@@ -336,6 +336,13 @@ namespace BackSpeakerMod.Core.Modules
             
             LoggingSystem.Info($"🎵 Downloading: {song.title} by {song.GetArtist()}", "YouTubeCache");
             
+            // Mark song as downloading
+            song.isDownloading = true;
+            song.downloadFailed = false;
+            
+            // Fire download started event
+            OnDownloadStarted?.Invoke(song);
+            
             // Use YoutubeHelper with coroutine-safe callback
             YoutubeHelper.DownloadSong(song, (success) => {
                 downloadSuccess = success;
@@ -348,13 +355,57 @@ namespace BackSpeakerMod.Core.Modules
                 yield return new UnityEngine.WaitForSeconds(0.1f);
             }
             
+            // Update song metadata based on result
+            song.isDownloading = false;
+            
             if (downloadSuccess)
             {
                 LoggingSystem.Info($"✅ Successfully downloaded: {song.title}", "YouTubeCache");
+                
+                // Mark as downloaded and update metadata
+                song.isDownloaded = true;
+                song.downloadFailed = false;
+                song.downloadTimestamp = DateTime.Now;
+                
+                // Try to get the cached file path and size
+                var cachedPath = YoutubeHelper.FindDownloadedFile(song.url ?? "");
+                if (!string.IsNullOrEmpty(cachedPath) && File.Exists(cachedPath))
+                {
+                    song.cachedFilePath = cachedPath;
+                    try
+                    {
+                        song.fileSizeBytes = new FileInfo(cachedPath).Length;
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingSystem.Warning($"Could not get file size for {cachedPath}: {ex.Message}", "YouTubeCache");
+                    }
+                }
+                
+                // Save metadata to persistent storage
+                bool metadataSaved = YouTubeMetadataManager.AddOrUpdateSong(song);
+                if (metadataSaved)
+                {
+                    LoggingSystem.Debug($"Saved metadata for downloaded song: {song.title}", "YouTubeCache");
+                }
+                else
+                {
+                    LoggingSystem.Warning($"Failed to save metadata for: {song.title}", "YouTubeCache");
+                }
+                
+                // Fire download completed event
+                OnDownloadCompleted?.Invoke(song);
             }
             else
             {
                 LoggingSystem.Warning($"❌ Failed to download: {song.title}", "YouTubeCache");
+                
+                // Mark as failed
+                song.downloadFailed = true;
+                song.isDownloaded = false;
+                
+                // Fire download failed event
+                OnDownloadFailed?.Invoke(song);
             }
             
             // Remove from active downloads
