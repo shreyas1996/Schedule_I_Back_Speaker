@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.Utils;
+using UnityEngine;
 
 namespace BackSpeakerMod.Core
 {
@@ -87,6 +89,15 @@ namespace BackSpeakerMod.Core
         public List<(MusicSourceType type, string name, bool available)> GetAvailableMusicSources() => systemManager.GetAvailableMusicSources();
         public void LoadTracksFromCurrentSource() => systemManager.LoadTracksFromCurrentSource();
         public void ForceLoadFromSource(MusicSourceType sourceType) => systemManager.ForceLoadFromSource(sourceType);
+        
+        // Public API - Session Track Management
+        public void AddTrackToSession(MusicSourceType sessionType, AudioClip audioClip, string title, string artist) => systemManager.AddTrackToSession(sessionType, audioClip, title, artist);
+        public void AddTracksToSession(MusicSourceType sessionType, List<AudioClip> audioClips, List<(string title, string artist)> trackInfo) => systemManager.AddTracksToSession(sessionType, audioClips, trackInfo);
+        
+        // Public API - YouTube Playlist Management
+        public bool AddYouTubeSong(SongDetails songDetails) => systemManager.AddYouTubeSong(songDetails);
+        public bool RemoveYouTubeSong(string url) => systemManager.RemoveYouTubeSong(url);
+        public bool ContainsYouTubeSong(string url) => systemManager.ContainsYouTubeSong(url);
 
         // Public API - Player Attachment
         public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();

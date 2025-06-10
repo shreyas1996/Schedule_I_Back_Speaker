@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -87,9 +88,9 @@ namespace BackSpeakerMod.UI.Components
             timeRect.offsetMax = new Vector2(-10f, 0f);
             
             timeText = timeObj.AddComponent<Text>();
-            timeText.text = "[0:00 / 0:00]";
-            timeText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            timeText.fontSize = 12;
+            timeText.text = "0:00 / 0:00";
+            FontHelper.SetSafeFont(timeText);
+            timeText.fontSize = 11;
             timeText.color = Color.white;
             timeText.alignment = TextAnchor.MiddleRight;
         }

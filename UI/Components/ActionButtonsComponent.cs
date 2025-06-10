@@ -3,8 +3,10 @@ using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.UI.Components;
 using System.Collections;
 using MelonLoader;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -27,6 +29,14 @@ namespace BackSpeakerMod.UI.Components
         {
             this.manager = manager;
             CreateActionButtons();
+            CreateYouTubeSearchPopup();
+            UpdateButtons(); // Initialize button states
+        }
+        
+        private void CreateYouTubeSearchPopup()
+        {
+            // This method is placeholder and should be integrated elsewhere
+            // The actual popup creation is handled in ShowYouTubeSearchPopup
         }
         
         private void CreateActionButtons()
@@ -52,11 +62,11 @@ namespace BackSpeakerMod.UI.Components
             rightRect.offsetMax = Vector2.zero;
             
             // Create left button (tab-specific action)
-            leftButton = CreateButton(leftContainer, "🔄 Reload Jukebox", new Color(0.2f, 0.7f, 0.2f, 0.8f), (UnityEngine.Events.UnityAction)delegate() { OnLeftButtonClick(); });
+            leftButton = CreateButton(leftContainer, "🔄 Reload Jukebox", new Color(0.2f, 0.7f, 0.2f, 0.8f), (UnityEngine.Events.UnityAction)OnLeftButtonClick);
             leftButtonText = leftButton.GetComponentInChildren<Text>();
             
             // Create right button (headphone control)
-            rightButton = CreateButton(rightContainer, "🎧 Detach Headphones", new Color(0.4f, 0.2f, 0.8f, 0.8f), (UnityEngine.Events.UnityAction)delegate() { OnHeadphoneToggle(); });
+            rightButton = CreateButton(rightContainer, "🎧 Detach Headphones", new Color(0.4f, 0.2f, 0.8f, 0.8f), (UnityEngine.Events.UnityAction)OnHeadphoneToggle);
         }
         
         private Button CreateButton(GameObject container, string text, Color color, UnityEngine.Events.UnityAction action)
@@ -85,7 +95,7 @@ namespace BackSpeakerMod.UI.Components
             
             var textComponent = textObj.AddComponent<Text>();
             textComponent.text = text;
-            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            FontHelper.SetSafeFont(textComponent);
             textComponent.fontSize = 12;
             textComponent.color = Color.white;
             textComponent.alignment = TextAnchor.MiddleCenter;
@@ -99,6 +109,8 @@ namespace BackSpeakerMod.UI.Components
         
         private void OnLeftButtonClick()
         {
+            LoggingSystem.Info($"Left button clicked for tab: {currentTab}", "UI");
+            
             switch (currentTab)
             {
                 case MusicSourceType.Jukebox:
@@ -109,6 +121,9 @@ namespace BackSpeakerMod.UI.Components
                     break;
                 case MusicSourceType.YouTube:
                     OpenYouTubeSearch();
+                    break;
+                default:
+                    LoggingSystem.Warning($"Unknown tab type: {currentTab}", "UI");
                     break;
             }
         }
@@ -184,20 +199,112 @@ namespace BackSpeakerMod.UI.Components
         
         private void OpenYouTubeSearch()
         {
-            LoggingSystem.Info("Switching to YouTube source", "UI");
+            LoggingSystem.Info("Opening YouTube actions", "UI");
             try
             {
-                // Switch to YouTube source
+                // Check if headphones are attached first
+                bool headphonesAttached = manager?.AreHeadphonesAttached() ?? false;
+                
+                if (!headphonesAttached)
+                {
+                    LoggingSystem.Warning("Headphones not attached - cannot use YouTube", "UI");
+                    UpdateLeftButtonFeedback("🎧 Attach headphones first", new Color(0.8f, 0.4f, 0.2f, 0.8f));
+                    return;
+                }
+
+                // Switch to YouTube source first
                 manager?.SetMusicSource(MusicSourceType.YouTube);
                 
-                LoggingSystem.Info("YouTube source activated", "UI");
+                // Force load cached tracks from YouTube source to refresh playlist
+                manager?.ForceLoadFromSource(MusicSourceType.YouTube);
+                
+                LoggingSystem.Info("YouTube source activated and cached tracks refreshed", "UI");
                 UpdateLeftButtonFeedback("📺 YouTube Ready", new Color(0.8f, 0.2f, 0.2f, 0.8f));
-                // TODO: Implement YouTube search popup when ready
+                
+                // Show the search popup for adding new songs
+                ShowYouTubeSearchPopup();
             }
             catch (System.Exception ex)
             {
-                LoggingSystem.Error($"Failed to switch to YouTube: {ex.Message}", "UI");
+                LoggingSystem.Error($"Failed to open YouTube actions: {ex.Message}", "UI");
                 UpdateLeftButtonFeedback("❌ YouTube Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+            }
+        }
+
+        private void ShowYouTubeSearchPopup()
+        {
+            LoggingSystem.Info("Showing YouTube search popup", "UI");
+            try
+            {
+                // Find our app's container using the same approach as PlaylistToggleComponent
+                Transform? appContainer = null;
+                Transform current = this.transform;
+                
+                // Walk up the hierarchy to find "Container" (our app's container)
+                while (current != null && appContainer == null)
+                {
+                    if (current.name == "Container")
+                    {
+                        appContainer = current;
+                        LoggingSystem.Debug("Found app Container by walking up hierarchy", "UI");
+                        break;
+                    }
+                    current = current.parent;
+                }
+                
+                // If no container found, try to find BackSpeakerApp canvas
+                if (appContainer == null)
+                {
+                    current = this.transform;
+                    while (current != null)
+                    {
+                        if (current.name == "BackSpeakerApp")
+                        {
+                            // Look for Container child
+                            var containerChild = current.Find("Container");
+                            if (containerChild != null)
+                            {
+                                appContainer = containerChild;
+                                LoggingSystem.Debug("Found Container as child of BackSpeakerApp", "UI");
+                                break;
+                            }
+                        }
+                        current = current.parent;
+                    }
+                }
+                
+                if (appContainer == null)
+                {
+                    LoggingSystem.Error("No app Container found for YouTube popup! This will cause UI issues.", "UI");
+                    return;
+                }
+                
+                LoggingSystem.Info($"Found app Container: {appContainer.name}", "UI");
+
+                var popupContainer = new GameObject("YouTubeSearchPopupComponent");
+                popupContainer.transform.SetParent(appContainer, false);
+                
+                // Make sure the popup appears on top by setting it as last sibling
+                popupContainer.transform.SetAsLastSibling();
+
+                var popupComponent = popupContainer.AddComponent<YouTubePopupComponent>();
+                if (manager != null)
+                {
+                    popupComponent.Setup(manager);
+                    popupComponent.OpenYouTubeSearchPopup();
+                    
+                    LoggingSystem.Info("YouTube search popup shown successfully", "UI");
+                }
+                else
+                {
+                    LoggingSystem.Error("Manager is null - cannot setup YouTube popup", "UI");
+                    UpdateLeftButtonFeedback("❌ Manager Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to show YouTube popup: {ex.Message}", "UI");
+                UpdateLeftButtonFeedback("❌ Popup Error", new Color(0.8f, 0.2f, 0.2f, 0.8f));
             }
         }
         
@@ -252,7 +359,7 @@ namespace BackSpeakerMod.UI.Components
             {
                 MusicSourceType.Jukebox => ("🔄 Reload Jukebox", new Color(0.2f, 0.7f, 0.2f, 0.8f)),
                 MusicSourceType.LocalFolder => ("🔄 Refresh Local Music", new Color(0.2f, 0.4f, 0.8f, 0.8f)),
-                MusicSourceType.YouTube => ("🔍 YouTube Search & Cache", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
+                MusicSourceType.YouTube => ("🔄 Refresh & Search YouTube", new Color(0.8f, 0.2f, 0.2f, 0.8f)),
                 _ => ("🔄 Default Action", new Color(0.5f, 0.5f, 0.5f, 0.8f))
             };
             

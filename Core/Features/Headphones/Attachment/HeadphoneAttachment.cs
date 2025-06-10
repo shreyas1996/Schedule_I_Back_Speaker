@@ -3,6 +3,7 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Features.Headphones.Data;
 using BackSpeakerMod.Core.Common.Helpers;
+using BackSpeakerMod.Core.Features.Headphones.Managers;
 using System;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Attachment
@@ -14,6 +15,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
     {
         private readonly HeadphoneConfig config;
         private readonly HeadphoneState state;
+        private readonly HeadphoneCameraManager cameraManager;
         private GameObject? currentHeadphoneInstance;
         private Il2CppScheduleOne.PlayerScripts.Player? attachedPlayer;
         private bool isAttached;
@@ -27,7 +29,17 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         {
             config = headphoneConfig ?? new HeadphoneConfig();
             state = new HeadphoneState();
-            LoggingSystem.Info("HeadphoneAttachment system initialized", "Headphones");
+            cameraManager = new HeadphoneCameraManager(config);
+            LoggingSystem.Info("HeadphoneAttachment system initialized with camera manager", "Headphones");
+        }
+
+        /// <summary>
+        /// Update the attachment system - should be called regularly to monitor camera changes
+        /// </summary>
+        public void Update()
+        {
+            // Update camera manager to track camera mode changes
+            cameraManager.Update();
         }
 
         /// <summary>
@@ -106,6 +118,12 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 if (currentHeadphoneInstance != null)
                 {
                     ApplyMaterialConfiguration(currentHeadphoneInstance);
+                    
+                    // Set up camera manager to handle visibility
+                    cameraManager.SetHeadphoneInstance(currentHeadphoneInstance);
+                    
+                    // Force initial visibility update
+                    cameraManager.ForceUpdateVisibility();
                 }
 
                 // Update state
@@ -123,7 +141,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 currentState.AttachedTo = headTransform ?? player.transform;
                 currentState.AttachmentTime = attachmentTime;
 
-                LoggingSystem.Info($"✓ Headphones successfully attached to {player.name}", "Headphones");
+                LoggingSystem.Info($"✓ Headphones successfully attached to {player.name} with camera management", "Headphones");
                 return true;
             }
             catch (Exception ex)
@@ -136,6 +154,9 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                     UnityEngine.Object.Destroy(currentHeadphoneInstance);
                     currentHeadphoneInstance = null;
                 }
+                
+                // Reset camera manager
+                cameraManager.ResetTracking();
                 
                 isAttached = false;
                 attachedPlayer = null;
@@ -242,6 +263,9 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                     currentState.Reset();
                 }
 
+                // Reset camera manager
+                cameraManager.ResetTracking();
+
                 LoggingSystem.Info("✓ Headphones detached successfully", "Headphones");
             }
             catch (Exception ex)
@@ -309,6 +333,36 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 return "Not attached";
                 
             return $"Attached to {attachedPlayer?.name ?? "Unknown"}";
+        }
+
+        /// <summary>
+        /// Get camera information for debugging
+        /// </summary>
+        public string GetCameraInfo()
+        {
+            return cameraManager.GetCameraInfo();
+        }
+
+        /// <summary>
+        /// Force update headphone visibility (useful for debugging or manual refresh)
+        /// </summary>
+        public void ForceUpdateVisibility()
+        {
+            cameraManager.ForceUpdateVisibility();
+        }
+
+        /// <summary>
+        /// Get detailed status including camera information
+        /// </summary>
+        public string GetDetailedStatus()
+        {
+            var status = GetStatus();
+            if (IsAttached)
+            {
+                var cameraInfo = GetCameraInfo();
+                return $"{status} | Camera: {cameraInfo}";
+            }
+            return status;
         }
     }
 } 

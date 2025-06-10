@@ -9,6 +9,7 @@
 
 # References
 my_references/
+EmbeddedResources/Libs/Binaries/
 .DS_Store
 *.zip
 

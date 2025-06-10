@@ -150,6 +150,16 @@ namespace BackSpeakerMod
             }
 
             try {
+                LoggingSystem.Info("Registering YouTubePopupComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.YouTubePopupComponent>();
+                LoggingSystem.Info("✓ YouTubePopupComponent registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register YouTubePopupComponent: {ex}", "Mod");
+            }
+
+            try {
                 LoggingSystem.Info("Registering LocalFolderMusicProvider...", "Mod");
                 ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.LocalFolderMusicProvider>();
                 LoggingSystem.Info("✓ LocalFolderMusicProvider registered successfully", "Mod");
@@ -179,6 +189,12 @@ namespace BackSpeakerMod
             
             // Update music manager for auto-advance functionality
             SpeakerManager?.Update();
+        }
+
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            // Core manager is created by Initialization.GameInitializer when conditions are met
+            LoggingSystem.Debug($"Scene loaded: {sceneName} (buildIndex: {buildIndex})", "Mod");
         }
     }
 } 

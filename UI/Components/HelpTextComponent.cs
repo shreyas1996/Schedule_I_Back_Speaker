@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -28,8 +29,8 @@ namespace BackSpeakerMod.UI.Components
             textRect.offsetMax = new Vector2(-10f, -5f);
             
             helpText = textObj.AddComponent<Text>();
-            helpText.text = "💡 Tip: Jukebox music loads automatically from in-game audio sources";
-            helpText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            helpText.text = "Use the tabs above to switch between music sources.";
+            FontHelper.SetSafeFont(helpText);
             helpText.fontSize = 11;
             helpText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
             helpText.alignment = TextAnchor.MiddleLeft;

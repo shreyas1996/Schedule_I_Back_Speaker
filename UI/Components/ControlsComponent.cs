@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using System;
+using BackSpeakerMod.UI.Helpers;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -134,8 +135,8 @@ namespace BackSpeakerMod.UI.Components
             
             volumeText = volumeLabel.AddComponent<Text>();
             volumeText.text = "75%";
-            volumeText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            volumeText.fontSize = 10;
+            FontHelper.SetSafeFont(volumeText);
+            volumeText.fontSize = 12;
             volumeText.color = Color.white;
             volumeText.alignment = TextAnchor.MiddleCenter;
             
@@ -171,8 +172,8 @@ namespace BackSpeakerMod.UI.Components
             
             var textComp = textObj.AddComponent<Text>();
             textComp.text = text;
-            textComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            textComp.fontSize = 20;
+            FontHelper.SetSafeFont(textComp);
+            textComp.fontSize = 12;
             textComp.color = Color.white;
             textComp.alignment = TextAnchor.MiddleCenter;
             

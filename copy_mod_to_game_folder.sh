@@ -2,6 +2,15 @@ GAME_PATH="/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule
 MOD_PATH="$GAME_PATH/Mods/"
 DLL_PATH="bin/$(echo $1 | tr '[:lower:]' '[:upper:]')/net6.0/BackSpeakerMod.dll"
 
+# build the mod using the build_configurations.sh script
+./build_configurations.sh $1
+
+# check if the build was successful
+if [ $? -ne 0 ]; then
+    echo "Build failed"
+    exit 1
+fi
+
 # check if the DLL exists
 if [ ! -f "$DLL_PATH" ]; then
     echo "DLL does not exist at $DLL_PATH"
