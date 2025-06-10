@@ -1067,7 +1067,8 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public bool ContainsYouTubeSong(string url)
         {
-            if (!isInitialized) return false;
+            if (!isInitialized)
+                return false;
             
             if (sessions.ContainsKey(MusicSourceType.YouTube))
             {
@@ -1075,6 +1076,70 @@ namespace BackSpeakerMod.Core.Modules
             }
             
             return false;
+        }
+        
+        /// <summary>
+        /// Clear all YouTube songs from the YouTube session
+        /// </summary>
+        public void ClearYouTubePlaylist()
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return;
+            }
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                var session = sessions[MusicSourceType.YouTube];
+                
+                // Stop playback if YouTube is currently playing
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    LoggingSystem.Info("Stopping YouTube playback before clearing playlist", "AudioSessionManager");
+                    youtubeStreamingController.Stop();
+                    session.Stop();
+                    globalPlayingSession = null;
+                }
+                
+                session.ClearYouTubeSongs();
+                LoggingSystem.Info("Cleared YouTube playlist", "AudioSessionManager");
+                
+                // Update UI
+                OnTracksReloaded?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// Load a complete YouTube playlist into the session (replaces existing playlist)
+        /// </summary>
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs)
+        {
+            if (!isInitialized)
+            {
+                LoggingSystem.Warning("AudioSessionManager not initialized", "AudioSessionManager");
+                return;
+            }
+            
+            if (sessions.ContainsKey(MusicSourceType.YouTube))
+            {
+                var session = sessions[MusicSourceType.YouTube];
+                
+                // Stop playback if YouTube is currently playing
+                if (globalPlayingSession == MusicSourceType.YouTube)
+                {
+                    LoggingSystem.Info("Stopping YouTube playback before loading new playlist", "AudioSessionManager");
+                    youtubeStreamingController.Stop();
+                    session.Stop();
+                    globalPlayingSession = null;
+                }
+                
+                session.LoadYouTubePlaylist(playlistSongs);
+                LoggingSystem.Info($"Loaded YouTube playlist with {playlistSongs?.Count ?? 0} songs", "AudioSessionManager");
+                
+                // Update UI
+                OnTracksReloaded?.Invoke();
+            }
         }
     }
 } 

@@ -98,6 +98,8 @@ namespace BackSpeakerMod.Core
         public bool AddYouTubeSong(SongDetails songDetails) => systemManager.AddYouTubeSong(songDetails);
         public bool RemoveYouTubeSong(string url) => systemManager.RemoveYouTubeSong(url);
         public bool ContainsYouTubeSong(string url) => systemManager.ContainsYouTubeSong(url);
+        public void ClearYouTubePlaylist() => systemManager.ClearYouTubePlaylist();
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs) => systemManager.LoadYouTubePlaylist(playlistSongs);
 
         // Public API - Player Attachment
         public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();

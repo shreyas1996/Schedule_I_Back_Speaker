@@ -229,6 +229,61 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
+        /// Clear all YouTube songs from this session
+        /// </summary>
+        public void ClearYouTubeSongs()
+        {
+            if (!IsYouTubeSession)
+            {
+                LoggingSystem.Warning("Cannot clear YouTube songs from non-YouTube session", "AudioSession");
+                return;
+            }
+            
+            int clearedCount = tracks.Count;
+            tracks.Clear();
+            trackInfo.Clear();
+            songDetailsInfo.Clear();
+            
+            // Reset playback state
+            currentTrackIndex = 0;
+            savedProgress = 0f;
+            isPaused = false;
+            
+            LoggingSystem.Info($"Session {DisplayName}: Cleared {clearedCount} YouTube songs", "AudioSession");
+        }
+        
+        /// <summary>
+        /// Replace all YouTube songs with a new playlist
+        /// </summary>
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs)
+        {
+            if (!IsYouTubeSession)
+            {
+                LoggingSystem.Warning("Cannot load YouTube playlist into non-YouTube session", "AudioSession");
+                return;
+            }
+            
+            // Clear existing songs first
+            ClearYouTubeSongs();
+            
+            // Add new songs if provided
+            if (playlistSongs != null && playlistSongs.Count > 0)
+            {
+                foreach (var song in playlistSongs)
+                {
+                    if (song != null)
+                    {
+                        tracks.Add(null); // No AudioClip for YouTube songs
+                        trackInfo.Add((song.title ?? "Unknown Title", song.GetArtist()));
+                        songDetailsInfo.Add(song);
+                    }
+                }
+            }
+            
+            LoggingSystem.Info($"Session {DisplayName}: Loaded YouTube playlist with {tracks.Count} songs", "AudioSession");
+        }
+        
+        /// <summary>
         /// Get current YouTube song details (null if not YouTube or no current song)
         /// </summary>
         public SongDetails? GetCurrentYouTubeSong()

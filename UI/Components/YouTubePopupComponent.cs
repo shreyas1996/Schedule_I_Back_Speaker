@@ -10,6 +10,7 @@ using BackSpeakerMod.Core.Features.Audio;
 using System.Collections.Generic;
 using System.Linq;
 using BackSpeakerMod.Core.Modules;
+using Il2CppCollections = Il2CppSystem.Collections.Generic;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -30,6 +31,14 @@ public class YouTubePopupComponent : MonoBehaviour
         private ScrollRect? songTableScrollRect;
         private List<GameObject> songRows = new List<GameObject>();
         
+        // Playlist management reference
+        private PlaylistToggleComponent? playlistToggleComponent;
+        
+        // Playlist selection UI
+        private Dropdown? targetPlaylistDropdown;
+        private InputField? newPlaylistNameInput;
+        private Button? createNewPlaylistButton;
+        
         // Current song details
         private List<SongDetails> currentSongDetails = new List<SongDetails>();
         private bool isSearching = false;
@@ -45,6 +54,34 @@ public class YouTubePopupComponent : MonoBehaviour
     {
         LoggingSystem.Info("YouTube popup component setup", "UI");
         this.manager = manager;
+        
+        // Find the PlaylistToggleComponent in the parent hierarchy
+        playlistToggleComponent = this.transform.GetComponentInParent<PlaylistToggleComponent>();
+        if (playlistToggleComponent == null)
+        {
+            // Try to find it in the same parent
+            playlistToggleComponent = this.transform.parent?.GetComponentInChildren<PlaylistToggleComponent>();
+        }
+        
+        if (playlistToggleComponent != null)
+        {
+            LoggingSystem.Info("Found PlaylistToggleComponent for YouTube popup integration", "UI");
+        }
+        else
+        {
+            LoggingSystem.Warning("PlaylistToggleComponent not found - playlist functionality may not work", "UI");
+        }
+    }
+
+    /// <summary>
+    /// Refresh the target playlist dropdown (called from PlaylistToggleComponent when playlists change)
+    /// </summary>
+    public void RefreshTargetPlaylistDropdown()
+    {
+        if (targetPlaylistDropdown != null)
+        {
+            UpdateTargetPlaylistDropdown();
+        }
     }
 
         void Update()
@@ -121,6 +158,16 @@ public class YouTubePopupComponent : MonoBehaviour
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error creating title text: {ex.Message}", "UI");
+                throw;
+            }
+            
+            try {
+                // Playlist Selection
+                CreatePlaylistSelection(contentArea);
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error creating playlist selection: {ex.Message}", "UI");
                 throw;
             }
             
@@ -205,24 +252,273 @@ public class YouTubePopupComponent : MonoBehaviour
             titleText.fontStyle = FontStyle.Bold;
         }
 
+        private void CreatePlaylistSelection(GameObject parent)
+        {
+            var playlistContainer = new GameObject("PlaylistSelection");
+            playlistContainer.transform.SetParent(parent.transform, false);
+            
+            var playlistRect = playlistContainer.AddComponent<RectTransform>();
+            playlistRect.anchorMin = new Vector2(0f, 0.78f);
+            playlistRect.anchorMax = new Vector2(1f, 0.85f);
+            playlistRect.offsetMin = new Vector2(10f, 0f);
+            playlistRect.offsetMax = new Vector2(-10f, 0f);
+            
+            // Section label
+            var labelObj = new GameObject("PlaylistLabel");
+            labelObj.transform.SetParent(playlistContainer.transform, false);
+            
+            var labelRect = labelObj.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0.6f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            
+            var labelText = labelObj.AddComponent<Text>();
+            labelText.text = "📋 Add to Playlist:";
+            FontHelper.SetSafeFont(labelText);
+            labelText.fontSize = 12;
+            labelText.color = Color.white;
+            labelText.alignment = TextAnchor.MiddleLeft;
+            labelText.fontStyle = FontStyle.Bold;
+            
+            // Playlist dropdown (60% width)
+            CreateTargetPlaylistDropdown(playlistContainer);
+            
+            // New playlist creation (40% width)
+            CreateNewPlaylistSection(playlistContainer);
+            
+            // Update the dropdown with current playlists
+            UpdateTargetPlaylistDropdown();
+        }
+        
+        private void CreateTargetPlaylistDropdown(GameObject parent)
+        {
+            var dropdownObj = new GameObject("TargetPlaylistDropdown");
+            dropdownObj.transform.SetParent(parent.transform, false);
+            
+            var dropdownRect = dropdownObj.AddComponent<RectTransform>();
+            dropdownRect.anchorMin = new Vector2(0f, 0f);
+            dropdownRect.anchorMax = new Vector2(0.6f, 0.6f);
+            dropdownRect.offsetMin = new Vector2(0f, 0f);
+            dropdownRect.offsetMax = new Vector2(-5f, 0f);
+            
+            // Background
+            var dropdownBg = dropdownObj.AddComponent<Image>();
+            dropdownBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+            
+            targetPlaylistDropdown = dropdownObj.AddComponent<Dropdown>();
+            
+            // Create dropdown label
+            var labelObj = new GameObject("Label");
+            labelObj.transform.SetParent(dropdownObj.transform, false);
+            var labelRect = labelObj.AddComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0.05f, 0f);
+            labelRect.anchorMax = new Vector2(0.85f, 1f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            
+            var labelText = labelObj.AddComponent<Text>();
+            labelText.text = "Select Playlist...";
+            FontHelper.SetSafeFont(labelText);
+            labelText.fontSize = 11;
+            labelText.color = Color.white;
+            labelText.alignment = TextAnchor.MiddleLeft;
+            
+            targetPlaylistDropdown.captionText = labelText;
+            targetPlaylistDropdown.targetGraphic = dropdownBg;
+        }
+        
+        private void CreateNewPlaylistSection(GameObject parent)
+        {
+            var newPlaylistContainer = new GameObject("NewPlaylistSection");
+            newPlaylistContainer.transform.SetParent(parent.transform, false);
+            
+            var containerRect = newPlaylistContainer.AddComponent<RectTransform>();
+            containerRect.anchorMin = new Vector2(0.62f, 0f);
+            containerRect.anchorMax = new Vector2(1f, 0.6f);
+            containerRect.offsetMin = Vector2.zero;
+            containerRect.offsetMax = Vector2.zero;
+            
+            // New playlist name input (70% width)
+            var inputObj = new GameObject("NewPlaylistInput");
+            inputObj.transform.SetParent(newPlaylistContainer.transform, false);
+            
+            var inputRect = inputObj.AddComponent<RectTransform>();
+            inputRect.anchorMin = new Vector2(0f, 0f);
+            inputRect.anchorMax = new Vector2(0.7f, 1f);
+            inputRect.offsetMin = new Vector2(0f, 0f);
+            inputRect.offsetMax = new Vector2(-2f, 0f);
+            
+            // Input background
+            var inputBg = inputObj.AddComponent<Image>();
+            inputBg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+            
+            // Create input text component
+            var textObj = new GameObject("Text");
+            textObj.transform.SetParent(inputObj.transform, false);
+            var textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(5f, 0f);
+            textRect.offsetMax = new Vector2(-5f, 0f);
+            
+            var textComponent = textObj.AddComponent<Text>();
+            FontHelper.SetSafeFont(textComponent);
+            textComponent.fontSize = 10;
+            textComponent.color = Color.white;
+            textComponent.supportRichText = false;
+            
+            // Create placeholder
+            var placeholderObj = new GameObject("Placeholder");
+            placeholderObj.transform.SetParent(inputObj.transform, false);
+            var placeholderRect = placeholderObj.AddComponent<RectTransform>();
+            placeholderRect.anchorMin = Vector2.zero;
+            placeholderRect.anchorMax = Vector2.one;
+            placeholderRect.offsetMin = new Vector2(5f, 0f);
+            placeholderRect.offsetMax = new Vector2(-5f, 0f);
+            
+            var placeholderText = placeholderObj.AddComponent<Text>();
+            placeholderText.text = "New playlist name...";
+            FontHelper.SetSafeFont(placeholderText);
+            placeholderText.fontSize = 10;
+            placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            placeholderText.fontStyle = FontStyle.Italic;
+            
+            // Create InputField
+            newPlaylistNameInput = inputObj.AddComponent<InputField>();
+            newPlaylistNameInput.targetGraphic = inputBg;
+            newPlaylistNameInput.textComponent = textComponent;
+            newPlaylistNameInput.placeholder = placeholderText;
+            newPlaylistNameInput.characterLimit = 50;
+            
+            // Create button (30% width)
+            var buttonObj = new GameObject("CreateButton");
+            buttonObj.transform.SetParent(newPlaylistContainer.transform, false);
+            
+            var buttonRect = buttonObj.AddComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0.72f, 0f);
+            buttonRect.anchorMax = new Vector2(1f, 1f);
+            buttonRect.offsetMin = Vector2.zero;
+            buttonRect.offsetMax = Vector2.zero;
+            
+            createNewPlaylistButton = buttonObj.AddComponent<Button>();
+            var buttonImage = buttonObj.AddComponent<Image>();
+            buttonImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
+            
+            var buttonTextObj = new GameObject("Text");
+            buttonTextObj.transform.SetParent(buttonObj.transform, false);
+            var buttonTextRect = buttonTextObj.AddComponent<RectTransform>();
+            buttonTextRect.anchorMin = Vector2.zero;
+            buttonTextRect.anchorMax = Vector2.one;
+            buttonTextRect.offsetMin = Vector2.zero;
+            buttonTextRect.offsetMax = Vector2.zero;
+            
+            var buttonText = buttonTextObj.AddComponent<Text>();
+            buttonText.text = "Create";
+            FontHelper.SetSafeFont(buttonText);
+            buttonText.fontSize = 9;
+            buttonText.color = Color.white;
+            buttonText.alignment = TextAnchor.MiddleCenter;
+            buttonText.fontStyle = FontStyle.Bold;
+            
+            createNewPlaylistButton.targetGraphic = buttonImage;
+            createNewPlaylistButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnCreateNewPlaylistClicked);
+        }
+        
+        private void UpdateTargetPlaylistDropdown()
+        {
+            if (targetPlaylistDropdown == null || playlistToggleComponent == null) return;
+            
+            targetPlaylistDropdown.ClearOptions();
+            
+            var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
+            var options = new Il2CppCollections.List<Dropdown.OptionData>();
+            
+            foreach (var playlist in availablePlaylists)
+            {
+                options.Add(new Dropdown.OptionData($"{playlist.name} ({playlist.downloadedCount}/{playlist.songCount})"));
+            }
+            
+            targetPlaylistDropdown.AddOptions(options);
+            
+            // Select the current playlist if available
+            var currentPlaylist = playlistToggleComponent.GetCurrentYouTubePlaylist();
+            if (currentPlaylist != null)
+            {
+                for (int i = 0; i < availablePlaylists.Count; i++)
+                {
+                    if (availablePlaylists[i].id == currentPlaylist.id)
+                    {
+                        targetPlaylistDropdown.value = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        private void OnCreateNewPlaylistClicked()
+        {
+            if (newPlaylistNameInput == null) return;
+            
+            var playlistName = newPlaylistNameInput.text?.Trim();
+            if (string.IsNullOrEmpty(playlistName))
+            {
+                UpdateStatus("❌ Please enter a playlist name", Color.red);
+                return;
+            }
+            
+            try
+            {
+                var newPlaylist = YouTubePlaylistManager.CreatePlaylist(playlistName, "Created from YouTube search");
+                if (newPlaylist != null)
+                {
+                    UpdateStatus($"✅ Created new playlist: {playlistName}", Color.green);
+                    newPlaylistNameInput.text = "";
+                    
+                    // Update the dropdown and select the new playlist
+                    UpdateTargetPlaylistDropdown();
+                    
+                    // Set the new playlist as selected
+                    var playlists = YouTubePlaylistManager.GetAllPlaylists();
+                    for (int i = 0; i < playlists.Count; i++)
+                    {
+                        if (playlists[i].id == newPlaylist.id)
+                        {
+                            targetPlaylistDropdown.value = i;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    UpdateStatus("❌ Failed to create playlist", Color.red);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus("❌ Error creating playlist", Color.red);
+                LoggingSystem.Error($"Error creating new playlist: {ex.Message}", "UI");
+            }
+        }
+
         private void CreateUrlInput(GameObject parent)
         {
-            var inputContainer = new GameObject("URLInputContainer");
-            inputContainer.transform.SetParent(parent.transform, false);
+            var searchContainer = new GameObject("SearchContainer");
+            searchContainer.transform.SetParent(parent.transform, false);
             
-            var inputRect = inputContainer.AddComponent<RectTransform>();
-            inputRect.anchorMin = new Vector2(0f, 0.7f);
-            inputRect.anchorMax = new Vector2(1f, 0.8f);
-            inputRect.offsetMin = Vector2.zero;
-            inputRect.offsetMax = Vector2.zero;
+            var searchRect = searchContainer.AddComponent<RectTransform>();
+            searchRect.anchorMin = new Vector2(0f, 0.70f);  // Moved down further to accommodate playlist selection
+            searchRect.anchorMax = new Vector2(1f, 0.78f); // Moved down from 0.78f
+            searchRect.offsetMin = new Vector2(10f, 0f);
+            searchRect.offsetMax = new Vector2(-10f, 0f);
 
             // Background for input
-            var inputBg = inputContainer.AddComponent<Image>();
+            var inputBg = searchContainer.AddComponent<Image>();
             inputBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
 
             // Create the text component for InputField first
             var textObj = new GameObject("Text");
-            textObj.transform.SetParent(inputContainer.transform, false);
+            textObj.transform.SetParent(searchContainer.transform, false);
             var textRect = textObj.AddComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -237,7 +533,7 @@ public class YouTubePopupComponent : MonoBehaviour
 
             // Create placeholder
             var placeholderObj = new GameObject("Placeholder");
-            placeholderObj.transform.SetParent(inputContainer.transform, false);
+            placeholderObj.transform.SetParent(searchContainer.transform, false);
             var placeholderRect = placeholderObj.AddComponent<RectTransform>();
             placeholderRect.anchorMin = Vector2.zero;
             placeholderRect.anchorMax = Vector2.one;
@@ -252,7 +548,7 @@ public class YouTubePopupComponent : MonoBehaviour
             placeholderText.fontStyle = FontStyle.Italic;
 
             // Now create InputField and assign the components
-            searchBarInputField = inputContainer.AddComponent<InputField>();
+            searchBarInputField = searchContainer.AddComponent<InputField>();
             searchBarInputField.targetGraphic = inputBg;
             searchBarInputField.textComponent = textComponent;
             searchBarInputField.placeholder = placeholderText;
@@ -261,23 +557,23 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void CreateSearchButton(GameObject parent)
         {
-            var buttonObj = new GameObject("SearchButton");
-            buttonObj.transform.SetParent(parent.transform, false);
+            var searchButtonObj = new GameObject("SearchButton");
+            searchButtonObj.transform.SetParent(parent.transform, false);
             
-            var buttonRect = buttonObj.AddComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0.35f, 0.6f);
-            buttonRect.anchorMax = new Vector2(0.65f, 0.68f);
-            buttonRect.offsetMin = Vector2.zero;
-            buttonRect.offsetMax = Vector2.zero;
+            var buttonRect = searchButtonObj.AddComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0f, 0.62f);  // Moved down further
+            buttonRect.anchorMax = new Vector2(1f, 0.70f);   // Moved down
+            buttonRect.offsetMin = new Vector2(10f, 0f);
+            buttonRect.offsetMax = new Vector2(-10f, 0f);
 
-            var buttonImage = buttonObj.AddComponent<Image>();
+            var buttonImage = searchButtonObj.AddComponent<Image>();
             buttonImage.color = new Color(0.2f, 0.7f, 0.2f, 0.8f);
 
-            searchButton = buttonObj.AddComponent<Button>();
+            searchButton = searchButtonObj.AddComponent<Button>();
             searchButton.targetGraphic = buttonImage;
 
             var buttonText = new GameObject("Text");
-            buttonText.transform.SetParent(buttonObj.transform, false);
+            buttonText.transform.SetParent(searchButtonObj.transform, false);
             var textRect = buttonText.AddComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -297,17 +593,14 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void CreateSongInfoDisplay(GameObject parent)
         {
-            LoggingSystem.Debug("Creating song info table display", "UI");
-            
-            // Main container for the song table
-            songTableContainer = new GameObject("SongTableContainer");
+            songTableContainer = new GameObject("SongTable");
             songTableContainer.transform.SetParent(parent.transform, false);
             
             var tableRect = songTableContainer.AddComponent<RectTransform>();
-            tableRect.anchorMin = new Vector2(0.05f, 0.25f);
-            tableRect.anchorMax = new Vector2(0.95f, 0.55f);
-            tableRect.offsetMin = Vector2.zero;
-            tableRect.offsetMax = Vector2.zero;
+            tableRect.anchorMin = new Vector2(0f, 0.25f);  // Keep same
+            tableRect.anchorMax = new Vector2(1f, 0.62f);  // Adjusted to new search button position
+            tableRect.offsetMin = new Vector2(10f, 0f);
+            tableRect.offsetMax = new Vector2(-10f, 0f);
 
             // Background for table
             var tableBg = songTableContainer.AddComponent<Image>();
@@ -517,7 +810,7 @@ public class YouTubePopupComponent : MonoBehaviour
             btnTextRect.offsetMax = Vector2.zero;
 
             var btnTextComponent = btnText.AddComponent<Text>();
-            btnTextComponent.text = "➕";
+            btnTextComponent.text = "Add";
             FontHelper.SetSafeFont(btnTextComponent);
             btnTextComponent.fontSize = 12;
             btnTextComponent.color = Color.white;
@@ -636,15 +929,34 @@ public class YouTubePopupComponent : MonoBehaviour
                                 var songArtist = song.GetArtist();
                                 
                                 // Check if song is already in playlist and update button appearance
-                                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
+                                YouTubePlaylist? targetPlaylist = null;
+                                
+                                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
+                                {
+                                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
+                                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
+                                    {
+                                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
+                                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
+                                    }
+                                }
+                                
+                                // Fall back to current playlist if no target selected
+                                if (targetPlaylist == null)
+                                {
+                                    targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
+                                }
+                                
+                                bool inPlaylist = targetPlaylist?.ContainsSong(song.GetVideoId()) ?? false;
+                                
                                 if (inPlaylist)
                                 {
-                                    btnText.text = "➖";
+                                    btnText.text = "Remove";
                                     btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
                                 }
                                 else
                                 {
-                                    btnText.text = "➕";
+                                    btnText.text = "Add";
                                     btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
                                 }
                                 
@@ -687,21 +999,58 @@ public class YouTubePopupComponent : MonoBehaviour
             
             try
             {
-                bool inPlaylist = manager?.ContainsYouTubeSong(songUrl) ?? false;
+                if (playlistToggleComponent == null)
+                {
+                    UpdateStatus("❌ Playlist component not available", Color.red);
+                    return;
+                }
+                
+                // Get the target playlist from the dropdown selection
+                YouTubePlaylist? targetPlaylist = null;
+                
+                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
+                {
+                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
+                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
+                    {
+                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
+                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
+                    }
+                }
+                
+                // Fall back to current playlist if no target selected
+                if (targetPlaylist == null)
+                {
+                    targetPlaylist = playlistToggleComponent.GetCurrentYouTubePlaylist();
+                }
+                
+                if (targetPlaylist == null)
+                {
+                    UpdateStatus("❌ No playlist selected. Please select a playlist or create a new one.", Color.red);
+                    return;
+                }
+                
+                // Find the song details
+                var songDetails = currentSongDetails?.FirstOrDefault(s => s.url == songUrl);
+                if (songDetails == null)
+                {
+                    UpdateStatus($"❌ Song details not found for '{songTitle}'", Color.red);
+                    return;
+                }
+                
+                var videoId = songDetails.GetVideoId();
+                bool inPlaylist = targetPlaylist.ContainsSong(videoId);
                 
                 if (inPlaylist)
                 {
                     // Remove from playlist
                     UpdateStatus($"🎵 Removing '{songTitle}' from playlist...", Color.yellow);
                     
-                    bool removed = manager?.RemoveYouTubeSong(songUrl) ?? false;
-                    if (removed)
+                    if (targetPlaylist.RemoveSong(videoId))
                     {
-                        UpdateStatus($"✅ Removed '{songTitle}' from YouTube playlist!", Color.green);
-                        LoggingSystem.Info($"Successfully removed '{songTitle}' from YouTube playlist", "UI");
-                        
-                        // Switch to YouTube tab to show the updated playlist
-                        manager?.SetMusicSource(MusicSourceType.YouTube);
+                        YouTubePlaylistManager.SavePlaylist(targetPlaylist);
+                        UpdateStatus($"✅ Removed '{songTitle}' from playlist '{targetPlaylist.name}'!", Color.green);
+                        LoggingSystem.Info($"Successfully removed '{songTitle}' from playlist", "UI");
                         
                         // Update the button in the table
                         RefreshSongButtonStates();
@@ -716,30 +1065,18 @@ public class YouTubePopupComponent : MonoBehaviour
                     // Add to playlist
                     UpdateStatus($"🎵 Adding '{songTitle}' to playlist...", Color.yellow);
                     
-                    // Create SongDetails from the current data
-                    var songDetails = currentSongDetails?.FirstOrDefault(s => s.url == songUrl);
-                    if (songDetails != null)
+                    if (targetPlaylist.AddSong(songDetails))
                     {
-                        bool added = manager?.AddYouTubeSong(songDetails) ?? false;
-                        if (added)
-                        {
-                            UpdateStatus($"✅ Added '{songTitle}' to YouTube playlist!", Color.green);
-                            LoggingSystem.Info($"Successfully added '{songTitle}' to YouTube playlist", "UI");
-                            
-                            // Switch to YouTube tab to show the added song
-                            manager?.SetMusicSource(MusicSourceType.YouTube);
-                            
-                            // Update the button in the table
-                            RefreshSongButtonStates();
-                        }
-                        else
-                        {
-                            UpdateStatus($"❌ Failed to add '{songTitle}' to playlist (may already exist)", Color.red);
-                        }
+                        YouTubePlaylistManager.SavePlaylist(targetPlaylist);
+                        UpdateStatus($"✅ Added '{songTitle}' to playlist '{targetPlaylist.name}'!", Color.green);
+                        LoggingSystem.Info($"Successfully added '{songTitle}' to playlist", "UI");
+                        
+                        // Update the button in the table
+                        RefreshSongButtonStates();
                     }
                     else
                     {
-                        UpdateStatus($"❌ Song details not found for '{songTitle}'", Color.red);
+                        UpdateStatus($"❌ Failed to add '{songTitle}' to playlist (may already exist)", Color.red);
                     }
                 }
             }
@@ -752,6 +1089,25 @@ public class YouTubePopupComponent : MonoBehaviour
 
         private void RefreshSongButtonStates()
         {
+            // Get the target playlist from dropdown selection
+            YouTubePlaylist? targetPlaylist = null;
+            
+            if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
+            {
+                var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
+                if (targetPlaylistDropdown.value < availablePlaylists.Count)
+                {
+                    var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
+                    targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
+                }
+            }
+            
+            // Fall back to current playlist if no target selected
+            if (targetPlaylist == null)
+            {
+                targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
+            }
+            
             // Update all song buttons to reflect current playlist state
             foreach (var row in songRows)
             {
@@ -772,15 +1128,15 @@ public class YouTubePopupComponent : MonoBehaviour
                 var matchingSong = currentSongDetails?.FirstOrDefault(s => (s.title ?? "Unknown Title") == titleText.text);
                 if (matchingSong != null)
                 {
-                    bool inPlaylist = manager?.ContainsYouTubeSong(matchingSong.url) ?? false;
+                    bool inPlaylist = targetPlaylist?.ContainsSong(matchingSong.GetVideoId()) ?? false;
                     if (inPlaylist)
                     {
-                        btnText.text = "➖";
+                        btnText.text = "Remove";
                         btnImage.color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // Red for remove
                     }
                     else
                     {
-                        btnText.text = "➕";
+                        btnText.text = "Add";
                         btnImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f); // Green for add
                     }
                 }
@@ -1055,6 +1411,31 @@ public class YouTubePopupComponent : MonoBehaviour
             
             try
             {
+                // Get the target playlist from the dropdown selection
+                YouTubePlaylist? targetPlaylist = null;
+                
+                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
+                {
+                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
+                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
+                    {
+                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
+                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
+                    }
+                }
+                
+                // Fall back to current playlist if no target selected
+                if (targetPlaylist == null)
+                {
+                    targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
+                }
+                
+                if (targetPlaylist == null)
+                {
+                    UpdateStatus("❌ No playlist selected. Please select a playlist or create a new one.", Color.red);
+                    return;
+                }
+                
                 UpdateStatus($"🎵 Adding {currentSongDetails.Count} songs to playlist...", Color.yellow);
                 
                 int successCount = 0;
@@ -1062,11 +1443,10 @@ public class YouTubePopupComponent : MonoBehaviour
                 
                 foreach (var song in currentSongDetails)
                 {
-                    bool added = manager?.AddYouTubeSong(song) ?? false;
-                    if (added)
+                    if (targetPlaylist.AddSong(song))
                     {
                         successCount++;
-                        LoggingSystem.Info($"Added '{song.title}' to YouTube playlist ({successCount}/{currentSongDetails.Count})", "UI");
+                        LoggingSystem.Info($"Added '{song.title}' to playlist", "UI");
                     }
                     else
                     {
@@ -1075,14 +1455,14 @@ public class YouTubePopupComponent : MonoBehaviour
                     }
                 }
                 
+                // Save the playlist after all additions
                 if (successCount > 0)
                 {
-                    // Switch to YouTube tab to show the added songs
-                    manager?.SetMusicSource(MusicSourceType.YouTube);
+                    YouTubePlaylistManager.SavePlaylist(targetPlaylist);
                     
                     var statusMessage = skipCount > 0 ? 
                         $"✅ Added {successCount} songs to playlist ({skipCount} already existed)" :
-                        $"✅ Added all {successCount} songs to YouTube playlist!";
+                        $"✅ Added all {successCount} songs to playlist '{targetPlaylist.name}'!";
                     UpdateStatus(statusMessage, Color.green);
                     
                     // Update button states in the table

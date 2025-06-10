@@ -413,73 +413,11 @@ namespace BackSpeakerMod.Core.System
             }
         }
 
-        public bool AddYouTubeSong(SongDetails songDetails)
-        {
-            try
-            {
-                var sessionManager = audioManager?.GetSessionManager();
-                if (sessionManager != null)
-                {
-                    bool added = sessionManager.AddYouTubeSong(songDetails);
-                    if (added)
-                    {
-                        LoggingSystem.Info($"Added YouTube song '{songDetails.title}' to playlist", "SystemManager");
-                    }
-                    return added;
-                }
-                else
-                {
-                    LoggingSystem.Warning("Session manager not available", "SystemManager");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Failed to add YouTube song: {ex.Message}", "SystemManager");
-                return false;
-            }
-        }
-
-        public bool RemoveYouTubeSong(string url)
-        {
-            try
-            {
-                var sessionManager = audioManager?.GetSessionManager();
-                if (sessionManager != null)
-                {
-                    bool removed = sessionManager.RemoveYouTubeSong(url);
-                    if (removed)
-                    {
-                        LoggingSystem.Info($"Removed YouTube song from playlist", "SystemManager");
-                    }
-                    return removed;
-                }
-                else
-                {
-                    LoggingSystem.Warning("Session manager not available", "SystemManager");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Failed to remove YouTube song: {ex.Message}", "SystemManager");
-                return false;
-            }
-        }
-
-        public bool ContainsYouTubeSong(string url)
-        {
-            try
-            {
-                var sessionManager = audioManager?.GetSessionManager();
-                return sessionManager?.ContainsYouTubeSong(url) ?? false;
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Failed to check YouTube song: {ex.Message}", "SystemManager");
-                return false;
-            }
-        }
+        public bool AddYouTubeSong(SongDetails songDetails) => audioManager?.GetSessionManager()?.AddYouTubeSong(songDetails) ?? false;
+        public bool RemoveYouTubeSong(string url) => audioManager?.GetSessionManager()?.RemoveYouTubeSong(url) ?? false;
+        public bool ContainsYouTubeSong(string url) => audioManager?.GetSessionManager()?.ContainsYouTubeSong(url) ?? false;
+        public void ClearYouTubePlaylist() => audioManager?.GetSessionManager()?.ClearYouTubePlaylist();
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs) => audioManager?.GetSessionManager()?.LoadYouTubePlaylist(playlistSongs);
 
         #endregion
 

@@ -393,6 +393,9 @@ namespace BackSpeakerMod.Core.Modules
                     LoggingSystem.Warning($"Failed to save metadata for: {song.title}", "YouTubeCache");
                 }
                 
+                // Update playlist status for this song
+                YouTubePlaylistManager.UpdateSongDownloadStatus(videoId, true, cachedPath);
+                
                 // Fire download completed event
                 OnDownloadCompleted?.Invoke(song);
             }
