@@ -34,11 +34,6 @@ public class YouTubePopupComponent : MonoBehaviour
         // Playlist management reference
         private PlaylistToggleComponent? playlistToggleComponent;
         
-        // Playlist selection UI
-        private Dropdown? targetPlaylistDropdown;
-        private InputField? newPlaylistNameInput;
-        private Button? createNewPlaylistButton;
-        
         // Current song details
         private List<SongDetails> currentSongDetails = new List<SongDetails>();
         private bool isSearching = false;
@@ -73,40 +68,29 @@ public class YouTubePopupComponent : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Refresh the target playlist dropdown (called from PlaylistToggleComponent when playlists change)
-    /// </summary>
-    public void RefreshTargetPlaylistDropdown()
+    void Update()
     {
-        if (targetPlaylistDropdown != null)
+        // Animate loading indicators
+        if (isSearching || isDownloading)
         {
-            UpdateTargetPlaylistDropdown();
-        }
-    }
-
-        void Update()
-        {
-            // Animate loading indicators
-            if (isSearching || isDownloading)
+            loadingDots += Time.deltaTime * LoadingSpeed;
+            if (loadingDots > 3f) loadingDots = 0f;
+            
+            int dotCount = (int)loadingDots + 1;
+            string dots = new string('.', dotCount);
+            
+            if (isSearching && statusText != null)
             {
-                loadingDots += Time.deltaTime * LoadingSpeed;
-                if (loadingDots > 3f) loadingDots = 0f;
-                
-                int dotCount = (int)loadingDots + 1;
-                string dots = new string('.', dotCount);
-                
-                if (isSearching && statusText != null)
-                {
-                    statusText.text = $"🔍 Getting song information{dots}";
-                    statusText.color = Color.yellow;
-                }
-                else if (isDownloading && statusText != null)
-                {
-                    statusText.text = $"⬇️ Downloading song{dots} This may take a while";
-                    statusText.color = Color.yellow;
-                }
+                statusText.text = $"🔍 Getting song information{dots}";
+                statusText.color = Color.yellow;
+            }
+            else if (isDownloading && statusText != null)
+            {
+                statusText.text = $"⬇️ Downloading song{dots} This may take a while";
+                statusText.color = Color.yellow;
             }
         }
+    }
 
     public void OpenYouTubeSearchPopup()
     {
@@ -158,16 +142,6 @@ public class YouTubePopupComponent : MonoBehaviour
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error creating title text: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Playlist Selection
-                CreatePlaylistSelection(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating playlist selection: {ex.Message}", "UI");
                 throw;
             }
             
@@ -250,255 +224,6 @@ public class YouTubePopupComponent : MonoBehaviour
             titleText.color = Color.white;
             titleText.alignment = TextAnchor.MiddleCenter;
             titleText.fontStyle = FontStyle.Bold;
-        }
-
-        private void CreatePlaylistSelection(GameObject parent)
-        {
-            var playlistContainer = new GameObject("PlaylistSelection");
-            playlistContainer.transform.SetParent(parent.transform, false);
-            
-            var playlistRect = playlistContainer.AddComponent<RectTransform>();
-            playlistRect.anchorMin = new Vector2(0f, 0.78f);
-            playlistRect.anchorMax = new Vector2(1f, 0.85f);
-            playlistRect.offsetMin = new Vector2(10f, 0f);
-            playlistRect.offsetMax = new Vector2(-10f, 0f);
-            
-            // Section label
-            var labelObj = new GameObject("PlaylistLabel");
-            labelObj.transform.SetParent(playlistContainer.transform, false);
-            
-            var labelRect = labelObj.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0f, 0.6f);
-            labelRect.anchorMax = new Vector2(1f, 1f);
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-            
-            var labelText = labelObj.AddComponent<Text>();
-            labelText.text = "📋 Add to Playlist:";
-            FontHelper.SetSafeFont(labelText);
-            labelText.fontSize = 12;
-            labelText.color = Color.white;
-            labelText.alignment = TextAnchor.MiddleLeft;
-            labelText.fontStyle = FontStyle.Bold;
-            
-            // Playlist dropdown (60% width)
-            CreateTargetPlaylistDropdown(playlistContainer);
-            
-            // New playlist creation (40% width)
-            CreateNewPlaylistSection(playlistContainer);
-            
-            // Update the dropdown with current playlists
-            UpdateTargetPlaylistDropdown();
-        }
-        
-        private void CreateTargetPlaylistDropdown(GameObject parent)
-        {
-            var dropdownObj = new GameObject("TargetPlaylistDropdown");
-            dropdownObj.transform.SetParent(parent.transform, false);
-            
-            var dropdownRect = dropdownObj.AddComponent<RectTransform>();
-            dropdownRect.anchorMin = new Vector2(0f, 0f);
-            dropdownRect.anchorMax = new Vector2(0.6f, 0.6f);
-            dropdownRect.offsetMin = new Vector2(0f, 0f);
-            dropdownRect.offsetMax = new Vector2(-5f, 0f);
-            
-            // Background
-            var dropdownBg = dropdownObj.AddComponent<Image>();
-            dropdownBg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-            
-            targetPlaylistDropdown = dropdownObj.AddComponent<Dropdown>();
-            
-            // Create dropdown label
-            var labelObj = new GameObject("Label");
-            labelObj.transform.SetParent(dropdownObj.transform, false);
-            var labelRect = labelObj.AddComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0.05f, 0f);
-            labelRect.anchorMax = new Vector2(0.85f, 1f);
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-            
-            var labelText = labelObj.AddComponent<Text>();
-            labelText.text = "Select Playlist...";
-            FontHelper.SetSafeFont(labelText);
-            labelText.fontSize = 11;
-            labelText.color = Color.white;
-            labelText.alignment = TextAnchor.MiddleLeft;
-            
-            targetPlaylistDropdown.captionText = labelText;
-            targetPlaylistDropdown.targetGraphic = dropdownBg;
-        }
-        
-        private void CreateNewPlaylistSection(GameObject parent)
-        {
-            var newPlaylistContainer = new GameObject("NewPlaylistSection");
-            newPlaylistContainer.transform.SetParent(parent.transform, false);
-            
-            var containerRect = newPlaylistContainer.AddComponent<RectTransform>();
-            containerRect.anchorMin = new Vector2(0.62f, 0f);
-            containerRect.anchorMax = new Vector2(1f, 0.6f);
-            containerRect.offsetMin = Vector2.zero;
-            containerRect.offsetMax = Vector2.zero;
-            
-            // New playlist name input (70% width)
-            var inputObj = new GameObject("NewPlaylistInput");
-            inputObj.transform.SetParent(newPlaylistContainer.transform, false);
-            
-            var inputRect = inputObj.AddComponent<RectTransform>();
-            inputRect.anchorMin = new Vector2(0f, 0f);
-            inputRect.anchorMax = new Vector2(0.7f, 1f);
-            inputRect.offsetMin = new Vector2(0f, 0f);
-            inputRect.offsetMax = new Vector2(-2f, 0f);
-            
-            // Input background
-            var inputBg = inputObj.AddComponent<Image>();
-            inputBg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
-            
-            // Create input text component
-            var textObj = new GameObject("Text");
-            textObj.transform.SetParent(inputObj.transform, false);
-            var textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(5f, 0f);
-            textRect.offsetMax = new Vector2(-5f, 0f);
-            
-            var textComponent = textObj.AddComponent<Text>();
-            FontHelper.SetSafeFont(textComponent);
-            textComponent.fontSize = 10;
-            textComponent.color = Color.white;
-            textComponent.supportRichText = false;
-            
-            // Create placeholder
-            var placeholderObj = new GameObject("Placeholder");
-            placeholderObj.transform.SetParent(inputObj.transform, false);
-            var placeholderRect = placeholderObj.AddComponent<RectTransform>();
-            placeholderRect.anchorMin = Vector2.zero;
-            placeholderRect.anchorMax = Vector2.one;
-            placeholderRect.offsetMin = new Vector2(5f, 0f);
-            placeholderRect.offsetMax = new Vector2(-5f, 0f);
-            
-            var placeholderText = placeholderObj.AddComponent<Text>();
-            placeholderText.text = "New playlist name...";
-            FontHelper.SetSafeFont(placeholderText);
-            placeholderText.fontSize = 10;
-            placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-            placeholderText.fontStyle = FontStyle.Italic;
-            
-            // Create InputField
-            newPlaylistNameInput = inputObj.AddComponent<InputField>();
-            newPlaylistNameInput.targetGraphic = inputBg;
-            newPlaylistNameInput.textComponent = textComponent;
-            newPlaylistNameInput.placeholder = placeholderText;
-            newPlaylistNameInput.characterLimit = 50;
-            
-            // Create button (30% width)
-            var buttonObj = new GameObject("CreateButton");
-            buttonObj.transform.SetParent(newPlaylistContainer.transform, false);
-            
-            var buttonRect = buttonObj.AddComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0.72f, 0f);
-            buttonRect.anchorMax = new Vector2(1f, 1f);
-            buttonRect.offsetMin = Vector2.zero;
-            buttonRect.offsetMax = Vector2.zero;
-            
-            createNewPlaylistButton = buttonObj.AddComponent<Button>();
-            var buttonImage = buttonObj.AddComponent<Image>();
-            buttonImage.color = new Color(0.2f, 0.8f, 0.2f, 0.8f);
-            
-            var buttonTextObj = new GameObject("Text");
-            buttonTextObj.transform.SetParent(buttonObj.transform, false);
-            var buttonTextRect = buttonTextObj.AddComponent<RectTransform>();
-            buttonTextRect.anchorMin = Vector2.zero;
-            buttonTextRect.anchorMax = Vector2.one;
-            buttonTextRect.offsetMin = Vector2.zero;
-            buttonTextRect.offsetMax = Vector2.zero;
-            
-            var buttonText = buttonTextObj.AddComponent<Text>();
-            buttonText.text = "Create";
-            FontHelper.SetSafeFont(buttonText);
-            buttonText.fontSize = 9;
-            buttonText.color = Color.white;
-            buttonText.alignment = TextAnchor.MiddleCenter;
-            buttonText.fontStyle = FontStyle.Bold;
-            
-            createNewPlaylistButton.targetGraphic = buttonImage;
-            createNewPlaylistButton.onClick.AddListener((UnityEngine.Events.UnityAction)OnCreateNewPlaylistClicked);
-        }
-        
-        private void UpdateTargetPlaylistDropdown()
-        {
-            if (targetPlaylistDropdown == null || playlistToggleComponent == null) return;
-            
-            targetPlaylistDropdown.ClearOptions();
-            
-            var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
-            var options = new Il2CppCollections.List<Dropdown.OptionData>();
-            
-            foreach (var playlist in availablePlaylists)
-            {
-                options.Add(new Dropdown.OptionData($"{playlist.name} ({playlist.downloadedCount}/{playlist.songCount})"));
-            }
-            
-            targetPlaylistDropdown.AddOptions(options);
-            
-            // Select the current playlist if available
-            var currentPlaylist = playlistToggleComponent.GetCurrentYouTubePlaylist();
-            if (currentPlaylist != null)
-            {
-                for (int i = 0; i < availablePlaylists.Count; i++)
-                {
-                    if (availablePlaylists[i].id == currentPlaylist.id)
-                    {
-                        targetPlaylistDropdown.value = i;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        private void OnCreateNewPlaylistClicked()
-        {
-            if (newPlaylistNameInput == null) return;
-            
-            var playlistName = newPlaylistNameInput.text?.Trim();
-            if (string.IsNullOrEmpty(playlistName))
-            {
-                UpdateStatus("❌ Please enter a playlist name", Color.red);
-                return;
-            }
-            
-            try
-            {
-                var newPlaylist = YouTubePlaylistManager.CreatePlaylist(playlistName, "Created from YouTube search");
-                if (newPlaylist != null)
-                {
-                    UpdateStatus($"✅ Created new playlist: {playlistName}", Color.green);
-                    newPlaylistNameInput.text = "";
-                    
-                    // Update the dropdown and select the new playlist
-                    UpdateTargetPlaylistDropdown();
-                    
-                    // Set the new playlist as selected
-                    var playlists = YouTubePlaylistManager.GetAllPlaylists();
-                    for (int i = 0; i < playlists.Count; i++)
-                    {
-                        if (playlists[i].id == newPlaylist.id)
-                        {
-                            targetPlaylistDropdown.value = i;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    UpdateStatus("❌ Failed to create playlist", Color.red);
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus("❌ Error creating playlist", Color.red);
-                LoggingSystem.Error($"Error creating new playlist: {ex.Message}", "UI");
-            }
         }
 
         private void CreateUrlInput(GameObject parent)
@@ -929,23 +654,7 @@ public class YouTubePopupComponent : MonoBehaviour
                                 var songArtist = song.GetArtist();
                                 
                                 // Check if song is already in playlist and update button appearance
-                                YouTubePlaylist? targetPlaylist = null;
-                                
-                                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
-                                {
-                                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
-                                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
-                                    {
-                                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
-                                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
-                                    }
-                                }
-                                
-                                // Fall back to current playlist if no target selected
-                                if (targetPlaylist == null)
-                                {
-                                    targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
-                                }
+                                YouTubePlaylist? targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
                                 
                                 bool inPlaylist = targetPlaylist?.ContainsSong(song.GetVideoId()) ?? false;
                                 
@@ -1006,23 +715,7 @@ public class YouTubePopupComponent : MonoBehaviour
                 }
                 
                 // Get the target playlist from the dropdown selection
-                YouTubePlaylist? targetPlaylist = null;
-                
-                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
-                {
-                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
-                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
-                    {
-                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
-                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
-                    }
-                }
-                
-                // Fall back to current playlist if no target selected
-                if (targetPlaylist == null)
-                {
-                    targetPlaylist = playlistToggleComponent.GetCurrentYouTubePlaylist();
-                }
+                YouTubePlaylist? targetPlaylist = playlistToggleComponent.GetCurrentYouTubePlaylist();
                 
                 if (targetPlaylist == null)
                 {
@@ -1090,23 +783,7 @@ public class YouTubePopupComponent : MonoBehaviour
         private void RefreshSongButtonStates()
         {
             // Get the target playlist from dropdown selection
-            YouTubePlaylist? targetPlaylist = null;
-            
-            if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
-            {
-                var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
-                if (targetPlaylistDropdown.value < availablePlaylists.Count)
-                {
-                    var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
-                    targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
-                }
-            }
-            
-            // Fall back to current playlist if no target selected
-            if (targetPlaylist == null)
-            {
-                targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
-            }
+            YouTubePlaylist? targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
             
             // Update all song buttons to reflect current playlist state
             foreach (var row in songRows)
@@ -1412,23 +1089,7 @@ public class YouTubePopupComponent : MonoBehaviour
             try
             {
                 // Get the target playlist from the dropdown selection
-                YouTubePlaylist? targetPlaylist = null;
-                
-                if (targetPlaylistDropdown != null && targetPlaylistDropdown.value >= 0)
-                {
-                    var availablePlaylists = YouTubePlaylistManager.GetAllPlaylists();
-                    if (targetPlaylistDropdown.value < availablePlaylists.Count)
-                    {
-                        var selectedPlaylistInfo = availablePlaylists[targetPlaylistDropdown.value];
-                        targetPlaylist = YouTubePlaylistManager.LoadPlaylist(selectedPlaylistInfo.id);
-                    }
-                }
-                
-                // Fall back to current playlist if no target selected
-                if (targetPlaylist == null)
-                {
-                    targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
-                }
+                YouTubePlaylist? targetPlaylist = playlistToggleComponent?.GetCurrentYouTubePlaylist();
                 
                 if (targetPlaylist == null)
                 {

@@ -1638,9 +1638,6 @@ namespace BackSpeakerMod.UI.Components
                 
                 // Update playlist button
                 UpdatePlaylistButton();
-                
-                // Also refresh YouTube popup dropdown if it exists
-                RefreshYouTubePopupDropdown();
             }
             catch (Exception ex)
             {
@@ -1648,22 +1645,7 @@ namespace BackSpeakerMod.UI.Components
             }
         }
         
-        private void RefreshYouTubePopupDropdown()
-        {
-            try
-            {
-                // Find any active YouTube popup and refresh its dropdown
-                var youtubePopup = FindObjectOfType<UI.Components.YouTubePopupComponent>();
-                if (youtubePopup != null)
-                {
-                    youtubePopup.RefreshTargetPlaylistDropdown();
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Debug($"No YouTube popup found to refresh: {ex.Message}", "UI");
-            }
-        }
+
         
         private void CreateYouTubePlaylistManagement(GameObject panel)
         {
