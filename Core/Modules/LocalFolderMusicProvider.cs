@@ -31,6 +31,8 @@ namespace BackSpeakerMod.Core.Modules
         private Dictionary<string, object> configuration = new Dictionary<string, object>();
         private bool isLoading = false;
         private readonly Dictionary<string, AudioClip> cachedClips = new Dictionary<string, AudioClip>();
+        private const int maxCacheSize = 10; // Keep fewer clips in memory compared to YouTube due to larger file sizes
+        private bool isDestroyed = false;
 
         public LocalFolderMusicProvider() : base() { }
 
@@ -77,20 +79,72 @@ namespace BackSpeakerMod.Core.Modules
 
             LoggingSystem.Info($"Found {allFiles.Count} supported audio files", "LocalFolder");
 
+            // If we have too many cached clips, remove oldest ones
+            while (cachedClips.Count > maxCacheSize)
+            {
+                var oldestKey = cachedClips.Keys.First();
+                var oldClip = cachedClips[oldestKey];
+                if (oldClip != null)
+                {
+                    Destroy(oldClip);
+                }
+                cachedClips.Remove(oldestKey);
+                LoggingSystem.Debug($"Removed old cached clip: {oldestKey}", "LocalFolder");
+            }
+
             // Load files sequentially to avoid memory issues
             foreach (var filePath in allFiles)
             {
+                if (isDestroyed) break; // Stop if component is being destroyed
+
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
                 LoggingSystem.Debug($"Loading: {fileName}", "LocalFolder");
 
-                // Check if we have a cached clip
-                if (cachedClips.TryGetValue(fileName, out AudioClip? cachedClip) && cachedClip != null)
+                // First verify the source file still exists
+                if (!File.Exists(filePath))
                 {
-                    LoggingSystem.Debug($"Using cached clip for: {fileName}", "LocalFolder");
-                    tracks.Add(cachedClip);
-                    trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
+                    LoggingSystem.Warning($"Source file no longer exists: {filePath}", "LocalFolder");
                     continue;
                 }
+
+                // Check if we have a cached clip and verify its validity
+                if (cachedClips.TryGetValue(fileName, out AudioClip? cachedClip))
+                {
+                    if (cachedClip != null && cachedClip.loadState == AudioDataLoadState.Loaded && cachedClip.length > 0)
+                    {
+                        // Verify the cache is still valid by comparing file modify times
+                        try
+                        {
+                            var fileInfo = new FileInfo(filePath);
+                            if (fileInfo.Length > 0)
+                            {
+                                LoggingSystem.Debug($"Using cached clip for: {fileName}", "LocalFolder");
+                                tracks.Add(cachedClip);
+                                trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
+                                continue;
+                            }
+                            else
+                            {
+                                LoggingSystem.Warning($"Source file is empty: {fileName}", "LocalFolder");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggingSystem.Warning($"Error checking source file {fileName}: {ex.Message}", "LocalFolder");
+                        }
+                    }
+
+                    // If we get here, the cached clip is invalid
+                    if (cachedClip != null)
+                    {
+                        Destroy(cachedClip);
+                    }
+                    cachedClips.Remove(fileName);
+                    LoggingSystem.Debug($"Removed invalid cached clip for: {fileName}", "LocalFolder");
+                }
+
+                // Add a delay before each load to let the audio system stabilize
+                yield return new WaitForSeconds(0.25f);
 
                 // Declare variables outside try block to maintain scope
                 bool loadingComplete = false;
@@ -124,11 +178,24 @@ namespace BackSpeakerMod.Core.Modules
                     continue;
                 }
 
-                if (loadedClip != null)
+                if (loadedClip != null && !isDestroyed)
                 {
                     try
                     {
-                        // Cache the clip
+                        // If we're at cache limit, remove oldest clip first
+                        if (cachedClips.Count >= maxCacheSize)
+                        {
+                            var oldestKey = cachedClips.Keys.First();
+                            var oldClip = cachedClips[oldestKey];
+                            if (oldClip != null)
+                            {
+                                Destroy(oldClip);
+                            }
+                            cachedClips.Remove(oldestKey);
+                            LoggingSystem.Debug($"Cache full - removed old clip: {oldestKey}", "LocalFolder");
+                        }
+
+                        // Add to cache and track list
                         cachedClips[fileName] = loadedClip;
                         tracks.Add(loadedClip);
                         trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
@@ -149,9 +216,6 @@ namespace BackSpeakerMod.Core.Modules
                         }
                     }
                 }
-
-                // Add a small delay between files to prevent audio system overload
-                yield return new WaitForSeconds(0.1f);
             }
 
             LoggingSystem.Info($"Successfully loaded {tracks.Count} local music tracks", "LocalFolder");
@@ -202,21 +266,12 @@ Instructions:
 
 Tips:
 - Use descriptive filenames for better organization
-- MP3 format provides best compatibility and file size
-- NAudio handles most common audio formats reliably
+- Avoid special characters in filenames
+- Consider using MP3 format for best compatibility
+- Keep file sizes reasonable for better performance
+- Clean naming format: 'Artist - Title.mp3'";
 
-Enjoy your music!
-";
-                
-                try
-                {
-                    File.WriteAllText(readmePath, readmeContent);
-                    LoggingSystem.Info("Created music folder with README", "LocalFolder");
-                }
-                catch (Exception ex)
-                {
-                    LoggingSystem.Warning($"Could not create README file: {ex.Message}", "LocalFolder");
-                }
+                File.WriteAllText(readmePath, readmeContent);
             }
         }
 
@@ -224,24 +279,7 @@ Enjoy your music!
         {
             string musicPath = GetMusicFolderPath();
             EnsureMusicFolderExists();
-            
-            try
-            {
-                // Cross-platform folder opening
-                #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-                    System.Diagnostics.Process.Start("explorer.exe", musicPath.Replace('/', '\\'));
-                #elif UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
-                    System.Diagnostics.Process.Start("open", musicPath);
-                #elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
-                    System.Diagnostics.Process.Start("xdg-open", musicPath);
-                #endif
-                
-                LoggingSystem.Info($"Opened music folder: {musicPath}", "LocalFolder");
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Could not open music folder: {ex.Message}", "LocalFolder");
-            }
+            global::System.Diagnostics.Process.Start(musicPath);
         }
 
         public void RefreshTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
@@ -254,6 +292,7 @@ Enjoy your music!
             configuration["MusicFolderPath"] = GetMusicFolderPath();
             configuration["IsAvailable"] = IsAvailable;
             configuration["SupportedFormats"] = AudioHelper.GetSupportedExtensions();
+            configuration["MaxCacheSize"] = maxCacheSize;
             
             try
             {
@@ -284,10 +323,14 @@ Enjoy your music!
         public void ApplyConfiguration(Dictionary<string, object> config)
         {
             // Configuration could be applied here in the future
+            // For example: maxCacheSize, supported formats, etc.
         }
 
         public void Cleanup()
         {
+            // Mark as destroyed so coroutines can stop
+            isDestroyed = true;
+
             // Clear cached clips to free memory
             foreach (var clip in cachedClips.Values)
             {
