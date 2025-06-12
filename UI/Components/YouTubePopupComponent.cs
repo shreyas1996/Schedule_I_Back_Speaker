@@ -278,6 +278,9 @@ public class YouTubePopupComponent : MonoBehaviour
             searchBarInputField.textComponent = textComponent;
             searchBarInputField.placeholder = placeholderText;
             searchBarInputField.characterLimit = 500;
+
+            // Set up input field for keybind management
+            UI.Helpers.InputFieldManager.SetupInputField(searchBarInputField);
         }
 
         private void CreateSearchButton(GameObject parent)

@@ -2194,6 +2194,9 @@ namespace BackSpeakerMod.UI.Components
             
             // Listen for text changes
             playlistNameInput.onValueChanged.AddListener((UnityEngine.Events.UnityAction<string>)OnPlaylistNameChanged);
+
+            // Set up input field for keybind management
+            UI.Helpers.InputFieldManager.SetupInputField(playlistNameInput);
             
             // Save button (20% width)
             var saveButtonObj = new GameObject("SaveNameButton");
