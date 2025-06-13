@@ -332,7 +332,7 @@ namespace BackSpeakerMod.UI.Components
         private void UpdateTrackHighlighting(Transform trackItem, int trackIndex)
         {
             var currentTrackIndex = manager?.CurrentTrackIndex ?? -1;
-            var isCurrentTrack = (trackIndex == currentTrackIndex && manager?.IsPlaying == true);
+            var isCurrentTrack = (trackIndex == currentTrackIndex); // Highlight current track regardless of play/pause state
             
             // Find the background image component
             var backgroundImage = trackItem.GetComponent<Image>();
@@ -341,7 +341,7 @@ namespace BackSpeakerMod.UI.Components
                 // Apply highlighting using the same logic as CreateTrackItem
                 if (isCurrentTrack)
                 {
-                    // Use theme color for currently playing track (same as CreateTrackItem)
+                    // Use theme color for current track (same as CreateTrackItem)
                     backgroundImage.color = currentTab switch
                     {
                         MusicSourceType.Jukebox => new Color(0.2f, 0.7f, 0.2f, 0.6f),      // Green
@@ -931,9 +931,9 @@ namespace BackSpeakerMod.UI.Components
             layoutElement.minHeight = 40f;
             layoutElement.preferredHeight = 40f;
             
-            // Check if this is the currently playing track
+            // Check if this is the current track
             var currentTrackIndex = manager?.CurrentTrackIndex ?? -1;
-            var isCurrentTrack = (index == currentTrackIndex && manager?.IsPlaying == true);
+            var isCurrentTrack = (index == currentTrackIndex); // Highlight current track regardless of play/pause state
             
             // Track item background - highlight current track with tab theme color
             var itemBg = trackItem.AddComponent<Image>();
