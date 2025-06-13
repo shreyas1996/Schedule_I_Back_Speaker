@@ -244,10 +244,19 @@ namespace BackSpeakerMod.Core.Modules
             trackInfo.Clear();
             songDetailsInfo.Clear();
             
-            // Reset playback state
-            currentTrackIndex = 0;
-            savedProgress = 0f;
-            isPaused = false;
+            // MODIFIED: Only reset playback state if no tracks were playing (hasBeenPlayed = false)
+            // This prevents resetting state when playlist is just being reloaded
+            if (!hasBeenPlayed)
+            {
+                currentTrackIndex = 0;
+                savedProgress = 0f;
+                isPaused = false;
+                LoggingSystem.Debug("Reset playback state since session was not active", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Debug("Preserved playback state since session was active", "AudioSession");
+            }
             
             LoggingSystem.Info($"Session {DisplayName}: Cleared {clearedCount} YouTube songs", "AudioSession");
         }
@@ -262,6 +271,14 @@ namespace BackSpeakerMod.Core.Modules
                 LoggingSystem.Warning("Cannot load YouTube playlist into non-YouTube session", "AudioSession");
                 return;
             }
+            
+            // CRITICAL FIX: Preserve current state before clearing
+            var preservedCurrentTrackIndex = currentTrackIndex;
+            var preservedSavedProgress = savedProgress;
+            var preservedIsPaused = isPaused;
+            var preservedHasBeenPlayed = hasBeenPlayed;
+            
+            LoggingSystem.Debug($"Preserving current state: trackIndex={preservedCurrentTrackIndex}, progress={preservedSavedProgress}, isPaused={preservedIsPaused}", "AudioSession");
             
             // Clear existing songs first
             ClearYouTubeSongs();
@@ -278,6 +295,21 @@ namespace BackSpeakerMod.Core.Modules
                         songDetailsInfo.Add(song);
                     }
                 }
+            }
+            
+            // CRITICAL FIX: Restore preserved state if we have tracks and the index is still valid
+            if (tracks.Count > 0 && preservedCurrentTrackIndex < tracks.Count && preservedHasBeenPlayed)
+            {
+                currentTrackIndex = preservedCurrentTrackIndex;
+                savedProgress = preservedSavedProgress;
+                isPaused = preservedIsPaused;
+                hasBeenPlayed = preservedHasBeenPlayed;
+                
+                LoggingSystem.Info($"Restored preserved state: trackIndex={currentTrackIndex}, progress={savedProgress}, isPaused={isPaused}", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Debug("Could not restore preserved state - using default values", "AudioSession");
             }
             
             LoggingSystem.Info($"Session {DisplayName}: Loaded YouTube playlist with {tracks.Count} songs", "AudioSession");
