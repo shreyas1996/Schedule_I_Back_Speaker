@@ -6,8 +6,8 @@ using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Utils
 {
     /// <summary>
-    /// Helper class for loading embedded assemblies at runtime
-    /// Allows embedding dependency DLLs as resources instead of requiring separate installation
+    /// External assembly loader for AudioImportLib
+    /// No longer embeds DLL - loads from external file instead
     /// </summary>
     public static class EmbeddedAssemblyLoader
     {
@@ -15,7 +15,7 @@ namespace BackSpeakerMod.Utils
         private static bool _loadAttempted = false;
 
         /// <summary>
-        /// Load the embedded AudioImportLib assembly
+        /// Load the external AudioImportLib assembly
         /// </summary>
         public static bool LoadAudioImportLib()
         {
@@ -26,60 +26,32 @@ namespace BackSpeakerMod.Utils
 
             try
             {
-                LoggingSystem.Debug("Loading embedded AudioImportLib.dll...", "EmbeddedAssemblyLoader");
+                LoggingSystem.Debug("Loading external AudioImportLib.dll...", "EmbeddedAssemblyLoader");
 
-                // Get the current assembly (our mod)
-                var currentAssembly = Assembly.GetExecutingAssembly();
+                // Check if external file exists (UserLibs first, then Libs directory)
+                var audioImportLibPath = DependencyChecker.GetAudioImportLibPath();
                 
-                // Resource name follows the pattern: Namespace.ResourcePath
-                string resourceName = "BackSpeakerMod.EmbeddedResources.Libs.AudioImportLib.dll";
-
-                // Check if resource exists
-                var resourceNames = currentAssembly.GetManifestResourceNames();
-                bool resourceExists = false;
-                foreach (var name in resourceNames)
+                if (!File.Exists(audioImportLibPath))
                 {
-                    if (name.EndsWith("AudioImportLib.dll"))
-                    {
-                        resourceName = name;
-                        resourceExists = true;
-                        break;
-                    }
-                }
-
-                if (!resourceExists)
-                {
-                    LoggingSystem.Error("AudioImportLib.dll not found in embedded resources", "EmbeddedAssemblyLoader");
+                    LoggingSystem.Warning($"AudioImportLib.dll not found at: {audioImportLibPath}", "EmbeddedAssemblyLoader");
+                    LoggingSystem.Info($"Preferred location: {DependencyChecker.AudioImportLibUserLibsPath}", "EmbeddedAssemblyLoader");
+                    LoggingSystem.Info($"Alternative location: {DependencyChecker.AudioImportLibLibsPath}", "EmbeddedAssemblyLoader");
+                    LoggingSystem.Info("Audio loading functionality will be limited without AudioImportLib.dll", "EmbeddedAssemblyLoader");
                     return false;
                 }
 
-                LoggingSystem.Debug($"Found embedded resource: {resourceName}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Debug($"Loading AudioImportLib.dll from: {audioImportLibPath}", "EmbeddedAssemblyLoader");
 
-                // Load the embedded DLL
-                using (var stream = currentAssembly.GetManifestResourceStream(resourceName))
-                {
-                    if (stream == null)
-                    {
-                        LoggingSystem.Error("Could not open embedded AudioImportLib.dll stream", "EmbeddedAssemblyLoader");
-                        return false;
-                    }
+                // Load the external DLL
+                _audioImportLibAssembly = Assembly.LoadFrom(audioImportLibPath);
 
-                    // Read the DLL bytes
-                    byte[] assemblyBytes = new byte[stream.Length];
-                    stream.Read(assemblyBytes, 0, assemblyBytes.Length);
-
-                    LoggingSystem.Debug($"Read {assemblyBytes.Length} bytes from embedded AudioImportLib.dll", "EmbeddedAssemblyLoader");
-
-                    // Load the assembly from bytes
-                    _audioImportLibAssembly = Assembly.Load(assemblyBytes);
-
-                    LoggingSystem.Info($"Successfully loaded embedded AudioImportLib: {_audioImportLibAssembly.FullName}", "EmbeddedAssemblyLoader");
-                    return true;
-                }
+                LoggingSystem.Info($"Successfully loaded external AudioImportLib: {_audioImportLibAssembly.FullName}", "EmbeddedAssemblyLoader");
+                return true;
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Failed to load embedded AudioImportLib: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Error($"Failed to load external AudioImportLib: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Info($"To enable full audio features, place AudioImportLib.dll at: {DependencyChecker.AudioImportLibPath}", "EmbeddedAssemblyLoader");
                 return false;
             }
         }
@@ -89,49 +61,51 @@ namespace BackSpeakerMod.Utils
         /// </summary>
         public static Type? GetAudioImportLibApiType()
         {
-            if (_audioImportLibAssembly == null)
-            {
-                if (!LoadAudioImportLib())
-                    return null;
-            }
+            if (!LoadAudioImportLib() || _audioImportLibAssembly == null)
+                return null;
 
             try
             {
-                return _audioImportLibAssembly?.GetType("AudioImportLib.API");
+                // Look for the API class in the assembly
+                var types = _audioImportLibAssembly.GetTypes();
+                foreach (var type in types)
+                {
+                    if (type.Name.Contains("API") || type.Name.Contains("AudioImport"))
+                    {
+                        LoggingSystem.Debug($"Found AudioImportLib API type: {type.FullName}", "EmbeddedAssemblyLoader");
+                        return type;
+                    }
+                }
+
+                LoggingSystem.Warning("Could not find API type in AudioImportLib assembly", "EmbeddedAssemblyLoader");
+                return null;
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Could not get AudioImportLib.API type: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Error($"Error getting AudioImportLib API type: {ex.Message}", "EmbeddedAssemblyLoader");
                 return null;
             }
         }
 
         /// <summary>
-        /// Get the LoadAudioClip method from the embedded AudioImportLib
+        /// Get the loaded AudioImportLib assembly
         /// </summary>
-        public static MethodInfo? GetLoadAudioClipMethod()
+        public static Assembly? GetAudioImportLibAssembly()
         {
-            var apiType = GetAudioImportLibApiType();
-            if (apiType == null)
-                return null;
-
-            try
-            {
-                return apiType.GetMethod("LoadAudioClip", BindingFlags.Public | BindingFlags.Static);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Could not get LoadAudioClip method: {ex.Message}", "EmbeddedAssemblyLoader");
-                return null;
-            }
+            LoadAudioImportLib();
+            return _audioImportLibAssembly;
         }
 
         /// <summary>
-        /// Check if AudioImportLib is available (either embedded or already loaded)
+        /// Check if AudioImportLib is available and loaded
         /// </summary>
         public static bool IsAudioImportLibAvailable()
         {
-            // First try to load our embedded version
+            // First check if external file exists
+            if (!DependencyChecker.CheckAudioImportLib())
+                return false;
+
+            // Then try to load it
             if (LoadAudioImportLib())
                 return true;
 
@@ -154,6 +128,21 @@ namespace BackSpeakerMod.Utils
             }
 
             return false;
+        }
+        
+        /// <summary>
+        /// Get setup instructions for missing AudioImportLib
+        /// </summary>
+        public static string GetSetupInstructions()
+        {
+            if (IsAudioImportLibAvailable())
+                return "AudioImportLib.dll is available! ✓";
+            
+            return $"AudioImportLib.dll is missing.\n" +
+                   $"Preferred location: {DependencyChecker.AudioImportLibUserLibsPath}\n" +
+                   $"Alternative location: {DependencyChecker.AudioImportLibLibsPath}\n" +
+                   $"Contact the mod author for this dependency.\n" +
+                   $"Audio loading will be limited without this library.";
         }
     }
 } 

@@ -4,6 +4,7 @@ using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.UI.Helpers;
+using BackSpeakerMod.Utils;
 
 namespace BackSpeakerMod.UI.Components
 {
@@ -18,10 +19,15 @@ namespace BackSpeakerMod.UI.Components
         // UI Elements
         private GameObject? _themedArt;
         private GameObject? _defaultArt;
+        private Image? _thumbnailImage;
         private Text? nowPlayingText;
         private Text? artistText;
         private Text? albumText;
         private Text? sourceText;
+        
+        // Current track info for thumbnail loading
+        private string? currentTrackId;
+        private MusicSourceType currentSourceType;
         
         public TrackInfoComponent() : base() { }
         
@@ -46,9 +52,11 @@ namespace BackSpeakerMod.UI.Components
             albumArtContainer.transform.SetParent(this.transform, false);
             
             var artRect = albumArtContainer.AddComponent<RectTransform>();
-            // Position album art in left portion, properly constrained
-            artRect.anchorMin = new Vector2(0.05f, 0.05f);  // 5% from left, 5% from bottom
-            artRect.anchorMax = new Vector2(0.35f, 0.85f);  // 35% from left, 85% from bottom
+            // Position album art on the LEFT side as a fixed square
+            artRect.anchorMin = new Vector2(0.05f, 0.05f);        // Left side anchor
+            artRect.anchorMax = new Vector2(0.15f, 0.85f);        // Left side anchor, full height
+            // artRect.offsetMin = new Vector2(10f, 10f);      // 10px padding from left and bottom
+            // artRect.offsetMax = new Vector2(130f, -10f);    // 120px width + 10px padding, 10px from top
             artRect.offsetMin = Vector2.zero;
             artRect.offsetMax = Vector2.zero;
             artRect.anchoredPosition = Vector2.zero;
@@ -57,11 +65,7 @@ namespace BackSpeakerMod.UI.Components
             var background = albumArtContainer.AddComponent<Image>();
             background.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
             
-            // Album art image
-            // albumArt = albumArtContainer.AddComponent<Image>();
-            
-            // Default album art with musical notes
-            // CreateDefaultAlbumArt(albumArtContainer);
+            // Create themed album art (will be updated with thumbnails for YouTube)
             CreateThemedAlbumArt(albumArtContainer);
         }
 
@@ -84,6 +88,9 @@ namespace BackSpeakerMod.UI.Components
                 var themedArtImage = _themedArt.AddComponent<Image>();
                 themedArtImage.sprite = Utils.ResourceLoader.LoadEmbeddedSprite($"BackSpeakerMod.EmbeddedResources.AlbumArt.{currentSource?.ToString().ToLower()}.png");
                 themedArtImage.color = new Color(1f, 1f, 1f, 1f);
+                
+                // Store reference for thumbnail updates
+                _thumbnailImage = themedArtImage;
 
                 var themedArtText = _themedArt.AddComponent<Text>();
                 themedArtText.text = "♫";
@@ -119,18 +126,87 @@ namespace BackSpeakerMod.UI.Components
 
         private void UpdateThemedAlbumArt()
         {
-            if (_themedArt == null) return;
+            if (_themedArt == null || _thumbnailImage == null) return;
+            
             try{
                 var currentSource = manager?.GetCurrentMusicSource();
                 if (currentSource == null) return;
 
-                var themedArtImage = _themedArt.GetComponent<Image>();
-                themedArtImage.sprite = Utils.ResourceLoader.LoadEmbeddedSprite($"BackSpeakerMod.EmbeddedResources.AlbumArt.{currentSource?.ToString().ToLower()}.png");
-                themedArtImage.color = new Color(1f, 1f, 1f, 1f);
+                // Check if we need to load a YouTube thumbnail
+                if (currentSource == MusicSourceType.YouTube)
+                {
+                    LoadYouTubeThumbnail();
+                }
+                else
+                {
+                    // Use themed album art for non-YouTube sources
+                    var themedSprite = Utils.ResourceLoader.LoadEmbeddedSprite($"BackSpeakerMod.EmbeddedResources.AlbumArt.{currentSource?.ToString().ToLower()}.png");
+                    if (themedSprite != null)
+                    {
+                        _thumbnailImage.sprite = themedSprite;
+                        _thumbnailImage.color = new Color(1f, 1f, 1f, 1f);
+                    }
+                }
             } catch (System.Exception ex) {
                 LoggingSystem.Error($"Error updating themed album art: {ex.Message}", "UI");
                 // fallback to default album art
                 // already showing default album art, so do nothing
+            }
+        }
+        
+        private void LoadYouTubeThumbnail()
+        {
+            try
+            {
+                // Get current YouTube song details
+                var session = manager?.GetSession(MusicSourceType.YouTube);
+                var currentSong = session?.GetCurrentYouTubeSong();
+                
+                if (currentSong != null && !string.IsNullOrEmpty(currentSong.thumbnail))
+                {
+                    var trackId = currentSong.GetVideoId();
+                    
+                    // Only load if this is a different track
+                    if (trackId != currentTrackId)
+                    {
+                        currentTrackId = trackId;
+                        LoggingSystem.Debug($"Loading YouTube thumbnail for: {currentSong.title}", "TrackInfo");
+                        
+                        //TODO: Properly load the thumbnail from the cache or download it
+                        
+                        // Fallback to YouTube themed art
+                        LoadFallbackYouTubeArt();
+                    }
+                }
+                else
+                {
+                    // No thumbnail available, use YouTube themed art
+                    LoadFallbackYouTubeArt();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error loading YouTube thumbnail: {ex.Message}", "TrackInfo");
+                LoadFallbackYouTubeArt();
+            }
+        }
+        
+        private void LoadFallbackYouTubeArt()
+        {
+            if (_thumbnailImage == null) return;
+            
+            try
+            {
+                var youtubeSprite = Utils.ResourceLoader.LoadEmbeddedSprite("BackSpeakerMod.EmbeddedResources.AlbumArt.youtube.png");
+                if (youtubeSprite != null)
+                {
+                    _thumbnailImage.sprite = youtubeSprite;
+                    _thumbnailImage.color = new Color(1f, 1f, 1f, 1f);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Warning($"Error loading fallback YouTube art: {ex.Message}", "TrackInfo");
             }
         }
         
@@ -140,11 +216,14 @@ namespace BackSpeakerMod.UI.Components
             detailsContainer.transform.SetParent(this.transform, false);
             
             var detailsRect = detailsContainer.AddComponent<RectTransform>();
-            // Position track details to the right of album art
-            detailsRect.anchorMin = new Vector2(0.4f, 0.05f);   // Start after album art
-            detailsRect.anchorMax = new Vector2(0.95f, 0.85f);  // Almost full width, proper height
-            detailsRect.offsetMin = Vector2.zero;
-            detailsRect.offsetMax = Vector2.zero;
+            // Position track details to the RIGHT of album art (150px total space for art + padding)
+            detailsRect.anchorMin = new Vector2(0.2f, 0.05f);        // Start from left
+            detailsRect.anchorMax = new Vector2(0.95f, 0.85f);        // Full width and height
+            // detailsRect.offsetMin = new Vector2(150f, 10f);     // 130px album art + 20px padding
+            // detailsRect.offsetMax = new Vector2(-10f, -10f);    // 10px right and top padding
+            detailsRect.offsetMin = new Vector2(0, 0);
+            detailsRect.offsetMax = new Vector2(0, 0);
+
             detailsRect.anchoredPosition = Vector2.zero;
             
             // Create text lines with relative positioning

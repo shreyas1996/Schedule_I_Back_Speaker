@@ -8,13 +8,13 @@ using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Utils
 {
     /// <summary>
-    /// Helper class for loading audio files using embedded AudioImportLib
+    /// Helper class for loading audio files using external AudioImportLib
     /// Provides reliable audio loading that works in MelonLoader environment with real audio decoding
     /// </summary>
     public static class AudioHelper
     {
         /// <summary>
-        /// Load an audio file and convert it to Unity AudioClip using embedded AudioImportLib
+        /// Load an audio file and convert it to Unity AudioClip using external AudioImportLib
         /// This actually loads and decodes the audio content for real playback
         /// </summary>
         public static async Task<AudioClip?> LoadAudioFileAsync(string filePath)
@@ -30,10 +30,10 @@ namespace BackSpeakerMod.Utils
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
                 string extension = Path.GetExtension(filePath).ToLower();
 
-                LoggingSystem.Debug($"Loading audio file with embedded AudioImportLib: {fileName} ({extension})", "AudioHelper");
+                LoggingSystem.Debug($"Loading audio file with external AudioImportLib: {fileName} ({extension})", "AudioHelper");
 
-                // Use embedded AudioImportLib for real audio loading
-                return await Task.Run(() => LoadAudioWithEmbeddedAudioImportLib(filePath, fileName));
+                // Use external AudioImportLib for real audio loading
+                return await Task.Run(() => LoadAudioWithExternalAudioImportLib(filePath, fileName));
             }
             catch (Exception ex)
             {
@@ -42,7 +42,7 @@ namespace BackSpeakerMod.Utils
             }
         }
 
-        private static AudioClip? LoadAudioWithEmbeddedAudioImportLib(string filePath, string fileName)
+        private static AudioClip? LoadAudioWithExternalAudioImportLib(string filePath, string fileName)
         {
             try
             {
@@ -54,7 +54,8 @@ namespace BackSpeakerMod.Utils
                 }
 
                 // Get the LoadAudioClip method via reflection
-                var loadMethod = EmbeddedAssemblyLoader.GetLoadAudioClipMethod();
+                var apiType = EmbeddedAssemblyLoader.GetAudioImportLibApiType();
+                var loadMethod = apiType?.GetMethod("LoadAudioClip", BindingFlags.Public | BindingFlags.Static);
                 if (loadMethod == null)
                 {
                     LoggingSystem.Warning("Could not get LoadAudioClip method from AudioImportLib", "AudioHelper");
@@ -74,18 +75,18 @@ namespace BackSpeakerMod.Utils
                     // Set a proper name for the clip
                     clip.name = fileName;
                     
-                    LoggingSystem.Info($"Successfully loaded real audio via embedded AudioImportLib: {fileName} ({clip.length:F1}s, {clip.frequency}Hz, {clip.channels}ch)", "AudioHelper");
+                    LoggingSystem.Info($"Successfully loaded real audio via external AudioImportLib: {fileName} ({clip.length:F1}s, {clip.frequency}Hz, {clip.channels}ch)", "AudioHelper");
                     return clip;
                 }
                 else
                 {
-                    LoggingSystem.Warning($"Embedded AudioImportLib returned null for: {fileName}", "AudioHelper");
+                    LoggingSystem.Warning($"External AudioImportLib returned null for: {fileName}", "AudioHelper");
                     return CreatePlaceholderClip(fileName + " (LoadFailed)");
                 }
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Embedded AudioImportLib failed to load {fileName}: {ex.Message}", "AudioHelper");
+                LoggingSystem.Error($"External AudioImportLib failed to load {fileName}: {ex.Message}", "AudioHelper");
                 return CreatePlaceholderClip(fileName + " (Error)");
             }
         }
@@ -165,8 +166,8 @@ namespace BackSpeakerMod.Utils
                 LoggingSystem.Info($"Loading audio from URL with AudioImportLib: {clipName}", "AudioHelper");
                 LoggingSystem.Debug($"Streaming URL: {url}", "AudioHelper");
 
-                // Use embedded AudioImportLib for URL streaming
-                return await Task.Run(() => LoadAudioFromUrlWithEmbeddedAudioImportLib(url, clipName));
+                // Use external AudioImportLib for URL streaming
+                return await Task.Run(() => LoadAudioFromUrlWithExternalAudioImportLib(url, clipName));
             }
             catch (Exception ex)
             {
@@ -175,7 +176,7 @@ namespace BackSpeakerMod.Utils
             }
         }
 
-        private static AudioClip? LoadAudioFromUrlWithEmbeddedAudioImportLib(string url, string clipName)
+        private static AudioClip? LoadAudioFromUrlWithExternalAudioImportLib(string url, string clipName)
         {
             try
             {
@@ -187,7 +188,8 @@ namespace BackSpeakerMod.Utils
                 }
 
                 // Get the LoadAudioClip method via reflection
-                var loadMethod = EmbeddedAssemblyLoader.GetLoadAudioClipMethod();
+                var apiType = EmbeddedAssemblyLoader.GetAudioImportLibApiType();
+                var loadMethod = apiType?.GetMethod("LoadAudioClip", BindingFlags.Public | BindingFlags.Static);
                 if (loadMethod == null)
                 {
                     LoggingSystem.Warning("Could not get LoadAudioClip method from AudioImportLib for URL streaming", "AudioHelper");

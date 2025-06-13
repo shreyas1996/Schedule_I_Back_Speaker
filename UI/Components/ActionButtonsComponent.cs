@@ -12,7 +12,7 @@ namespace BackSpeakerMod.UI.Components
 {
     /// <summary>
     /// Action buttons component following design specifications
-    /// Layout: [Tab Action] [🎧 Detach Headphones] side by side
+    /// Layout: [Tab Action] [📁 Manage Directories] [🎧 Detach Headphones] side by side
     /// </summary>
     public class ActionButtonsComponent : MonoBehaviour
     {
@@ -20,8 +20,15 @@ namespace BackSpeakerMod.UI.Components
         private MusicSourceType currentTab = MusicSourceType.Jukebox;
         
         private Button? leftButton;
+        private Button? middleButton;
         private Button? rightButton;
         private Text? leftButtonText;
+        
+        // Container references for dynamic button management
+        private GameObject? middleContainer;
+        
+        // Music directory manager
+        private MusicDirectoryManagerComponent? directoryManager;
         
         public ActionButtonsComponent() : base() { }
         
@@ -30,6 +37,7 @@ namespace BackSpeakerMod.UI.Components
             this.manager = manager;
             CreateActionButtons();
             CreateYouTubeSearchPopup();
+            // Note: CreateMusicDirectoryManager() is now called lazily when needed
             UpdateButtons(); // Initialize button states
         }
         
@@ -41,22 +49,32 @@ namespace BackSpeakerMod.UI.Components
         
         private void CreateActionButtons()
         {
-            // Left button container (48% width)
+            // Left button container (40% width)
             var leftContainer = new GameObject("LeftButtonContainer");
             leftContainer.transform.SetParent(this.transform, false);
             
             var leftRect = leftContainer.AddComponent<RectTransform>();
             leftRect.anchorMin = new Vector2(0.02f, 0.1f);
-            leftRect.anchorMax = new Vector2(0.48f, 0.9f);
+            leftRect.anchorMax = new Vector2(0.40f, 0.9f);
             leftRect.offsetMin = Vector2.zero;
             leftRect.offsetMax = Vector2.zero;
             
-            // Right button container (48% width)
+            // Middle button container (28% width) - will be shown/hidden based on tab
+            middleContainer = new GameObject("MiddleButtonContainer");
+            middleContainer.transform.SetParent(this.transform, false);
+            
+            var middleRect = middleContainer.AddComponent<RectTransform>();
+            middleRect.anchorMin = new Vector2(0.42f, 0.1f);
+            middleRect.anchorMax = new Vector2(0.68f, 0.9f);
+            middleRect.offsetMin = Vector2.zero;
+            middleRect.offsetMax = Vector2.zero;
+            
+            // Right button container (28% width)
             var rightContainer = new GameObject("RightButtonContainer");
             rightContainer.transform.SetParent(this.transform, false);
             
             var rightRect = rightContainer.AddComponent<RectTransform>();
-            rightRect.anchorMin = new Vector2(0.52f, 0.1f);
+            rightRect.anchorMin = new Vector2(0.70f, 0.1f);
             rightRect.anchorMax = new Vector2(0.98f, 0.9f);
             rightRect.offsetMin = Vector2.zero;
             rightRect.offsetMax = Vector2.zero;
@@ -64,6 +82,9 @@ namespace BackSpeakerMod.UI.Components
             // Create left button (tab-specific action)
             leftButton = CreateButton(leftContainer, "🔄 Reload Jukebox", new Color(0.2f, 0.7f, 0.2f, 0.8f), (UnityEngine.Events.UnityAction)OnLeftButtonClick);
             leftButtonText = leftButton.GetComponentInChildren<Text>();
+            
+            // Create middle button (manage directories) - will be shown/hidden based on tab
+            middleButton = CreateButton(middleContainer, "📁 Manage Local Directories", new Color(0.6f, 0.4f, 0.2f, 0.8f), (UnityEngine.Events.UnityAction)OnDirectoryManagerClick);
             
             // Create right button (headphone control)
             rightButton = CreateButton(rightContainer, "🎧 Detach Headphones", new Color(0.4f, 0.2f, 0.8f, 0.8f), (UnityEngine.Events.UnityAction)OnHeadphoneToggle);
@@ -327,6 +348,110 @@ namespace BackSpeakerMod.UI.Components
             }
         }
         
+        private void OnDirectoryManagerClick()
+        {
+            LoggingSystem.Info("Music directory manager button clicked", "UI");
+            try
+            {
+                if (directoryManager != null)
+                {
+                    directoryManager.ShowPopup();
+                }
+                else
+                {
+                    LoggingSystem.Warning("Directory manager not initialized, attempting to create it now", "UI");
+                    CreateMusicDirectoryManager();
+                    
+                    // Try again after creation
+                    if (directoryManager != null)
+                    {
+                        directoryManager.ShowPopup();
+                    }
+                    else
+                    {
+                        LoggingSystem.Error("Failed to create directory manager", "UI");
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to show directory manager: {ex.Message}", "UI");
+            }
+        }
+        
+        private void CreateMusicDirectoryManager()
+        {
+            try
+            {
+                // Find our app's container using the same approach as other popups
+                Transform? appContainer = null;
+                Transform current = this.transform;
+                
+                // Walk up the hierarchy to find "Container" (our app's container)
+                while (current != null && appContainer == null)
+                {
+                    if (current.name == "Container")
+                    {
+                        appContainer = current;
+                        LoggingSystem.Debug("Found app Container for directory manager", "UI");
+                        break;
+                    }
+                    current = current.parent;
+                }
+                
+                // If no container found, try to find BackSpeakerApp canvas
+                if (appContainer == null)
+                {
+                    current = this.transform;
+                    while (current != null)
+                    {
+                        if (current.name == "BackSpeakerApp")
+                        {
+                            // Look for Container child
+                            var containerChild = current.Find("Container");
+                            if (containerChild != null)
+                            {
+                                appContainer = containerChild;
+                                LoggingSystem.Debug("Found Container as child of BackSpeakerApp", "UI");
+                                break;
+                            }
+                        }
+                        current = current.parent;
+                    }
+                }
+                
+                if (appContainer == null)
+                {
+                    LoggingSystem.Error("No app Container found for directory manager! Using current transform.", "UI");
+                    appContainer = this.transform;
+                }
+                
+                LoggingSystem.Info($"Creating directory manager in container: {appContainer.name}", "UI");
+
+                var managerContainer = new GameObject("MusicDirectoryManagerComponent");
+                managerContainer.transform.SetParent(appContainer, false);
+                
+                // Make sure the manager appears on top by setting it as last sibling
+                managerContainer.transform.SetAsLastSibling();
+
+                directoryManager = managerContainer.AddComponent<MusicDirectoryManagerComponent>();
+                directoryManager.Initialize(() => {
+                    // Callback when directories change - refresh local music if needed
+                    if (currentTab == MusicSourceType.LocalFolder && manager != null)
+                    {
+                        LoggingSystem.Info("Directories changed, refreshing local music", "UI");
+                        manager.ForceLoadFromSource(MusicSourceType.LocalFolder);
+                    }
+                });
+                
+                LoggingSystem.Info("Music directory manager created successfully", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to create music directory manager: {ex.Message}", "UI");
+            }
+        }
+        
         private void UpdateLeftButtonFeedback(string text, Color color)
         {
             if (leftButtonText != null && leftButton != null)
@@ -372,6 +497,9 @@ namespace BackSpeakerMod.UI.Components
             // Update left button for current tab
             UpdateLeftButton();
             
+            // Update middle button visibility based on current tab
+            UpdateMiddleButton();
+            
             // Update right button for headphone status
             if (rightButton != null && manager != null)
             {
@@ -402,6 +530,18 @@ namespace BackSpeakerMod.UI.Components
                     rightButtonText.text = "🎧 Headphone Error";
                     rightButtonImage.color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
                 }
+            }
+        }
+        
+        private void UpdateMiddleButton()
+        {
+            if (middleContainer != null)
+            {
+                // Show middle button only for LocalFolder tab
+                bool shouldShow = currentTab == MusicSourceType.LocalFolder;
+                middleContainer.SetActive(shouldShow);
+                
+                // LoggingSystem.Debug($"Middle button (directory manager) visibility: {shouldShow} for tab: {currentTab}", "UI");
             }
         }
     }

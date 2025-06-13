@@ -169,6 +169,16 @@ namespace BackSpeakerMod
                 LoggingSystem.Error($"✗ Failed to register LocalFolderMusicProvider: {ex}", "Mod");
             }
 
+            try {
+                LoggingSystem.Info("Registering MusicDirectoryManagerComponent...", "Mod");
+                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.MusicDirectoryManagerComponent>();
+                LoggingSystem.Info("✓ MusicDirectoryManagerComponent registered successfully", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"✗ Failed to register MusicDirectoryManagerComponent: {ex}", "Mod");
+            }
+
             // try {
             //     LoggingSystem.Info("Registering TrackLoader...", "Mod");
             //     ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.TrackLoader>();

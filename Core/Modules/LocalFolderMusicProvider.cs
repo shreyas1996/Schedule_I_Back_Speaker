@@ -5,6 +5,7 @@ using UnityEngine;
 using System.Collections;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Utils;
+using BackSpeakerMod.Configuration;
 using MelonLoader;
 using System.Threading.Tasks;
 using System.Linq;
@@ -22,9 +23,10 @@ namespace BackSpeakerMod.Core.Modules
         { 
             get 
             {
-                // Ensure folder exists before checking availability
-                EnsureMusicFolderExists();
-                return Directory.Exists(GetMusicFolderPath());
+                // Check if any configured directories are available
+                var config = MusicDirectoryConfig.Instance;
+                var validDirs = config.GetValidEnabledDirectories();
+                return validDirs.Count > 0;
             }
         }
 
@@ -54,30 +56,44 @@ namespace BackSpeakerMod.Core.Modules
             var tracks = new List<AudioClip>();
             var trackInfo = new List<(string title, string artist)>();
 
-            string musicPath = GetMusicFolderPath();
-            EnsureMusicFolderExists();
+            // Get all configured music directories
+            var config = MusicDirectoryConfig.Instance;
+            config.ValidateDirectories(); // Update directory status
+            var validDirectories = config.GetValidEnabledDirectories();
             
-            LoggingSystem.Info($"Loading local tracks from: {musicPath}", "LocalFolder");
-
-            if (!Directory.Exists(musicPath))
+            if (validDirectories.Count == 0)
             {
-                LoggingSystem.Warning($"Music directory does not exist: {musicPath}", "LocalFolder");
+                LoggingSystem.Warning("No valid music directories configured", "LocalFolder");
                 isLoading = false;
                 onComplete?.Invoke(tracks, trackInfo);
                 yield break;
             }
 
-            // Get all supported audio files
+            LoggingSystem.Info($"Loading local tracks from {validDirectories.Count} directories", "LocalFolder");
+
+            // Get all supported audio files from all directories
             var supportedExtensions = AudioHelper.GetSupportedExtensions();
             var allFiles = new List<string>();
             
-            foreach (string extension in supportedExtensions)
+            foreach (var directory in validDirectories)
             {
-                var files = Directory.GetFiles(musicPath, "*" + extension, SearchOption.TopDirectoryOnly);
-                allFiles.AddRange(files);
+                LoggingSystem.Debug($"Scanning directory: {directory.Name} ({directory.Path})", "LocalFolder");
+                
+                try
+                {
+                    foreach (string extension in supportedExtensions)
+                    {
+                        var files = Directory.GetFiles(directory.Path, "*" + extension, SearchOption.TopDirectoryOnly);
+                        allFiles.AddRange(files);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingSystem.Warning($"Error scanning directory {directory.Path}: {ex.Message}", "LocalFolder");
+                }
             }
 
-            LoggingSystem.Info($"Found {allFiles.Count} supported audio files", "LocalFolder");
+            LoggingSystem.Info($"Found {allFiles.Count} supported audio files across all directories", "LocalFolder");
 
             // If we have too many cached clips, remove oldest ones
             while (cachedClips.Count > maxCacheSize)
@@ -277,9 +293,58 @@ Tips:
 
         public void OpenMusicFolder()
         {
-            string musicPath = GetMusicFolderPath();
-            EnsureMusicFolderExists();
-            global::System.Diagnostics.Process.Start(musicPath);
+            // Open the default music folder
+            var config = MusicDirectoryConfig.Instance;
+            var defaultDir = config.GetAllDirectories().FirstOrDefault(d => d.IsDefault);
+            
+            if (defaultDir != null)
+            {
+                EnsureDirectoryExists(defaultDir.Path);
+                global::System.Diagnostics.Process.Start(defaultDir.Path);
+            }
+            else
+            {
+                // Fallback to legacy path
+                string musicPath = GetMusicFolderPath();
+                EnsureMusicFolderExists();
+                global::System.Diagnostics.Process.Start(musicPath);
+            }
+        }
+        
+        /// <summary>
+        /// Add a new music directory to the configuration
+        /// </summary>
+        public bool AddMusicDirectory(string path, string name = "", string description = "")
+        {
+            var config = MusicDirectoryConfig.Instance;
+            return config.AddDirectory(path, name, description);
+        }
+        
+        /// <summary>
+        /// Remove a music directory from the configuration
+        /// </summary>
+        public bool RemoveMusicDirectory(string path)
+        {
+            var config = MusicDirectoryConfig.Instance;
+            return config.RemoveDirectory(path);
+        }
+        
+        /// <summary>
+        /// Get all configured music directories
+        /// </summary>
+        public List<MusicDirectory> GetMusicDirectories()
+        {
+            var config = MusicDirectoryConfig.Instance;
+            return config.GetAllDirectories();
+        }
+        
+        /// <summary>
+        /// Get configuration summary
+        /// </summary>
+        public string GetDirectorySummary()
+        {
+            var config = MusicDirectoryConfig.Instance;
+            return config.GetSummary();
         }
 
         public void RefreshTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
@@ -289,35 +354,52 @@ Tips:
 
         public Dictionary<string, object> GetConfiguration()
         {
-            configuration["MusicFolderPath"] = GetMusicFolderPath();
+            var config = MusicDirectoryConfig.Instance;
+            var validDirectories = config.GetValidEnabledDirectories();
+            
+            configuration["DirectoryCount"] = config.GetAllDirectories().Count;
+            configuration["EnabledDirectories"] = validDirectories.Count;
             configuration["IsAvailable"] = IsAvailable;
             configuration["SupportedFormats"] = AudioHelper.GetSupportedExtensions();
             configuration["MaxCacheSize"] = maxCacheSize;
+            configuration["DirectorySummary"] = config.GetSummary();
             
             try
             {
-                string musicPath = GetMusicFolderPath();
-                if (Directory.Exists(musicPath))
+                int totalFileCount = validDirectories.Sum(d => d.FileCount);
+                configuration["FileCount"] = totalFileCount;
+                
+                // Add directory details
+                var directoryDetails = validDirectories.Select(d => new
                 {
-                    var supportedExtensions = AudioHelper.GetSupportedExtensions();
-                    int fileCount = 0;
-                    foreach (string ext in supportedExtensions)
-                    {
-                        fileCount += Directory.GetFiles(musicPath, "*" + ext, SearchOption.TopDirectoryOnly).Length;
-                    }
-                    configuration["FileCount"] = fileCount;
-                }
-                else
-                {
-                    configuration["FileCount"] = 0;
-                }
+                    Name = d.Name,
+                    Path = d.Path,
+                    FileCount = d.FileCount,
+                    IsDefault = d.IsDefault
+                }).ToList();
+                
+                configuration["Directories"] = directoryDetails;
             }
-            catch
+            catch (Exception ex)
             {
+                LoggingSystem.Warning($"Error getting configuration: {ex.Message}", "LocalFolder");
                 configuration["FileCount"] = "Unknown";
+                configuration["Directories"] = new List<object>();
             }
             
             return new Dictionary<string, object>(configuration);
+        }
+        
+        /// <summary>
+        /// Ensure a directory exists
+        /// </summary>
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+                LoggingSystem.Info($"Created directory: {path}", "LocalFolder");
+            }
         }
 
         public void ApplyConfiguration(Dictionary<string, object> config)
