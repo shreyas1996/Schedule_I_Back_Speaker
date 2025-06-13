@@ -1466,13 +1466,25 @@ namespace BackSpeakerMod.UI.Components
                 
                 availableYouTubePlaylists = YouTubePlaylistManager.GetAllPlaylists();
                 LoggingSystem.Debug($"Found {availableYouTubePlaylists.Count} existing YouTube playlists", "UI");
+
+                // Check for last selected playlist first
+                string lastSelectedId = YouTubePlaylistManager.LastSelectedPlaylistId;
+
+                if (!string.IsNullOrEmpty(lastSelectedId) &&
+                    availableYouTubePlaylists.Any(p => p.id == lastSelectedId))
+                {
+                    LoggingSystem.Info($"Loading last selected playlist: {lastSelectedId}", "UI");
+                    SelectYouTubePlaylist(lastSelectedId);
+                    return;
+                }
+        
                 
                 // If no playlists exist, try to create a default one from cache
                 if (availableYouTubePlaylists.Count == 0)
                 {
                     LoggingSystem.Info("No YouTube playlists found, attempting to create default playlist from cache", "UI");
                     var defaultPlaylist = YouTubePlaylistManager.CreateDefaultPlaylistFromCache();
-                    
+
                     if (defaultPlaylist != null)
                     {
                         availableYouTubePlaylists = YouTubePlaylistManager.GetAllPlaylists();
@@ -1523,6 +1535,9 @@ namespace BackSpeakerMod.UI.Components
                 if (currentYouTubePlaylist != null)
                 {
                     LoggingSystem.Info($"Selected YouTube playlist: {currentYouTubePlaylist.name} with {currentYouTubePlaylist.songs.Count} songs", "UI");
+
+                    // Set the last selected playlist ID
+                    YouTubePlaylistManager.LastSelectedPlaylistId = playlistId;
                     
                     // Update the manager with the playlist songs if this is the YouTube tab
                     if (currentTab == MusicSourceType.YouTube)

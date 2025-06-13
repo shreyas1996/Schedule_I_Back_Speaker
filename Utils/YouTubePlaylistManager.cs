@@ -21,6 +21,22 @@ namespace BackSpeakerMod.Utils
         private static Dictionary<string, YouTubePlaylistInfo>? _cachedIndex;
         private static DateTime _lastIndexUpdate = DateTime.MinValue;
         private static readonly TimeSpan IndexCacheExpiry = TimeSpan.FromMinutes(2);
+
+        // To remember the last selected playlist ID
+        private static string lastSelectedPlaylistId = "";
+
+        public static string LastSelectedPlaylistId
+        {
+            get => lastSelectedPlaylistId;
+            set
+            {
+                if (lastSelectedPlaylistId != value)
+                {
+                    lastSelectedPlaylistId = value;
+                    // OnPlaylistIndexChanged?.Invoke();
+                }
+            }
+        }
         
         // Events
         public static event Action<YouTubePlaylist>? OnPlaylistCreated;
