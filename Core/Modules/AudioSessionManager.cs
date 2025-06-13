@@ -489,14 +489,10 @@ namespace BackSpeakerMod.Core.Modules
         {
             if (globalPlayingSession.HasValue)
             {
-                if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
-                {
-                    return youtubeStreamingController.GetCurrentTrackInfo();
-                }
-                else if (audioController.IsPlaying)
-                {
-                    return audioController.GetCurrentTrackInfo();
-                }
+                // Always get track info from the session, not the individual controllers
+                // The session has the correct track index and track information
+                var playingSession = sessions[globalPlayingSession.Value];
+                return playingSession.GetCurrentTrackInfo();
             }
             // Otherwise get from active session
             return GetActiveSession().GetCurrentTrackInfo();
@@ -506,14 +502,10 @@ namespace BackSpeakerMod.Core.Modules
         {
             if (globalPlayingSession.HasValue)
             {
-                if (globalPlayingSession == MusicSourceType.YouTube && youtubeStreamingController.IsPlaying)
-                {
-                    return youtubeStreamingController.GetCurrentArtistInfo();
-                }
-                else if (audioController.IsPlaying)
-                {
-                    return audioController.GetCurrentArtistInfo();
-                }
+                // Always get artist info from the session, not the individual controllers
+                // The session has the correct track index and track information
+                var playingSession = sessions[globalPlayingSession.Value];
+                return playingSession.GetCurrentArtistInfo();
             }
             // Otherwise get from active session
             return GetActiveSession().GetCurrentArtistInfo();
@@ -598,6 +590,11 @@ namespace BackSpeakerMod.Core.Modules
         public float CurrentVolume => GetActiveSession().Volume;
         public bool IsAudioReady() => globalPlayingSession == MusicSourceType.YouTube ? 
             youtubeStreamingController.IsAudioReady : audioController.IsAudioReady();
+
+        public bool IsDownloadInProgress() => globalPlayingSession == MusicSourceType.YouTube ?
+            youtubeStreamingController.IsDownloadInProgress() : false;
+        public string GetDownloadProgress() => globalPlayingSession == MusicSourceType.YouTube ?
+            youtubeStreamingController.GetDownloadProgress() : "";
         
         // Audio control methods - now session-specific
         public void Play()

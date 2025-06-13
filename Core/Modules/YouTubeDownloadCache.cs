@@ -28,15 +28,16 @@ namespace BackSpeakerMod.Core.Modules
         public Action<SongDetails>? OnDownloadCompleted;
         public Action<SongDetails>? OnDownloadFailed;
         public Action<SongDetails>? OnDownloadStarted;
+        public Action<SongDetails>? OnDownloadProgress;
         
         public YouTubeDownloadCache()
         {
             LoggingSystem.Info("YouTube Download Cache initialized", "YouTubeCache");
-            
+
             // Create cache directory in the mod's data folder
             var gameDirectory = Directory.GetCurrentDirectory();
             cacheDirectory = Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache", "YouTube");
-            
+
             try
             {
                 Directory.CreateDirectory(cacheDirectory);
@@ -344,7 +345,14 @@ namespace BackSpeakerMod.Core.Modules
             OnDownloadStarted?.Invoke(song);
             
             // Use YoutubeHelper with coroutine-safe callback
-            YoutubeHelper.DownloadSong(song, (success) => {
+            YoutubeHelper.DownloadSong(song, (downloadProgress) =>
+            {
+                // Update song download progress
+                song.downloadProgress = downloadProgress;
+                OnDownloadProgress?.Invoke(song);
+                LoggingSystem.Debug($"Downloading {song.title}: {downloadProgress} complete", "YouTubeCache");
+
+            }, (success) => {
                 downloadSuccess = success;
                 downloadCompleted = true;
             });

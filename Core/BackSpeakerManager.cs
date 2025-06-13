@@ -69,6 +69,8 @@ namespace BackSpeakerMod.Core
         public float CurrentVolume => systemManager.CurrentVolume;
         public int GetTrackCount() => systemManager.GetTrackCount();
         public bool IsAudioReady() => systemManager.IsAudioReady();
+        public bool IsDownloadInProgress() => systemManager.IsDownloadInProgress();
+        public string GetDownloadProgress() => systemManager.GetDownloadProgress();
         public float CurrentTime => systemManager.CurrentTime;
         public float TotalTime => systemManager.TotalTime;
         public float Progress => systemManager.Progress;

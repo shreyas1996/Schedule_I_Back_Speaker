@@ -349,7 +349,7 @@ namespace BackSpeakerMod.Core.Modules
         /// <summary>
         /// Download a song from YouTube URL
         /// </summary>
-        public void DownloadFromYouTube(string url, Action<bool, string>? onComplete)
+        public void DownloadFromYouTube(string url, Action<SongDetails>?onDownloadProgress, Action<bool, string>? onComplete)
         {
             LoggingSystem.Info($"YouTube download requested: {url}", "YouTube");
             
@@ -362,7 +362,14 @@ namespace BackSpeakerMod.Core.Modules
                     {
                         var songDetails = songDetailsList[0]; // Take the first song
                         
-                        YoutubeHelper.DownloadSong(songDetails, (success) =>
+                        YoutubeHelper.DownloadSong(songDetails, (downloadProgress) =>
+                        {
+                            // Update song download progress
+                            songDetails.downloadProgress = downloadProgress;
+                            onDownloadProgress?.Invoke(songDetails);
+                            LoggingSystem.Debug($"Downloading {songDetails.title}: {downloadProgress} complete", "YouTubeCache");
+
+                        }, (success) =>
                         {
                             string message = success ? "Download completed successfully" : "Download failed";
                             LoggingSystem.Info($"Download result: {message}", "YouTube");

@@ -31,19 +31,20 @@ namespace BackSpeakerMod.Core.Modules
         // Download waiting system
         private SongDetails? pendingPlaySong = null;
         private bool isWaitingForDownload = false;
-        
+
         // Events
         public Action? OnTrackChanged;
         public Action? OnPlaylistChanged;
-        
+
         public YouTubeStreamingController()
         {
             downloadCache = new YouTubeDownloadCache();
-            
+
             // Wire up download events
             downloadCache.OnDownloadCompleted += OnSongDownloadCompleted;
             downloadCache.OnDownloadFailed += OnSongDownloadFailed;
             downloadCache.OnDownloadStarted += OnSongDownloadStarted;
+            downloadCache.OnDownloadProgress += OnSongDownloadProgress;
         }
         
         public void Initialize(AudioSource audioSource)
@@ -275,34 +276,54 @@ namespace BackSpeakerMod.Core.Modules
             // Return true if loading started successfully
             return !isLoading || isPlaying;
         }
-        
+
         // Download event handlers
         private void OnSongDownloadStarted(SongDetails song)
         {
             LoggingSystem.Debug($"Download started: {song.title}", "YouTubeStreaming");
+            // OnTrackChanged?.Invoke();
+        }
+        
+        private void OnSongDownloadProgress(SongDetails song)
+        {
+            LoggingSystem.Debug($"Download progress called for {song.title} with progress: {song.downloadProgress}", "YouTubeStreaming");
+            
+            // If we're waiting for this download, update UI or state
+            if (isWaitingForDownload && pendingPlaySong != null && 
+                pendingPlaySong.url == song.url)
+            {
+                // Update the download progress
+                pendingPlaySong.downloadProgress = song.downloadProgress;
+                LoggingSystem.Debug($"Download progress for {pendingPlaySong.title}: {pendingPlaySong.downloadProgress}", "YouTubeStreaming");
+                
+                // Update UI or notify listeners about download progress
+                OnTrackChanged?.Invoke();
+            }
         }
         
         private void OnSongDownloadCompleted(SongDetails song)
         {
             LoggingSystem.Info($"✅ Download completed: {song.title}", "YouTubeStreaming");
-            
+
             // Check if this is the song we're waiting to play
-            if (isWaitingForDownload && pendingPlaySong != null && 
+            if (isWaitingForDownload && pendingPlaySong != null &&
                 pendingPlaySong.url == song.url)
             {
                 LoggingSystem.Info($"🚀 Auto-playing completed download: {song.title}", "YouTubeStreaming");
-                
+
                 // Clear waiting state
                 pendingPlaySong = null;
                 isWaitingForDownload = false;
-                
+                currentSong = song;
+
+                // Notify UI components that track has changed
+                OnTrackChanged?.Invoke();
+
                 // Auto-play the song using Unity-safe coroutine
                 MelonCoroutines.Start(AutoPlayDownloadedSongCoroutine(song));
             }
-            
-            OnTrackChanged?.Invoke();
         }
-        
+
         /// <summary>
         /// Unity-safe coroutine for auto-playing downloaded songs
         /// </summary>
@@ -310,7 +331,7 @@ namespace BackSpeakerMod.Core.Modules
         {
             // Use the Unity-safe coroutine method
             yield return LoadAndPlayCachedSongCoroutine(song);
-            
+
             if (!isPlaying)
             {
                 LoggingSystem.Error($"❌ Auto-play failed for: {song.title}", "YouTubeStreaming");
@@ -434,6 +455,24 @@ namespace BackSpeakerMod.Core.Modules
         public float Progress => TotalTime > 0 ? CurrentTime / TotalTime : 0f;
         public bool IsAudioReady => audioSource != null && !isLoading;
         public RepeatMode RepeatMode { get => repeatMode; set => repeatMode = value; }
+
+        public bool IsDownloadInProgress()
+        {
+            if (isWaitingForDownload && pendingPlaySong != null)
+            {
+                return pendingPlaySong.isDownloading;
+            }
+            return false;
+        }
+        public string GetDownloadProgress()
+        {
+            // Get download progress for the current song
+            if (pendingPlaySong != null)
+            {
+                return pendingPlaySong.downloadProgress ?? "0%";
+            }
+            return "0%";
+        }
         
         public string GetCurrentTrackInfo()
         {

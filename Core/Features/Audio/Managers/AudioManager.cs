@@ -145,9 +145,11 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         public float Progress => sessionManager?.Progress ?? 0f;
         public int CurrentTrackIndex => sessionManager?.CurrentTrackIndex ?? 0;
         public bool IsAudioReady() => sessionManager?.IsAudioReady() ?? false;
+        public bool IsDownloadInProgress() => sessionManager?.IsDownloadInProgress() ?? false;
+        public string GetDownloadProgress() => sessionManager?.GetDownloadProgress() ?? "0%";
         
-        public RepeatMode RepeatMode 
-        { 
+        public RepeatMode RepeatMode
+        {
             get => sessionManager?.RepeatMode ?? RepeatMode.None;
             set { if (sessionManager != null) sessionManager.RepeatMode = value; }
         }

@@ -37,6 +37,7 @@ namespace BackSpeakerMod.Utils
         // Download metadata and caching
         public bool isDownloaded { get; set; } = false;
         public bool isDownloading { get; set; } = false;
+        public string? downloadProgress { get; set; } = null; // e.g. "50%"
         public bool downloadFailed { get; set; } = false;
         public string? cachedFilePath { get; set; }
         public string? videoId { get; set; }
