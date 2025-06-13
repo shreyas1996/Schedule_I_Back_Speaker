@@ -260,8 +260,7 @@ namespace BackSpeakerMod.Core.System
         public float CurrentVolume => audioManager?.CurrentVolume ?? 0.5f;
         public int GetTrackCount() => audioManager?.GetTrackCount() ?? 0;
         public bool IsAudioReady() => audioManager?.IsAudioReady() ?? false;
-        public bool IsDownloadInProgress() => audioManager?.IsDownloadInProgress() ?? false;
-        public string GetDownloadProgress() => audioManager?.GetDownloadProgress() ?? "0%";
+        public YouTubeDownloadManager GetDownloadManager() => audioManager?.GetDownloadManager();
         public float CurrentTime => audioManager?.CurrentTime ?? 0f;
         public float TotalTime => audioManager?.TotalTime ?? 0f;
         public float Progress => audioManager?.Progress ?? 0f;
@@ -396,23 +395,20 @@ namespace BackSpeakerMod.Core.System
 
         public void AddTracksToSession(MusicSourceType sessionType, List<AudioClip> audioClips, List<(string title, string artist)> trackInfo)
         {
-            try
+            if (!Features.AudioEnabled)
             {
-                var sessionManager = audioManager?.GetSessionManager();
-                if (sessionManager != null)
-                {
-                    sessionManager.AddTracksToSession(sessionType, audioClips, trackInfo);
-                    LoggingSystem.Info($"Added {audioClips.Count} tracks to {sessionType} session", "SystemManager");
-                }
-                else
-                {
-                    LoggingSystem.Warning("Session manager not available", "SystemManager");
-                }
+                LoggingSystem.Warning("Audio feature disabled - cannot add tracks to session", "SystemManager");
+                return;
             }
-            catch (Exception ex)
+
+            if (!isInitialized)
             {
-                LoggingSystem.Error($"Failed to add tracks to {sessionType} session: {ex.Message}", "SystemManager");
+                LoggingSystem.Warning("System not initialized - cannot add tracks to session", "SystemManager");
+                return;
             }
+
+            LoggingSystem.Info($"Adding {audioClips.Count} tracks to session: {sessionType}", "SystemManager");
+            audioManager?.GetSessionManager()?.AddTracksToSession(sessionType, audioClips, trackInfo);
         }
 
         public bool AddYouTubeSong(SongDetails songDetails) => audioManager?.GetSessionManager()?.AddYouTubeSong(songDetails) ?? false;
@@ -420,6 +416,8 @@ namespace BackSpeakerMod.Core.System
         public bool ContainsYouTubeSong(string url) => audioManager?.GetSessionManager()?.ContainsYouTubeSong(url) ?? false;
         public void ClearYouTubePlaylist() => audioManager?.GetSessionManager()?.ClearYouTubePlaylist();
         public void LoadYouTubePlaylist(List<SongDetails> playlistSongs) => audioManager?.GetSessionManager()?.LoadYouTubePlaylist(playlistSongs);
+
+        public AudioSession GetSession(MusicSourceType sessionType) => audioManager?.GetSessionManager()?.GetSession(sessionType);
 
         #endregion
 

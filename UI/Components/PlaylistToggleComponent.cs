@@ -3,10 +3,11 @@ using UnityEngine.UI;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.Core.Features.Audio.Managers;
+using System;
 using System.Collections.Generic;
 using BackSpeakerMod.UI.Helpers;
 using BackSpeakerMod.Utils;
-using System;
 using System.Linq;
 using Il2CppCollections = Il2CppSystem.Collections.Generic;
 
@@ -50,6 +51,14 @@ namespace BackSpeakerMod.UI.Components
         private int pendingSongIndex = -1;
         private SongDetails? pendingSongDetails;
         
+        // Real-time update system
+        private float lastUpdateTime = 0f;
+        private const float UPDATE_INTERVAL = 0.2f; // Update every 200ms
+        private int lastCurrentTrackIndex = -1;
+        private Dictionary<string, DownloadStatus> lastDownloadStatuses = new Dictionary<string, DownloadStatus>();
+        private Dictionary<string, float> lastDownloadProgress = new Dictionary<string, float>();
+        private bool needsUIRefresh = false;
+        
         public PlaylistToggleComponent() : base() { }
         
         public void Setup(BackSpeakerManager manager)
@@ -65,6 +74,354 @@ namespace BackSpeakerMod.UI.Components
             YouTubePlaylistManager.OnPlaylistUpdated += OnYouTubePlaylistUpdated;
             YouTubePlaylistManager.OnPlaylistDeleted += OnYouTubePlaylistDeleted;
             YouTubePlaylistManager.OnPlaylistIndexChanged += OnYouTubePlaylistIndexChanged;
+        }
+        
+        /// <summary>
+        /// Unity Update method - handles real-time UI updates
+        /// </summary>
+        private void Update()
+        {
+            if (!isPlaylistOpen || manager == null)
+                return;
+                
+            // Check if enough time has passed since last update
+            if (Time.time - lastUpdateTime < UPDATE_INTERVAL)
+                return;
+                
+            lastUpdateTime = Time.time;
+            
+            // Check for changes that require UI refresh
+            bool hasChanges = false;
+            
+            // Check if current track changed (for highlighting)
+            int currentTrackIndex = manager.CurrentTrackIndex;
+            if (currentTrackIndex != lastCurrentTrackIndex)
+            {
+                lastCurrentTrackIndex = currentTrackIndex;
+                hasChanges = true;
+                LoggingSystem.Debug($"Track index changed to {currentTrackIndex}", "UI");
+            }
+            
+            // Check for download status changes (YouTube only)
+            if (currentTab == MusicSourceType.YouTube)
+            {
+                hasChanges |= CheckDownloadStatusChanges();
+            }
+            
+            // Force refresh if needed
+            if (needsUIRefresh)
+            {
+                hasChanges = true;
+                needsUIRefresh = false;
+            }
+            
+            // Refresh UI if any changes detected
+            if (hasChanges)
+            {
+                RefreshPlaylistUIInPlace();
+            }
+        }
+        
+        /// <summary>
+        /// Check for download status and progress changes
+        /// </summary>
+        private bool CheckDownloadStatusChanges()
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            
+            if (downloadManager == null || songs == null)
+                return false;
+                
+            bool hasChanges = false;
+            
+            foreach (var song in songs)
+            {
+                var videoId = song.GetVideoId();
+                if (string.IsNullOrEmpty(videoId))
+                    continue;
+                    
+                var currentStatus = downloadManager.GetDownloadStatus(song);
+                var currentProgress = downloadManager.GetDownloadProgress(song);
+                
+                // Check if status changed
+                if (!lastDownloadStatuses.ContainsKey(videoId) || lastDownloadStatuses[videoId] != currentStatus)
+                {
+                    lastDownloadStatuses[videoId] = currentStatus;
+                    hasChanges = true;
+                    LoggingSystem.Debug($"Download status changed for {song.title}: {currentStatus}", "UI");
+                }
+                
+                // Check if progress changed (for downloading songs)
+                if (currentStatus == DownloadStatus.Downloading)
+                {
+                    if (!lastDownloadProgress.ContainsKey(videoId) || 
+                        Math.Abs(lastDownloadProgress[videoId] - currentProgress) > 0.1f) // Update if progress changed by more than 0.1%
+                    {
+                        lastDownloadProgress[videoId] = currentProgress;
+                        hasChanges = true;
+                        LoggingSystem.Debug($"Download progress changed for {song.title}: {currentProgress:F1}%", "UI");
+                    }
+                }
+                else
+                {
+                    // Clear progress tracking for non-downloading songs
+                    lastDownloadProgress.Remove(videoId);
+                }
+            }
+            
+            return hasChanges;
+        }
+        
+        /// <summary>
+        /// Force a UI refresh on next update cycle
+        /// </summary>
+        public void ForceUIRefresh()
+        {
+            needsUIRefresh = true;
+        }
+        
+        /// <summary>
+        /// Play a track by SongDetails object
+        /// </summary>
+        private void PlayTrackBySong(SongDetails song)
+        {
+            // Find the index of this song in the current playlist
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            if (songs != null)
+            {
+                for (int i = 0; i < songs.Count; i++)
+                {
+                    if (songs[i].GetVideoId() == song.GetVideoId())
+                    {
+                        PlayTrack(i);
+                        return;
+                    }
+                }
+            }
+            
+            LoggingSystem.Warning($"Could not find song {song.title} in current playlist to play", "UI");
+        }
+        
+        /// <summary>
+        /// Refresh playlist UI in place without closing/reopening
+        /// </summary>
+        private void RefreshPlaylistUIInPlace()
+        {
+            if (!isPlaylistOpen || playlistPopup == null)
+                return;
+                
+            try
+            {
+                LoggingSystem.Debug("Refreshing playlist UI in place", "UI");
+                
+                // Find PlaylistPanel first: playlistPopup -> PlaylistPanel
+                var playlistPanel = playlistPopup.transform.Find("PlaylistPanel");
+                if (playlistPanel == null)
+                {
+                    LoggingSystem.Warning("Could not find PlaylistPanel for UI refresh", "UI");
+                    return;
+                }
+                
+                // Update Download All/Cancel All buttons (under PlaylistPanel)
+                RefreshDownloadAllButton(playlistPanel);
+                
+                // Find the tracks container: PlaylistPanel -> TrackList -> ScrollView -> Viewport -> Content
+                var trackList = playlistPanel.Find("TrackList");
+                if (trackList == null)
+                {
+                    LoggingSystem.Warning("Could not find TrackList for UI refresh", "UI");
+                    return;
+                }
+                
+                var scrollView = trackList.Find("ScrollView");
+                if (scrollView == null)
+                {
+                    LoggingSystem.Warning("Could not find ScrollView for UI refresh", "UI");
+                    return;
+                }
+                
+                var viewport = scrollView.Find("Viewport");
+                if (viewport == null)
+                {
+                    LoggingSystem.Warning("Could not find Viewport for UI refresh", "UI");
+                    return;
+                }
+                
+                var content = viewport.Find("Content");
+                if (content == null)
+                {
+                    LoggingSystem.Warning("Could not find Content for UI refresh", "UI");
+                    return;
+                }
+                
+                // Update individual track items
+                RefreshTrackItems(content);
+                
+                LoggingSystem.Debug("Playlist UI refreshed successfully", "UI");
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error refreshing playlist UI: {ex.Message}", "UI");
+            }
+        }
+        
+        /// <summary>
+        /// Refresh the Download All/Cancel All button
+        /// </summary>
+        private void RefreshDownloadAllButton(Transform playlistPanel)
+        {
+            if (currentTab != MusicSourceType.YouTube)
+                return;
+                
+            // Find existing download all container
+            var existingContainer = playlistPanel.Find("DownloadAllContainer");
+            if (existingContainer != null)
+            {
+                // Destroy existing container and recreate it with updated state
+                DestroyImmediate(existingContainer.gameObject);
+            }
+            
+            // Recreate the download all button with current state
+            CreateDownloadAllButton(playlistPanel.gameObject);
+        }
+        
+        /// <summary>
+        /// Refresh individual track items
+        /// </summary>
+        private void RefreshTrackItems(Transform tracksContainer)
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            
+            // Get current songs
+            List<SongDetails>? songs = null;
+            if (currentTab == MusicSourceType.YouTube)
+            {
+                songs = GetYouTubeSongsForCurrentPlaylist();
+            }
+            else
+            {
+                // For non-YouTube playlists, we don't have a direct method to get songs
+                // This functionality is mainly for YouTube playlists with download management
+                return;
+            }
+            
+            if (songs == null)
+                return;
+            
+            // Update each track item
+            for (int i = 0; i < tracksContainer.childCount && i < songs.Count; i++)
+            {
+                var trackItem = tracksContainer.GetChild(i);
+                var song = songs[i];
+                
+                // Update highlighting for current track
+                UpdateTrackHighlighting(trackItem, i);
+                
+                // Update download/play buttons for YouTube tracks
+                if (currentTab == MusicSourceType.YouTube && downloadManager != null)
+                {
+                    UpdateTrackDownloadButton(trackItem, song, downloadManager);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Update track highlighting based on current playing track
+        /// </summary>
+        private void UpdateTrackHighlighting(Transform trackItem, int trackIndex)
+        {
+            var currentTrackIndex = manager?.CurrentTrackIndex ?? -1;
+            var isCurrentTrack = (trackIndex == currentTrackIndex && manager?.IsPlaying == true);
+            
+            // Find the background image component
+            var backgroundImage = trackItem.GetComponent<Image>();
+            if (backgroundImage != null)
+            {
+                // Apply highlighting using the same logic as CreateTrackItem
+                if (isCurrentTrack)
+                {
+                    // Use theme color for currently playing track (same as CreateTrackItem)
+                    backgroundImage.color = currentTab switch
+                    {
+                        MusicSourceType.Jukebox => new Color(0.2f, 0.7f, 0.2f, 0.6f),      // Green
+                        MusicSourceType.LocalFolder => new Color(0.2f, 0.4f, 0.8f, 0.6f),  // Blue
+                        MusicSourceType.YouTube => new Color(0.8f, 0.2f, 0.2f, 0.6f),      // Red
+                        _ => new Color(0.5f, 0.5f, 0.5f, 0.6f)
+                    };
+                }
+                else
+                {
+                    // Use same dark background as CreateTrackItem
+                    backgroundImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Update download/play button for a track
+        /// </summary>
+        private void UpdateTrackDownloadButton(Transform trackItem, SongDetails song, YouTubeDownloadManager downloadManager)
+        {
+            // Find the ActionButton (YouTube track button)
+            var actionButton = trackItem.Find("ActionButton");
+            if (actionButton == null)
+                return;
+                
+            var status = downloadManager.GetDownloadStatus(song);
+            var progress = downloadManager.GetDownloadProgress(song);
+            
+            var buttonComponent = actionButton.GetComponent<Button>();
+            var imageComponent = actionButton.GetComponent<Image>();
+            var textComponent = actionButton.GetComponentInChildren<Text>();
+            
+            if (buttonComponent != null && textComponent != null && imageComponent != null)
+            {
+                // Update button based on current status
+                switch (status)
+                {
+                    case DownloadStatus.NotQueued:
+                    case DownloadStatus.Failed:
+                        imageComponent.color = new Color(0.2f, 0.4f, 0.8f, 0.8f); // Blue
+                        textComponent.text = status == DownloadStatus.Failed ? "Retry" : "Download";
+                        buttonComponent.interactable = true;
+                        buttonComponent.onClick.RemoveAllListeners();
+                        {
+                            var songToDownload = song; // Capture for closure
+                            buttonComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { DownloadTrack(songToDownload); });
+                        }
+                        break;
+                        
+                    case DownloadStatus.Queued:
+                        imageComponent.color = new Color(0.7f, 0.5f, 0.2f, 0.8f); // Orange
+                        textComponent.text = "Cancel";
+                        buttonComponent.interactable = true;
+                        buttonComponent.onClick.RemoveAllListeners();
+                        {
+                            var songToCancel = song; // Capture for closure
+                            buttonComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { CancelDownload(songToCancel); });
+                        }
+                        break;
+                        
+                    case DownloadStatus.Downloading:
+                        imageComponent.color = new Color(0.2f, 0.5f, 0.8f, 0.8f); // Blue
+                        textComponent.text = $"{progress:F1}%";
+                        buttonComponent.interactable = false; // Can't interact during download
+                        buttonComponent.onClick.RemoveAllListeners();
+                        break;
+                        
+                    case DownloadStatus.Downloaded:
+                        imageComponent.color = new Color(0.3f, 0.7f, 0.3f, 0.8f); // Green
+                        textComponent.text = "Play";
+                        buttonComponent.interactable = true;
+                        buttonComponent.onClick.RemoveAllListeners();
+                        {
+                            var songToPlay = song; // Capture for closure
+                            buttonComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { PlayTrackBySong(songToPlay); });
+                        }
+                        break;
+                }
+            }
         }
         
         private void CreatePlaylistButton()
@@ -293,8 +650,166 @@ namespace BackSpeakerMod.UI.Components
             closeBtn.targetGraphic = closeBtnImage;
             closeBtn.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { ClosePlaylist(); });
             
+            // Add Download All button for YouTube tab
+            if (currentTab == MusicSourceType.YouTube)
+            {
+                CreateDownloadAllButton(panel);
+            }
+            
             // Track list area (no more YouTube management in main popup)
             CreateTrackList(panel);
+        }
+
+        private void CreateDownloadAllButton(GameObject panel)
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            
+            if (downloadManager == null || songs == null || songs.Count == 0)
+                return;
+            
+            // Calculate download statistics
+            int downloaded = 0;
+            int queued = 0;
+            int downloading = 0;
+            int failed = 0;
+            int notQueued = 0;
+            
+            foreach (var song in songs)
+            {
+                var status = downloadManager.GetDownloadStatus(song);
+                switch (status)
+                {
+                    case DownloadStatus.Downloaded: downloaded++; break;
+                    case DownloadStatus.Queued: queued++; break;
+                    case DownloadStatus.Downloading: downloading++; break;
+                    case DownloadStatus.Failed: failed++; break;
+                    case DownloadStatus.NotQueued: notQueued++; break;
+                }
+            }
+            
+            // If all songs are downloaded, don't show any buttons
+            if (downloaded == songs.Count)
+            {
+                return;
+            }
+            
+            var downloadAllContainer = new GameObject("DownloadAllContainer");
+            downloadAllContainer.transform.SetParent(panel.transform, false);
+            
+            var containerRect = downloadAllContainer.AddComponent<RectTransform>();
+            containerRect.anchorMin = new Vector2(0f, 0.82f);
+            containerRect.anchorMax = new Vector2(1f, 0.88f);
+            containerRect.offsetMin = new Vector2(10f, 0f);
+            containerRect.offsetMax = new Vector2(-10f, 0f);
+            
+            // Determine which buttons to show
+            bool hasActiveDownloads = (queued + downloading) > 0;
+            bool hasDownloadableItems = (notQueued + failed) > 0;
+            
+            if (hasActiveDownloads)
+            {
+                // Show Cancel All button
+                CreateCancelAllButton(downloadAllContainer, queued + downloading);
+            }
+            else if (hasDownloadableItems)
+            {
+                // Show Download All button
+                CreateDownloadAllButtonInternal(downloadAllContainer, notQueued + failed);
+            }
+            
+            // Always show status text
+            CreateDownloadStatusText(downloadAllContainer);
+        }
+        
+        private void CreateDownloadAllButtonInternal(GameObject parent, int downloadableCount)
+        {
+            var downloadAllBtn = new GameObject("DownloadAllButton");
+            downloadAllBtn.transform.SetParent(parent.transform, false);
+            
+            var downloadAllRect = downloadAllBtn.AddComponent<RectTransform>();
+            downloadAllRect.anchorMin = new Vector2(0f, 0f);
+            downloadAllRect.anchorMax = new Vector2(0.5f, 1f);
+            downloadAllRect.offsetMin = Vector2.zero;
+            downloadAllRect.offsetMax = Vector2.zero;
+            
+            var downloadAllBtnComponent = downloadAllBtn.AddComponent<Button>();
+            var downloadAllBtnImage = downloadAllBtn.AddComponent<Image>();
+            downloadAllBtnImage.color = new Color(0.2f, 0.6f, 0.8f, 0.8f); // Blue
+            
+            var downloadAllText = new GameObject("Text");
+            downloadAllText.transform.SetParent(downloadAllBtn.transform, false);
+            var downloadAllTextRect = downloadAllText.AddComponent<RectTransform>();
+            downloadAllTextRect.anchorMin = Vector2.zero;
+            downloadAllTextRect.anchorMax = Vector2.one;
+            downloadAllTextRect.offsetMin = Vector2.zero;
+            downloadAllTextRect.offsetMax = Vector2.zero;
+            
+            var downloadAllTextComponent = downloadAllText.AddComponent<Text>();
+            downloadAllTextComponent.text = $"Download All ({downloadableCount})";
+            FontHelper.SetSafeFont(downloadAllTextComponent);
+            downloadAllTextComponent.fontSize = 10;
+            downloadAllTextComponent.color = Color.white;
+            downloadAllTextComponent.alignment = TextAnchor.MiddleCenter;
+            downloadAllTextComponent.fontStyle = FontStyle.Bold;
+            
+            downloadAllBtnComponent.targetGraphic = downloadAllBtnImage;
+            downloadAllBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)DownloadAllTracks);
+        }
+        
+        private void CreateCancelAllButton(GameObject parent, int activeCount)
+        {
+            var cancelAllBtn = new GameObject("CancelAllButton");
+            cancelAllBtn.transform.SetParent(parent.transform, false);
+            
+            var cancelAllRect = cancelAllBtn.AddComponent<RectTransform>();
+            cancelAllRect.anchorMin = new Vector2(0f, 0f);
+            cancelAllRect.anchorMax = new Vector2(0.5f, 1f);
+            cancelAllRect.offsetMin = Vector2.zero;
+            cancelAllRect.offsetMax = Vector2.zero;
+            
+            var cancelAllBtnComponent = cancelAllBtn.AddComponent<Button>();
+            var cancelAllBtnImage = cancelAllBtn.AddComponent<Image>();
+            cancelAllBtnImage.color = new Color(0.8f, 0.5f, 0.2f, 0.8f); // Orange
+            
+            var cancelAllText = new GameObject("Text");
+            cancelAllText.transform.SetParent(cancelAllBtn.transform, false);
+            var cancelAllTextRect = cancelAllText.AddComponent<RectTransform>();
+            cancelAllTextRect.anchorMin = Vector2.zero;
+            cancelAllTextRect.anchorMax = Vector2.one;
+            cancelAllTextRect.offsetMin = Vector2.zero;
+            cancelAllTextRect.offsetMax = Vector2.zero;
+            
+            var cancelAllTextComponent = cancelAllText.AddComponent<Text>();
+            cancelAllTextComponent.text = $"Cancel All ({activeCount})";
+            FontHelper.SetSafeFont(cancelAllTextComponent);
+            cancelAllTextComponent.fontSize = 10;
+            cancelAllTextComponent.color = Color.white;
+            cancelAllTextComponent.alignment = TextAnchor.MiddleCenter;
+            cancelAllTextComponent.fontStyle = FontStyle.Bold;
+            
+            cancelAllBtnComponent.targetGraphic = cancelAllBtnImage;
+            cancelAllBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)CancelAllDownloads);
+        }
+        
+        private void CreateDownloadStatusText(GameObject parent)
+        {
+            var statusText = new GameObject("StatusText");
+            statusText.transform.SetParent(parent.transform, false);
+            
+            var statusTextRect = statusText.AddComponent<RectTransform>();
+            statusTextRect.anchorMin = new Vector2(0.55f, 0f);
+            statusTextRect.anchorMax = new Vector2(1f, 1f);
+            statusTextRect.offsetMin = Vector2.zero;
+            statusTextRect.offsetMax = Vector2.zero;
+            
+            var statusTextComponent = statusText.AddComponent<Text>();
+            statusTextComponent.text = GetDownloadStatusText();
+            FontHelper.SetSafeFont(statusTextComponent);
+            statusTextComponent.fontSize = 9;
+            statusTextComponent.color = Color.white;
+            statusTextComponent.alignment = TextAnchor.MiddleCenter;
+            statusTextComponent.fontStyle = FontStyle.Normal;
         }
         
         private void CreateTrackList(GameObject panel)
@@ -304,9 +819,17 @@ namespace BackSpeakerMod.UI.Components
             
             var listRect = trackListContainer.AddComponent<RectTransform>();
             
-            // Simplified positioning since YouTube management moved to manage popup
-            listRect.anchorMin = new Vector2(0f, 0.1f);
-            listRect.anchorMax = new Vector2(1f, 0.85f);  // Full height available
+            // Adjust positioning based on whether we have download buttons
+            if (currentTab == MusicSourceType.YouTube)
+            {
+                listRect.anchorMin = new Vector2(0f, 0.1f);
+                listRect.anchorMax = new Vector2(1f, 0.8f);  // Leave space for download buttons
+            }
+            else
+            {
+                listRect.anchorMin = new Vector2(0f, 0.1f);
+                listRect.anchorMax = new Vector2(1f, 0.85f);  // Full height available
+            }
             
             listRect.offsetMin = new Vector2(10f, 0f);
             listRect.offsetMax = new Vector2(-10f, 0f);
@@ -456,45 +979,15 @@ namespace BackSpeakerMod.UI.Components
             text.alignment = TextAnchor.MiddleLeft;
             text.fontStyle = isCurrentTrack ? FontStyle.Bold : FontStyle.Normal;
             
-            // Play button for track
-            var playTrackBtn = new GameObject("PlayButton");
-            playTrackBtn.transform.SetParent(trackItem.transform, false);
-            
-            var playBtnRect = playTrackBtn.AddComponent<RectTransform>();
+            // Create appropriate button for track (Play/Download based on source and status)
             if (currentTab == MusicSourceType.YouTube)
             {
-                playBtnRect.anchorMin = new Vector2(0.5f, 0.2f);
-                playBtnRect.anchorMax = new Vector2(0.62f, 0.8f);
+                CreateYouTubeTrackButton(trackItem, index);
             }
             else
             {
-                playBtnRect.anchorMin = new Vector2(0.85f, 0.2f);
-                playBtnRect.anchorMax = new Vector2(0.95f, 0.8f);
+                CreateRegularPlayButton(trackItem, index);
             }
-            playBtnRect.offsetMin = Vector2.zero;
-            playBtnRect.offsetMax = Vector2.zero;
-            
-            var playBtn = playTrackBtn.AddComponent<Button>();
-            var playBtnImage = playTrackBtn.AddComponent<Image>();
-            playBtnImage.color = new Color(0.3f, 0.7f, 0.3f, 0.8f);
-            
-            var playBtnText = new GameObject("Text");
-            playBtnText.transform.SetParent(playTrackBtn.transform, false);
-            var playTextRect = playBtnText.AddComponent<RectTransform>();
-            playTextRect.anchorMin = Vector2.zero;
-            playTextRect.anchorMax = Vector2.one;
-            playTextRect.offsetMin = Vector2.zero;
-            playTextRect.offsetMax = Vector2.zero;
-            
-            var playTextComponent = playBtnText.AddComponent<Text>();
-            playTextComponent.text = "Play";
-            FontHelper.SetSafeFont(playTextComponent);
-            playTextComponent.fontSize = 8;
-            playTextComponent.color = Color.white;
-            playTextComponent.alignment = TextAnchor.MiddleCenter;
-            
-            playBtn.targetGraphic = playBtnImage;
-            playBtn.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { PlayTrack(index); });
             
             // Add remove button for YouTube playlists
             if (currentTab == MusicSourceType.YouTube)
@@ -563,6 +1056,245 @@ namespace BackSpeakerMod.UI.Components
                 removeBtnComponent.targetGraphic = removeBtnImage;
                 removeBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { RemoveTrackFromPlaylist(index); });
             }
+        }
+
+        private void CreateRegularPlayButton(GameObject trackItem, int index)
+        {
+            var playTrackBtn = new GameObject("PlayButton");
+            playTrackBtn.transform.SetParent(trackItem.transform, false);
+            
+            var playBtnRect = playTrackBtn.AddComponent<RectTransform>();
+            playBtnRect.anchorMin = new Vector2(0.85f, 0.2f);
+            playBtnRect.anchorMax = new Vector2(0.95f, 0.8f);
+            playBtnRect.offsetMin = Vector2.zero;
+            playBtnRect.offsetMax = Vector2.zero;
+            
+            var playBtn = playTrackBtn.AddComponent<Button>();
+            var playBtnImage = playTrackBtn.AddComponent<Image>();
+            playBtnImage.color = new Color(0.3f, 0.7f, 0.3f, 0.8f);
+            
+            var playBtnText = new GameObject("Text");
+            playBtnText.transform.SetParent(playTrackBtn.transform, false);
+            var playTextRect = playBtnText.AddComponent<RectTransform>();
+            playTextRect.anchorMin = Vector2.zero;
+            playTextRect.anchorMax = Vector2.one;
+            playTextRect.offsetMin = Vector2.zero;
+            playTextRect.offsetMax = Vector2.zero;
+            
+            var playTextComponent = playBtnText.AddComponent<Text>();
+            playTextComponent.text = "Play";
+            FontHelper.SetSafeFont(playTextComponent);
+            playTextComponent.fontSize = 8;
+            playTextComponent.color = Color.white;
+            playTextComponent.alignment = TextAnchor.MiddleCenter;
+            
+            playBtn.targetGraphic = playBtnImage;
+            playBtn.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { PlayTrack(index); });
+        }
+
+        private void CreateYouTubeTrackButton(GameObject trackItem, int index)
+        {
+            // Get the song details for this track
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            if (songs == null || index >= songs.Count) return;
+            
+            var song = songs[index];
+            var downloadManager = manager?.GetDownloadManager();
+            if (downloadManager == null) return;
+            
+            var downloadStatus = downloadManager.GetDownloadStatus(song);
+            
+            // Create main action button (Play or Download)
+            var actionBtn = new GameObject("ActionButton");
+            actionBtn.transform.SetParent(trackItem.transform, false);
+            
+            var actionBtnRect = actionBtn.AddComponent<RectTransform>();
+            actionBtnRect.anchorMin = new Vector2(0.45f, 0.2f);
+            actionBtnRect.anchorMax = new Vector2(0.57f, 0.8f);
+            actionBtnRect.offsetMin = Vector2.zero;
+            actionBtnRect.offsetMax = Vector2.zero;
+            
+            var actionBtnComponent = actionBtn.AddComponent<Button>();
+            var actionBtnImage = actionBtn.AddComponent<Image>();
+            
+            var actionBtnText = new GameObject("Text");
+            actionBtnText.transform.SetParent(actionBtn.transform, false);
+            var actionTextRect = actionBtnText.AddComponent<RectTransform>();
+            actionTextRect.anchorMin = Vector2.zero;
+            actionTextRect.anchorMax = Vector2.one;
+            actionTextRect.offsetMin = Vector2.zero;
+            actionTextRect.offsetMax = Vector2.zero;
+            
+            var actionTextComponent = actionBtnText.AddComponent<Text>();
+            FontHelper.SetSafeFont(actionTextComponent);
+            actionTextComponent.fontSize = 7;
+            actionTextComponent.color = Color.white;
+            actionTextComponent.alignment = TextAnchor.MiddleCenter;
+            
+            // Configure button based on download status
+            switch (downloadStatus)
+            {
+                case DownloadStatus.Downloaded:
+                    // Show play button
+                    actionBtnImage.color = new Color(0.3f, 0.7f, 0.3f, 0.8f); // Green
+                    actionTextComponent.text = "Play";
+                    actionBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { PlayTrack(index); });
+                    break;
+                    
+                case DownloadStatus.Queued:
+                    // Show cancel button
+                    actionBtnImage.color = new Color(0.7f, 0.5f, 0.2f, 0.8f); // Orange
+                    actionTextComponent.text = "Cancel";
+                    actionBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { CancelDownload(song); });
+                    break;
+                    
+                case DownloadStatus.Downloading:
+                    // Show progress
+                    actionBtnImage.color = new Color(0.2f, 0.5f, 0.8f, 0.8f); // Blue
+                    var progress = downloadManager.GetDownloadProgress(song);
+                    actionTextComponent.text = $"{progress:F0}%";
+                    actionBtnComponent.interactable = false;
+                    break;
+                    
+                case DownloadStatus.Failed:
+                    // Show retry button
+                    actionBtnImage.color = new Color(0.8f, 0.4f, 0.2f, 0.8f); // Red-orange
+                    actionTextComponent.text = "Retry";
+                    actionBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { DownloadTrack(song); });
+                    break;
+                    
+                default: // NotQueued
+                    // Show download button
+                    actionBtnImage.color = new Color(0.2f, 0.4f, 0.8f, 0.8f); // Blue
+                    actionTextComponent.text = "Download";
+                    actionBtnComponent.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { DownloadTrack(song); });
+                    break;
+            }
+            
+            actionBtnComponent.targetGraphic = actionBtnImage;
+        }
+
+        private List<SongDetails> GetYouTubeSongsForCurrentPlaylist()
+        {
+            if (currentYouTubePlaylist?.songs != null)
+            {
+                return currentYouTubePlaylist.songs;
+            }
+            
+            // Fallback to manager's YouTube songs
+            var session = manager?.GetSession(MusicSourceType.YouTube);
+            return session?.GetYouTubeSongs() ?? new List<SongDetails>();
+        }
+
+        private void DownloadTrack(SongDetails song)
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            if (downloadManager != null)
+            {
+                downloadManager.QueueDownload(song);
+                LoggingSystem.Info($"Queued download for: {song.title}", "UI");
+                
+                // Force UI refresh to show updated button state
+                ForceUIRefresh();
+            }
+        }
+
+        private void CancelDownload(SongDetails song)
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            if (downloadManager != null)
+            {
+                downloadManager.CancelDownload(song);
+                LoggingSystem.Info($"Cancelled download for: {song.title}", "UI");
+                
+                // Force UI refresh to show updated button state
+                ForceUIRefresh();
+            }
+        }
+
+        private void DownloadAllTracks()
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            
+            if (downloadManager != null && songs != null)
+            {
+                int queuedCount = 0;
+                foreach (var song in songs)
+                {
+                    var status = downloadManager.GetDownloadStatus(song);
+                    // Only queue songs that are not downloaded and not already queued/downloading
+                    if (status == DownloadStatus.NotQueued || status == DownloadStatus.Failed)
+                    {
+                        downloadManager.QueueDownload(song);
+                        queuedCount++;
+                    }
+                }
+                
+                LoggingSystem.Info($"Queued {queuedCount} downloads", "UI");
+                
+                // Force UI refresh to show updated button states
+                ForceUIRefresh();
+            }
+        }
+
+        private void CancelAllDownloads()
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            
+            if (downloadManager != null && songs != null)
+            {
+                int cancelledCount = 0;
+                foreach (var song in songs)
+                {
+                    var status = downloadManager.GetDownloadStatus(song);
+                    if (status == DownloadStatus.Queued || status == DownloadStatus.Downloading)
+                    {
+                        downloadManager.CancelDownload(song);
+                        cancelledCount++;
+                    }
+                }
+                
+                LoggingSystem.Info($"Cancelled {cancelledCount} downloads", "UI");
+                
+                // Force UI refresh to show updated button states
+                ForceUIRefresh();
+            }
+        }
+
+        private string GetDownloadStatusText()
+        {
+            var downloadManager = manager?.GetDownloadManager();
+            var songs = GetYouTubeSongsForCurrentPlaylist();
+            
+            if (downloadManager == null || songs == null || songs.Count == 0)
+                return "";
+            
+            int downloaded = 0;
+            int queued = 0;
+            int downloading = 0;
+            int failed = 0;
+            
+            foreach (var song in songs)
+            {
+                var status = downloadManager.GetDownloadStatus(song);
+                switch (status)
+                {
+                    case DownloadStatus.Downloaded: downloaded++; break;
+                    case DownloadStatus.Queued: queued++; break;
+                    case DownloadStatus.Downloading: downloading++; break;
+                    case DownloadStatus.Failed: failed++; break;
+                }
+            }
+            
+            var parts = new List<string>();
+            if (downloaded > 0) parts.Add($"{downloaded} Downloaded");
+            if (downloading > 0) parts.Add($"{downloading} Downloading");
+            if (queued > 0) parts.Add($"{queued} Queued");
+            if (failed > 0) parts.Add($"{failed} Failed");
+            
+            return parts.Count > 0 ? string.Join(", ", parts) : $"{songs.Count} Not Downloaded";
         }
         
         private List<string> GetTracksForCurrentSource()
@@ -637,40 +1369,33 @@ namespace BackSpeakerMod.UI.Components
         
         private void RemoveTrackFromPlaylist(int index)
         {
-            LoggingSystem.Info($"Removing track {index} from YouTube playlist", "UI");
-            
             try
             {
-                if (currentYouTubePlaylist == null)
+                if (currentTab == MusicSourceType.YouTube)
                 {
-                    LoggingSystem.Warning("No current YouTube playlist to remove from", "UI");
-                    return;
-                }
-                
-                if (index < 0 || index >= currentYouTubePlaylist.songs.Count)
-                {
-                    LoggingSystem.Warning($"Invalid track index {index} for playlist with {currentYouTubePlaylist.songs.Count} songs", "UI");
-                    return;
-                }
-                
-                var songToRemove = currentYouTubePlaylist.songs[index];
-                var videoId = songToRemove.GetVideoId();
-                var songTitle = songToRemove.title;
-                
-                if (RemoveSongFromCurrentYouTubePlaylist(videoId))
-                {
-                    LoggingSystem.Info($"✅ Successfully removed '{songTitle}' from playlist and auto-saved", "UI");
-                    
-                    // Refresh the playlist display
-                    if (isPlaylistOpen)
+                    var songs = GetYouTubeSongsForCurrentPlaylist();
+                    if (songs != null && index >= 0 && index < songs.Count)
                     {
-                        ClosePlaylist();
-                        OpenPlaylist();
+                        var song = songs[index];
+                        var videoId = song.GetVideoId();
+                        
+                        if (!string.IsNullOrEmpty(videoId))
+                        {
+                            bool removed = RemoveSongFromCurrentYouTubePlaylist(videoId);
+                            if (removed)
+                            {
+                                LoggingSystem.Info($"Removed {song.title} from playlist", "UI");
+                                
+                                // Force complete playlist recreation since song count changed
+                                ClosePlaylist();
+                                OpenPlaylist();
+                            }
+                        }
                     }
                 }
                 else
                 {
-                    LoggingSystem.Warning($"❌ Failed to remove '{songTitle}' from playlist", "UI");
+                    LoggingSystem.Warning("Remove track not supported for non-YouTube playlists", "UI");
                 }
             }
             catch (Exception ex)

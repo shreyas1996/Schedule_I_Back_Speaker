@@ -206,7 +206,6 @@ namespace BackSpeakerMod.UI.Components
                 var isAudioReady = manager.IsAudioReady();
                 var headphonesAttached = manager.AreHeadphonesAttached();
                 var trackCount = manager.GetTrackCount();
-                var downloadInProgress = manager.IsDownloadInProgress();
 
                 UpdateThemedAlbumArt(); // update the themed album art based on the current music source
                 
@@ -229,31 +228,15 @@ namespace BackSpeakerMod.UI.Components
                 // Priority 2: Check if audio system is ready
                 if (!isAudioReady)
                 {
-                    if (downloadInProgress)
+                    nowPlayingText!.text = "⚠️ Audio System Not Ready";
+                    artistText!.text = "🔧 Please wait while initializing";
+                    albumText!.text = "⏳ This may take a moment";
+                    sourceText!.text = "📊 System: Initializing";
+                    
+                    // Yellow color for initialization
+                    if (nowPlayingText != null)
                     {
-                        nowPlayingText!.text = $"🔄 Downloading {currentTrackInfo ?? "Track"}";
-                        artistText!.text = "📥 Please wait while the track downloads";
-                        albumText!.text = "⏳ This may take a moment";
-                        sourceText!.text = "📊 System: Downloading";
-                        
-                        // Orange color for downloading
-                        if (nowPlayingText != null)
-                        {
-                            nowPlayingText.color = new Color(1f, 0.6f, 0.2f, 1f);
-                        }
-                    }
-                    else
-                    {
-                        nowPlayingText!.text = "⚠️ Audio System Not Ready";
-                        artistText!.text = "🔧 Please wait while initializing";
-                        albumText!.text = "⏳ This may take a moment";
-                        sourceText!.text = "📊 System: Initializing";
-                        
-                        // Yellow color for initialization
-                        if (nowPlayingText != null)
-                        {
-                            nowPlayingText.color = new Color(1f, 1f, 0.4f, 1f);
-                        }
+                        nowPlayingText.color = new Color(1f, 1f, 0.4f, 1f);
                     }
                     return;
                 }

@@ -16,6 +16,7 @@ namespace BackSpeakerMod.Core.Modules
         private readonly Dictionary<MusicSourceType, AudioSession> sessions;
         private readonly AudioController audioController;
         private readonly YouTubeStreamingController youtubeStreamingController;
+        private readonly YouTubeDownloadManager youtubeDownloadManager;
         private readonly TrackLoader trackLoader;
         
         private MusicSourceType currentActiveSession = MusicSourceType.Jukebox;
@@ -31,6 +32,7 @@ namespace BackSpeakerMod.Core.Modules
             sessions = new Dictionary<MusicSourceType, AudioSession>();
             audioController = new AudioController();
             youtubeStreamingController = new YouTubeStreamingController();
+            youtubeDownloadManager = new YouTubeDownloadManager();
             trackLoader = new TrackLoader();
             
             // Create sessions for each music source
@@ -39,7 +41,7 @@ namespace BackSpeakerMod.Core.Modules
                 sessions[sourceType] = new AudioSession(sourceType);
             }
             
-            // Wire up track loader events
+            // Subscribe to track loader events
             trackLoader.OnTracksLoaded += OnTracksLoaded;
             audioController.OnTracksChanged += () => OnTracksReloaded?.Invoke();
             
@@ -58,7 +60,6 @@ namespace BackSpeakerMod.Core.Modules
                 
                 // Wire up YouTube streaming events
                 youtubeStreamingController.OnTrackChanged += () => OnTracksReloaded?.Invoke();
-                youtubeStreamingController.OnPlaylistChanged += () => OnTracksReloaded?.Invoke();
                 
                 // Initialize external music providers now that we have a GameObject
                 trackLoader.InitializeExternalProviders(audioSource.gameObject);
@@ -591,10 +592,8 @@ namespace BackSpeakerMod.Core.Modules
         public bool IsAudioReady() => globalPlayingSession == MusicSourceType.YouTube ? 
             youtubeStreamingController.IsAudioReady : audioController.IsAudioReady();
 
-        public bool IsDownloadInProgress() => globalPlayingSession == MusicSourceType.YouTube ?
-            youtubeStreamingController.IsDownloadInProgress() : false;
-        public string GetDownloadProgress() => globalPlayingSession == MusicSourceType.YouTube ?
-            youtubeStreamingController.GetDownloadProgress() : "";
+        // Download manager access
+        public YouTubeDownloadManager GetDownloadManager() => youtubeDownloadManager;
         
         // Audio control methods - now session-specific
         public void Play()
@@ -721,31 +720,22 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
-        /// Helper method to handle YouTube next track
+        /// Helper method to handle YouTube next track - skips non-downloaded songs
         /// </summary>
         private void HandleYouTubeNextTrack(AudioSession session)
         {
             try
             {
-                // Use the session's NextTrack method to get the next song
-                bool hasNext = session.NextTrack();
-                if (hasNext)
+                var nextSong = FindNextDownloadedSong(session, true);
+                if (nextSong != null)
                 {
-                    var nextSong = session.GetCurrentYouTubeSong();
-                    if (nextSong != null)
-                    {
-                        // Start playing the next song
-                        _ = StartYouTubeStream(nextSong, session);
-                        LoggingSystem.Debug("YouTube next track completed successfully", "AudioSessionManager");
-                    }
-                    else
-                    {
-                        LoggingSystem.Warning("Next YouTube song is null", "AudioSessionManager");
-                    }
+                    LoggingSystem.Info($"Moving to next downloaded YouTube track: {nextSong.title}", "AudioSessionManager");
+                    _ = StartYouTubeStream(nextSong, session);
                 }
                 else
                 {
-                    LoggingSystem.Warning("No next YouTube track available", "AudioSessionManager");
+                    LoggingSystem.Debug("No more downloaded tracks found", "AudioSessionManager");
+                    globalPlayingSession = null;
                 }
             }
             catch (Exception ex)
@@ -755,37 +745,62 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
-        /// Helper method to handle YouTube previous track
+        /// Helper method to handle YouTube previous track - skips non-downloaded songs
         /// </summary>
         private void HandleYouTubePreviousTrack(AudioSession session)
         {
             try
             {
-                // Use the session's PreviousTrack method to get the previous song
-                bool hasPrevious = session.PreviousTrack();
-                if (hasPrevious)
+                var previousSong = FindNextDownloadedSong(session, false);
+                if (previousSong != null)
                 {
-                    var previousSong = session.GetCurrentYouTubeSong();
-                    if (previousSong != null)
-                    {
-                        // Start playing the previous song
-                        _ = StartYouTubeStream(previousSong, session);
-                        LoggingSystem.Debug("YouTube previous track completed successfully", "AudioSessionManager");
-                    }
-                    else
-                    {
-                        LoggingSystem.Warning("Previous YouTube song is null", "AudioSessionManager");
-                    }
+                    LoggingSystem.Info($"Moving to previous downloaded YouTube track: {previousSong.title}", "AudioSessionManager");
+                    _ = StartYouTubeStream(previousSong, session);
                 }
                 else
                 {
-                    LoggingSystem.Warning("No previous YouTube track available", "AudioSessionManager");
+                    LoggingSystem.Debug("No more downloaded tracks found", "AudioSessionManager");
+                    globalPlayingSession = null;
                 }
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error handling YouTube previous track: {ex.Message}", "AudioSessionManager");
             }
+        }
+
+        /// <summary>
+        /// Finds the next downloaded song in the specified direction
+        /// </summary>
+        private SongDetails FindNextDownloadedSong(AudioSession session, bool forward)
+        {
+            if (!session.HasTracks) return null;
+
+            var songs = session.GetYouTubeSongs();
+            if (songs == null || songs.Count == 0) return null;
+
+            int currentIndex = session.CurrentTrackIndex;
+            int searchIndex = currentIndex;
+            int direction = forward ? 1 : -1;
+            
+            // Search for next downloaded song
+            for (int i = 0; i < songs.Count; i++)
+            {
+                searchIndex = (searchIndex + direction + songs.Count) % songs.Count;
+                
+                // Skip the current song on first iteration
+                if (i == 0 && searchIndex == currentIndex) continue;
+                
+                var song = songs[searchIndex];
+                if (youtubeDownloadManager.GetDownloadStatus(song) == DownloadStatus.Downloaded)
+                {
+                    // Update session's current track index
+                    session.SetCurrentTrackIndex(searchIndex);
+                    return song;
+                }
+            }
+
+            return null; // No downloaded songs found
         }
         
         public void SetVolume(float volume)
@@ -901,7 +916,7 @@ namespace BackSpeakerMod.Core.Modules
                 
                 // Check if YouTube playback just finished (not manually paused)
                 if (!youtubeStreamingController.IsPlaying && !youtubeStreamingController.IsLoading && 
-                    !youtubeStreamingController.IsWaitingForDownload && session.HasTracks && !session.IsPaused)
+                    session.HasTracks && !session.IsPaused)
                 {
                     LoggingSystem.Debug("YouTube track completed - attempting auto-advance", "AudioSessionManager");
                     
@@ -918,19 +933,16 @@ namespace BackSpeakerMod.Core.Modules
                     }
                     else if (session.RepeatMode == RepeatMode.RepeatAll || session.CurrentTrackIndex < session.TrackCount - 1)
                     {
-                        // Advance to next track
-                        if (session.NextTrack())
+                        // Advance to next downloaded track
+                        var nextSong = FindNextDownloadedSong(session, true);
+                        if (nextSong != null)
                         {
-                            LoggingSystem.Debug($"Auto-advancing to next YouTube track: {session.CurrentTrackIndex + 1}/{session.TrackCount}", "AudioSessionManager");
-                            var nextSong = session.GetCurrentYouTubeSong();
-                            if (nextSong != null)
-                            {
-                                _ = StartYouTubeStream(nextSong, session);
-                            }
+                            LoggingSystem.Debug($"Auto-advancing to next downloaded YouTube track: {nextSong.title}", "AudioSessionManager");
+                            _ = StartYouTubeStream(nextSong, session);
                         }
                         else
                         {
-                            LoggingSystem.Debug("No more tracks in YouTube session", "AudioSessionManager");
+                            LoggingSystem.Debug("No more downloaded tracks in YouTube session", "AudioSessionManager");
                             globalPlayingSession = null;
                         }
                     }

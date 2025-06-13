@@ -509,5 +509,42 @@ namespace BackSpeakerMod.Core.Modules
                 LoggingSystem.Warning("YouTube provider not available for cached song initialization", "AudioSession");
             }
         }
+        
+        /// <summary>
+        /// Get all YouTube songs in this session
+        /// </summary>
+        public List<SongDetails> GetYouTubeSongs()
+        {
+            if (!IsYouTubeSession)
+            {
+                return new List<SongDetails>();
+            }
+            
+            var songs = new List<SongDetails>();
+            foreach (var songDetail in songDetailsInfo)
+            {
+                if (songDetail != null)
+                {
+                    songs.Add(songDetail);
+                }
+            }
+            return songs;
+        }
+        
+        /// <summary>
+        /// Set the current track index (for smart navigation)
+        /// </summary>
+        public void SetCurrentTrackIndex(int index)
+        {
+            if (index >= 0 && index < tracks.Count)
+            {
+                currentTrackIndex = index;
+                LoggingSystem.Debug($"Session {DisplayName}: Set current track index to {index}", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Warning($"Session {DisplayName}: Invalid track index {index} (max: {tracks.Count - 1})", "AudioSession");
+            }
+        }
     }
 } 
