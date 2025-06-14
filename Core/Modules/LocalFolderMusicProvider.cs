@@ -29,44 +29,32 @@ namespace BackSpeakerMod.Core.Modules
         }
 
         private Dictionary<string, object> configuration = new Dictionary<string, object>();
+        private bool isLoading = false;
+        private readonly Dictionary<string, AudioClip> cachedClips = new Dictionary<string, AudioClip>();
+        private const int maxCacheSize = 10; // Keep fewer clips in memory compared to YouTube due to larger file sizes
+        private bool isDestroyed = false;
 
         public LocalFolderMusicProvider() : base() { }
 
         public void LoadTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
         {
+            if (isLoading)
+            {
+                LoggingSystem.Warning("Track loading already in progress", "LocalFolder");
+                return;
+            }
+
+            isLoading = true;
             var coroutine = LoadLocalTracksCoroutine(onComplete);
             MelonCoroutines.Start(coroutine);
         }
 
         private IEnumerator LoadLocalTracksCoroutine(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
         {
-            // Run the async operation and wait for completion
-            Task<(List<AudioClip>, List<(string, string)>)> loadTask = LoadLocalTracksAsync();
-            
-            while (!loadTask.IsCompleted)
-            {
-                yield return null; // Wait one frame
-            }
-            
-            if (loadTask.IsFaulted)
-            {
-                LoggingSystem.Error($"Error loading local tracks: {loadTask.Exception?.Message}", "LocalFolder");
-                onComplete?.Invoke(new List<AudioClip>(), new List<(string, string)>());
-            }
-            else
-            {
-                var (tracks, trackInfo) = loadTask.Result;
-                onComplete?.Invoke(tracks, trackInfo);
-            }
-        }
-
-        private async Task<(List<AudioClip>, List<(string title, string artist)>)> LoadLocalTracksAsync()
-        {
             var tracks = new List<AudioClip>();
             var trackInfo = new List<(string title, string artist)>();
 
             string musicPath = GetMusicFolderPath();
-            
             EnsureMusicFolderExists();
             
             LoggingSystem.Info($"Loading local tracks from: {musicPath}", "LocalFolder");
@@ -74,7 +62,9 @@ namespace BackSpeakerMod.Core.Modules
             if (!Directory.Exists(musicPath))
             {
                 LoggingSystem.Warning($"Music directory does not exist: {musicPath}", "LocalFolder");
-                return (tracks, trackInfo);
+                isLoading = false;
+                onComplete?.Invoke(tracks, trackInfo);
+                yield break;
             }
 
             // Get all supported audio files
@@ -89,47 +79,148 @@ namespace BackSpeakerMod.Core.Modules
 
             LoggingSystem.Info($"Found {allFiles.Count} supported audio files", "LocalFolder");
 
-            // Load files in parallel for better performance
-            var loadTasks = allFiles.Select(async filePath =>
+            // If we have too many cached clips, remove oldest ones
+            while (cachedClips.Count > maxCacheSize)
             {
+                var oldestKey = cachedClips.Keys.First();
+                var oldClip = cachedClips[oldestKey];
+                if (oldClip != null)
+                {
+                    Destroy(oldClip);
+                }
+                cachedClips.Remove(oldestKey);
+                LoggingSystem.Debug($"Removed old cached clip: {oldestKey}", "LocalFolder");
+            }
+
+            // Load files sequentially to avoid memory issues
+            foreach (var filePath in allFiles)
+            {
+                if (isDestroyed) break; // Stop if component is being destroyed
+
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
                 LoggingSystem.Debug($"Loading: {fileName}", "LocalFolder");
-                
-                try
-                {
-                    var clip = await AudioHelper.LoadAudioFileAsync(filePath);
-                    if (clip != null)
-                    {
-                        return (clip, FormatTrackTitle(fileName), "Local File");
-                    }
-                    else
-                    {
-                        LoggingSystem.Warning($"Failed to load: {fileName}", "LocalFolder");
-                        return ((AudioClip?)null, "", "");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LoggingSystem.Error($"Exception loading {fileName}: {ex.Message}", "LocalFolder");
-                    return ((AudioClip?)null, "", "");
-                }
-            });
 
-            // Wait for all loading tasks to complete
-            var results = await Task.WhenAll(loadTasks);
-
-            // Add successful results to our lists
-            foreach (var (clip, title, artist) in results)
-            {
-                if (clip != null && !string.IsNullOrEmpty(title))
+                // First verify the source file still exists
+                if (!File.Exists(filePath))
                 {
-                    tracks.Add(clip);
-                    trackInfo.Add((title, artist));
+                    LoggingSystem.Warning($"Source file no longer exists: {filePath}", "LocalFolder");
+                    continue;
+                }
+
+                // Check if we have a cached clip and verify its validity
+                if (cachedClips.TryGetValue(fileName, out AudioClip? cachedClip))
+                {
+                    if (cachedClip != null && cachedClip.loadState == AudioDataLoadState.Loaded && cachedClip.length > 0)
+                    {
+                        // Verify the cache is still valid by comparing file modify times
+                        try
+                        {
+                            var fileInfo = new FileInfo(filePath);
+                            if (fileInfo.Length > 0)
+                            {
+                                LoggingSystem.Debug($"Using cached clip for: {fileName}", "LocalFolder");
+                                tracks.Add(cachedClip);
+                                trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
+                                continue;
+                            }
+                            else
+                            {
+                                LoggingSystem.Warning($"Source file is empty: {fileName}", "LocalFolder");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggingSystem.Warning($"Error checking source file {fileName}: {ex.Message}", "LocalFolder");
+                        }
+                    }
+
+                    // If we get here, the cached clip is invalid
+                    if (cachedClip != null)
+                    {
+                        Destroy(cachedClip);
+                    }
+                    cachedClips.Remove(fileName);
+                    LoggingSystem.Debug($"Removed invalid cached clip for: {fileName}", "LocalFolder");
+                }
+
+                // Add a delay before each load to let the audio system stabilize
+                yield return new WaitForSeconds(0.25f);
+
+                // Declare variables outside try block to maintain scope
+                bool loadingComplete = false;
+                AudioClip? loadedClip = null;
+                Exception? loadError = null;
+                var loadTask = Task.Run(async () => {
+                    try 
+                    {
+                        loadedClip = await AudioHelper.LoadAudioFileAsync(filePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        loadError = ex;
+                    }
+                    finally
+                    {
+                        loadingComplete = true;
+                    }
+                });
+
+                // Wait for loading to complete
+                while (!loadingComplete)
+                {
+                    yield return null;
+                }
+
+                // Handle loading results
+                if (loadError != null)
+                {
+                    LoggingSystem.Error($"Failed to load {fileName}: {loadError.Message}", "LocalFolder");
+                    continue;
+                }
+
+                if (loadedClip != null && !isDestroyed)
+                {
+                    try
+                    {
+                        // If we're at cache limit, remove oldest clip first
+                        if (cachedClips.Count >= maxCacheSize)
+                        {
+                            var oldestKey = cachedClips.Keys.First();
+                            var oldClip = cachedClips[oldestKey];
+                            if (oldClip != null)
+                            {
+                                Destroy(oldClip);
+                            }
+                            cachedClips.Remove(oldestKey);
+                            LoggingSystem.Debug($"Cache full - removed old clip: {oldestKey}", "LocalFolder");
+                        }
+
+                        // Add to cache and track list
+                        cachedClips[fileName] = loadedClip;
+                        tracks.Add(loadedClip);
+                        trackInfo.Add((FormatTrackTitle(fileName), "Local File"));
+                        LoggingSystem.Debug($"Successfully loaded and cached: {fileName} ({loadedClip.length:F1}s)", "LocalFolder");
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingSystem.Error($"Error processing {fileName}: {ex.Message}", "LocalFolder");
+                        
+                        // Cleanup on error
+                        if (loadedClip != null)
+                        {
+                            Destroy(loadedClip);
+                        }
+                        if (cachedClips.ContainsKey(fileName))
+                        {
+                            cachedClips.Remove(fileName);
+                        }
+                    }
                 }
             }
 
             LoggingSystem.Info($"Successfully loaded {tracks.Count} local music tracks", "LocalFolder");
-            return (tracks, trackInfo);
+            isLoading = false;
+            onComplete?.Invoke(tracks, trackInfo);
         }
 
         private string FormatTrackTitle(string fileName)
@@ -175,21 +266,12 @@ Instructions:
 
 Tips:
 - Use descriptive filenames for better organization
-- MP3 format provides best compatibility and file size
-- NAudio handles most common audio formats reliably
+- Avoid special characters in filenames
+- Consider using MP3 format for best compatibility
+- Keep file sizes reasonable for better performance
+- Clean naming format: 'Artist - Title.mp3'";
 
-Enjoy your music!
-";
-                
-                try
-                {
-                    File.WriteAllText(readmePath, readmeContent);
-                    LoggingSystem.Info("Created music folder with README", "LocalFolder");
-                }
-                catch (Exception ex)
-                {
-                    LoggingSystem.Warning($"Could not create README file: {ex.Message}", "LocalFolder");
-                }
+                File.WriteAllText(readmePath, readmeContent);
             }
         }
 
@@ -197,24 +279,7 @@ Enjoy your music!
         {
             string musicPath = GetMusicFolderPath();
             EnsureMusicFolderExists();
-            
-            try
-            {
-                // Cross-platform folder opening
-                #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-                    System.Diagnostics.Process.Start("explorer.exe", musicPath.Replace('/', '\\'));
-                #elif UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
-                    System.Diagnostics.Process.Start("open", musicPath);
-                #elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
-                    System.Diagnostics.Process.Start("xdg-open", musicPath);
-                #endif
-                
-                LoggingSystem.Info($"Opened music folder: {musicPath}", "LocalFolder");
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Could not open music folder: {ex.Message}", "LocalFolder");
-            }
+            global::System.Diagnostics.Process.Start(musicPath);
         }
 
         public void RefreshTracks(Action<List<AudioClip>, List<(string title, string artist)>> onComplete)
@@ -227,6 +292,7 @@ Enjoy your music!
             configuration["MusicFolderPath"] = GetMusicFolderPath();
             configuration["IsAvailable"] = IsAvailable;
             configuration["SupportedFormats"] = AudioHelper.GetSupportedExtensions();
+            configuration["MaxCacheSize"] = maxCacheSize;
             
             try
             {
@@ -257,11 +323,29 @@ Enjoy your music!
         public void ApplyConfiguration(Dictionary<string, object> config)
         {
             // Configuration could be applied here in the future
+            // For example: maxCacheSize, supported formats, etc.
         }
 
         public void Cleanup()
         {
-            // Nothing to clean up for local folder provider
+            // Mark as destroyed so coroutines can stop
+            isDestroyed = true;
+
+            // Clear cached clips to free memory
+            foreach (var clip in cachedClips.Values)
+            {
+                if (clip != null)
+                {
+                    Destroy(clip);
+                }
+            }
+            cachedClips.Clear();
+            LoggingSystem.Info("Cleaned up cached audio clips", "LocalFolder");
+        }
+
+        private void OnDestroy()
+        {
+            Cleanup();
         }
     }
-} 
+}

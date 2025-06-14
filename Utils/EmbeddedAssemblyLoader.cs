@@ -5,18 +5,14 @@ using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.Utils
 {
-    /// <summary>
-    /// Helper class for loading embedded assemblies at runtime
-    /// Allows embedding dependency DLLs as resources instead of requiring separate installation
-    /// </summary>
-    public static class EmbeddedAssemblyLoader
+    // We load audioimprot lib on runtime from UserLibs\AudioImportLib.dll
+    public static class AudioImportLibAssemblyLoader
     {
         private static Assembly? _audioImportLibAssembly;
+
+        private static string _audioImportLibPath = Path.Combine("UserLibs", "AudioImportLib.dll");
         private static bool _loadAttempted = false;
 
-        /// <summary>
-        /// Load the embedded AudioImportLib assembly
-        /// </summary>
         public static bool LoadAudioImportLib()
         {
             if (_loadAttempted)
@@ -26,60 +22,25 @@ namespace BackSpeakerMod.Utils
 
             try
             {
-                LoggingSystem.Debug("Loading embedded AudioImportLib.dll...", "EmbeddedAssemblyLoader");
+                LoggingSystem.Debug("Loading  AudioImportLib.dll...", "AudioImportLibAssemblyLoader");
 
                 // Get the current assembly (our mod)
                 var currentAssembly = Assembly.GetExecutingAssembly();
-                
-                // Resource name follows the pattern: Namespace.ResourcePath
-                string resourceName = "BackSpeakerMod.EmbeddedResources.Libs.AudioImportLib.dll";
 
-                // Check if resource exists
-                var resourceNames = currentAssembly.GetManifestResourceNames();
-                bool resourceExists = false;
-                foreach (var name in resourceNames)
+                if (!File.Exists(_audioImportLibPath))
                 {
-                    if (name.EndsWith("AudioImportLib.dll"))
-                    {
-                        resourceName = name;
-                        resourceExists = true;
-                        break;
-                    }
-                }
-
-                if (!resourceExists)
-                {
-                    LoggingSystem.Error("AudioImportLib.dll not found in embedded resources", "EmbeddedAssemblyLoader");
+                    LoggingSystem.Error($"AudioImportLib.dll not found at {_audioImportLibPath}", "AudioImportLibAssemblyLoader");
                     return false;
                 }
 
-                LoggingSystem.Debug($"Found embedded resource: {resourceName}", "EmbeddedAssemblyLoader");
+                _audioImportLibAssembly = Assembly.LoadFrom(_audioImportLibPath);
+                LoggingSystem.Info($"Successfully loaded AudioImportLib: {_audioImportLibAssembly.FullName}", "AudioImportLibAssemblyLoader");
+                return true;
 
-                // Load the embedded DLL
-                using (var stream = currentAssembly.GetManifestResourceStream(resourceName))
-                {
-                    if (stream == null)
-                    {
-                        LoggingSystem.Error("Could not open embedded AudioImportLib.dll stream", "EmbeddedAssemblyLoader");
-                        return false;
-                    }
-
-                    // Read the DLL bytes
-                    byte[] assemblyBytes = new byte[stream.Length];
-                    stream.Read(assemblyBytes, 0, assemblyBytes.Length);
-
-                    LoggingSystem.Debug($"Read {assemblyBytes.Length} bytes from embedded AudioImportLib.dll", "EmbeddedAssemblyLoader");
-
-                    // Load the assembly from bytes
-                    _audioImportLibAssembly = Assembly.Load(assemblyBytes);
-
-                    LoggingSystem.Info($"Successfully loaded embedded AudioImportLib: {_audioImportLibAssembly.FullName}", "EmbeddedAssemblyLoader");
-                    return true;
-                }
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Failed to load embedded AudioImportLib: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Error($"Failed to load AudioImportLib: {ex.Message}", "AudioImportLibAssemblyLoader");
                 return false;
             }
         }
@@ -101,13 +62,13 @@ namespace BackSpeakerMod.Utils
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Could not get AudioImportLib.API type: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Error($"Could not get AudioImportLib.API type: {ex.Message}", "AudioImportLibAssemblyLoader");
                 return null;
             }
         }
 
         /// <summary>
-        /// Get the LoadAudioClip method from the embedded AudioImportLib
+        /// Get the LoadAudioClip method from the  AudioImportLib
         /// </summary>
         public static MethodInfo? GetLoadAudioClipMethod()
         {
@@ -121,17 +82,17 @@ namespace BackSpeakerMod.Utils
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Could not get LoadAudioClip method: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Error($"Could not get LoadAudioClip method: {ex.Message}", "AudioImportLibAssemblyLoader");
                 return null;
             }
         }
 
         /// <summary>
-        /// Check if AudioImportLib is available (either embedded or already loaded)
+        /// Check if AudioImportLib is available (either  or already loaded)
         /// </summary>
         public static bool IsAudioImportLibAvailable()
         {
-            // First try to load our embedded version
+            // First try to load our  version
             if (LoadAudioImportLib())
                 return true;
 
@@ -142,7 +103,7 @@ namespace BackSpeakerMod.Utils
                 {
                     if (assembly.GetName().Name == "AudioImportLib")
                     {
-                        LoggingSystem.Info("Found existing AudioImportLib assembly in app domain", "EmbeddedAssemblyLoader");
+                        LoggingSystem.Info("Found existing AudioImportLib assembly in app domain", "AudioImportLibAssemblyLoader");
                         _audioImportLibAssembly = assembly;
                         return true;
                     }
@@ -150,7 +111,7 @@ namespace BackSpeakerMod.Utils
             }
             catch (Exception ex)
             {
-                LoggingSystem.Warning($"Error checking for existing AudioImportLib: {ex.Message}", "EmbeddedAssemblyLoader");
+                LoggingSystem.Warning($"Error checking for existing AudioImportLib: {ex.Message}", "AudioImportLibAssemblyLoader");
             }
 
             return false;

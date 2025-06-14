@@ -39,21 +39,21 @@ namespace BackSpeakerMod.UI.Helpers
                 var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 if (font != null)
                 {
-                    LoggingSystem.Debug("Using LegacyRuntime.ttf font", "UI");
+                    // LoggingSystem.Debug("Using LegacyRuntime.ttf font", "UI");
                     return font;
                 }
                 
                 font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 if (font != null)
                 {
-                    LoggingSystem.Debug("Using Arial.ttf font", "UI");
+                    // LoggingSystem.Debug("Using Arial.ttf font", "UI");
                     return font;
                 }
                 
                 font = Resources.GetBuiltinResource<Font>("Arial");
                 if (font != null)
                 {
-                    LoggingSystem.Debug("Using Arial font", "UI");
+                    // LoggingSystem.Debug("Using Arial font", "UI");
                     return font;
                 }
                 
@@ -61,7 +61,7 @@ namespace BackSpeakerMod.UI.Helpers
                 var fonts = Resources.FindObjectsOfTypeAll<Font>();
                 if (fonts != null && fonts.Length > 0)
                 {
-                    LoggingSystem.Debug($"Using first available font: {fonts[0].name}", "UI");
+                    // LoggingSystem.Debug($"Using first available font: {fonts[0].name}", "UI");
                     return fonts[0];
                 }
                 
@@ -80,25 +80,25 @@ namespace BackSpeakerMod.UI.Helpers
         /// </summary>
         public static void SetSafeFont(Text textComponent)
         {
-            LoggingSystem.Debug("FontHelper.SetSafeFont: Starting", "UI");
+            // LoggingSystem.Debug("FontHelper.SetSafeFont: Starting", "UI");
             
             if (textComponent == null) 
             {
-                LoggingSystem.Debug("FontHelper.SetSafeFont: textComponent is null, returning", "UI");
+                // LoggingSystem.Debug("FontHelper.SetSafeFont: textComponent is null, returning", "UI");
                 return;
             }
             
-            LoggingSystem.Debug("FontHelper.SetSafeFont: textComponent is valid, getting font", "UI");
+            // LoggingSystem.Debug("FontHelper.SetSafeFont: textComponent is valid, getting font", "UI");
             
             var font = GetSafeFont();
-            LoggingSystem.Debug($"FontHelper.SetSafeFont: Got font: {(font != null ? font.name : "null")}", "UI");
+            // LoggingSystem.Debug($"FontHelper.SetSafeFont: Got font: {(font != null ? font.name : "null")}", "UI");
             
             if (font != null)
             {
                 try
                 {
                     textComponent.font = font;
-                    LoggingSystem.Debug("FontHelper.SetSafeFont: Successfully set font", "UI");
+                    // LoggingSystem.Debug("FontHelper.SetSafeFont: Successfully set font", "UI");
                 }
                 catch (System.Exception ex)
                 {
@@ -108,10 +108,10 @@ namespace BackSpeakerMod.UI.Helpers
             }
             else
             {
-                LoggingSystem.Debug("FontHelper.SetSafeFont: Font is null, Unity will use default", "UI");
+                // LoggingSystem.Debug("FontHelper.SetSafeFont: Font is null, Unity will use default", "UI");
             }
             
-            LoggingSystem.Debug("FontHelper.SetSafeFont: Completed", "UI");
+            // LoggingSystem.Debug("FontHelper.SetSafeFont: Completed", "UI");
         }
     }
 } 

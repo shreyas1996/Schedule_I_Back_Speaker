@@ -11,9 +11,8 @@ using MelonLoader;
 namespace BackSpeakerMod.Core.Modules
 {
     /// <summary>
-    /// YouTube streaming controller with download-and-play functionality
-    /// Handles smart downloading, caching, and background pre-loading
-    /// Works directly with individual SongDetails without requiring a playlist
+    /// Simplified YouTube streaming controller - only plays downloaded songs
+    /// No auto-download logic - downloads are managed separately
     /// </summary>
     public class YouTubeStreamingController
     {
@@ -27,113 +26,60 @@ namespace BackSpeakerMod.Core.Modules
         
         // Current playback state
         private AudioClip? currentAudioClip;
-        
-        // Download waiting system
-        private SongDetails? pendingPlaySong = null;
-        private bool isWaitingForDownload = false;
-        
+
         // Events
         public Action? OnTrackChanged;
-        public Action? OnPlaylistChanged;
-        
+
         public YouTubeStreamingController()
         {
             downloadCache = new YouTubeDownloadCache();
-            
-            // Wire up download events
-            downloadCache.OnDownloadCompleted += OnSongDownloadCompleted;
-            downloadCache.OnDownloadFailed += OnSongDownloadFailed;
-            downloadCache.OnDownloadStarted += OnSongDownloadStarted;
         }
         
         public void Initialize(AudioSource audioSource)
         {
             this.audioSource = audioSource;
-            LoggingSystem.Info("YouTubeStreamingController initialized with download-and-play system", "YouTubeStreaming");
+            LoggingSystem.Info("YouTubeStreamingController initialized (download-first mode)", "YouTubeStreaming");
         }
         
         /// <summary>
-        /// Play a specific song directly
+        /// Play a specific song - only works if song is already downloaded
         /// </summary>
         public async Task<bool> PlaySong(SongDetails songDetails)
         {
             if (songDetails == null)
                 return false;
                 
+            // Only play if song is already downloaded
+            if (!downloadCache.IsSongCached(songDetails) || !songDetails.IsReadyToPlay())
+            {
+                LoggingSystem.Warning($"Cannot play song - not downloaded: {songDetails.title}", "YouTubeStreaming");
+                return false;
+            }
+            
             currentSong = songDetails;
             isLoading = true;
-            LoggingSystem.Info($"🎵 Starting YouTube playback for: {songDetails.title} by {songDetails.GetArtist()}", "YouTubeStreaming");
+            LoggingSystem.Info($"🎵 Playing downloaded YouTube song: {songDetails.title} by {songDetails.GetArtist()}", "YouTubeStreaming");
             
             try
             {
-                // Clear any previous pending downloads
-                pendingPlaySong = null;
-                isWaitingForDownload = false;
-                
-                // Check if song is already cached
-                if (downloadCache.IsSongCached(songDetails))
-                {
-                    LoggingSystem.Info($"✅ Song is cached, loading from file: {songDetails.title}", "YouTubeStreaming");
-                    return await LoadAndPlayCachedSong(songDetails);
-                }
-                
-                // Check if song is currently downloading
-                if (songDetails.isDownloading)
-                {
-                    LoggingSystem.Info($"⏳ Song is currently downloading, waiting for completion: {songDetails.title}", "YouTubeStreaming");
-                    
-                    // Set up waiting for download completion
-                    pendingPlaySong = songDetails;
-                    isWaitingForDownload = true;
-                    
-                    // Update UI to show waiting state
-                    return true; // Return true to indicate we're handling it
-                }
-                
-                // Song not cached and not downloading - start download
-                LoggingSystem.Info($"⬇️ Song not cached, starting download: {songDetails.title}", "YouTubeStreaming");
-                
-                // Set up waiting for this download
-                pendingPlaySong = songDetails;
-                isWaitingForDownload = true;
-                
-                // Start the download with priority (for immediate playback)
-                bool downloadStarted = await Task.Run(() => {
-                    try
-                    {
-                        // Use priority download for immediate playback needs
-                        downloadCache.QueueForPriorityDownload(songDetails);
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggingSystem.Error($"Error starting priority download: {ex.Message}", "YouTubeStreaming");
-                        return false;
-                    }
-                });
-                
-                if (downloadStarted)
-                {
-                    LoggingSystem.Info($"📥 Download started for: {songDetails.title} - waiting for completion...", "YouTubeStreaming");
-                    return true;
-                }
-                else
-                {
-                    LoggingSystem.Error($"❌ Failed to start download for: {songDetails.title}", "YouTubeStreaming");
-                    pendingPlaySong = null;
-                    isWaitingForDownload = false;
-                    isLoading = false;
-                    return false;
-                }
+                return await LoadAndPlayCachedSong(songDetails);
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error playing YouTube track {songDetails.title}: {ex.Message}", "YouTubeStreaming");
-                pendingPlaySong = null;
-                isWaitingForDownload = false;
                 isLoading = false;
                 return false;
             }
+        }
+        
+        /// <summary>
+        /// Check if a song is ready to play (downloaded and cached)
+        /// </summary>
+        public bool IsSongReadyToPlay(SongDetails songDetails)
+        {
+            return songDetails != null && 
+                   downloadCache.IsSongCached(songDetails) && 
+                   songDetails.IsReadyToPlay();
         }
         
         /// <summary>
@@ -141,15 +87,12 @@ namespace BackSpeakerMod.Core.Modules
         /// </summary>
         public async Task<bool> PlayTrack(int trackIndex)
         {
-            // This method is now deprecated since we work with individual songs
-            // It's kept for compatibility but doesn't have a playlist context
-            LoggingSystem.Warning("PlayTrack(int) called but YouTubeStreamingController now works with individual songs", "YouTubeStreaming");
+            // This method is kept for compatibility but should not be used
+            // in the new download-first approach
+            LoggingSystem.Warning("PlayTrack(int) called - this method is deprecated in download-first mode", "YouTubeStreaming");
             return false;
         }
         
-        /// <summary>
-        /// Load and play a song from cache (Unity-safe)
-        /// </summary>
         private IEnumerator LoadAndPlayCachedSongCoroutine(SongDetails songDetails)
         {
             if (string.IsNullOrEmpty(songDetails.cachedFilePath))
@@ -217,6 +160,8 @@ namespace BackSpeakerMod.Core.Modules
                 currentSong = songDetails;
                 
                 LoggingSystem.Info($"Successfully started YouTube playback: {songDetails.title} ({audioClip.length:F1}s)", "YouTubeStreaming");
+                
+                // Notify UI that track changed
                 OnTrackChanged?.Invoke();
             }
             else
@@ -274,67 +219,6 @@ namespace BackSpeakerMod.Core.Modules
             
             // Return true if loading started successfully
             return !isLoading || isPlaying;
-        }
-        
-        // Download event handlers
-        private void OnSongDownloadStarted(SongDetails song)
-        {
-            LoggingSystem.Debug($"Download started: {song.title}", "YouTubeStreaming");
-        }
-        
-        private void OnSongDownloadCompleted(SongDetails song)
-        {
-            LoggingSystem.Info($"✅ Download completed: {song.title}", "YouTubeStreaming");
-            
-            // Check if this is the song we're waiting to play
-            if (isWaitingForDownload && pendingPlaySong != null && 
-                pendingPlaySong.url == song.url)
-            {
-                LoggingSystem.Info($"🚀 Auto-playing completed download: {song.title}", "YouTubeStreaming");
-                
-                // Clear waiting state
-                pendingPlaySong = null;
-                isWaitingForDownload = false;
-                
-                // Auto-play the song using Unity-safe coroutine
-                MelonCoroutines.Start(AutoPlayDownloadedSongCoroutine(song));
-            }
-            
-            OnTrackChanged?.Invoke();
-        }
-        
-        /// <summary>
-        /// Unity-safe coroutine for auto-playing downloaded songs
-        /// </summary>
-        private IEnumerator AutoPlayDownloadedSongCoroutine(SongDetails song)
-        {
-            // Use the Unity-safe coroutine method
-            yield return LoadAndPlayCachedSongCoroutine(song);
-            
-            if (!isPlaying)
-            {
-                LoggingSystem.Error($"❌ Auto-play failed for: {song.title}", "YouTubeStreaming");
-                isLoading = false;
-            }
-        }
-        
-        private void OnSongDownloadFailed(SongDetails song)
-        {
-            LoggingSystem.Warning($"❌ Download failed: {song.title}", "YouTubeStreaming");
-            
-            // Check if this was the song we're waiting to play
-            if (isWaitingForDownload && pendingPlaySong != null && 
-                pendingPlaySong.url == song.url)
-            {
-                LoggingSystem.Error($"🚫 Auto-play cancelled - download failed for: {song.title}", "YouTubeStreaming");
-                
-                // Clear waiting state
-                pendingPlaySong = null;
-                isWaitingForDownload = false;
-                isLoading = false;
-            }
-            
-            OnTrackChanged?.Invoke();
         }
         
         public void Play()
@@ -427,7 +311,6 @@ namespace BackSpeakerMod.Core.Modules
         // Properties
         public bool IsPlaying => isPlaying && !isLoading;
         public bool IsLoading => isLoading;
-        public bool IsWaitingForDownload => isWaitingForDownload;
         public float CurrentVolume => volume;
         public float CurrentTime => audioSource?.time ?? 0f;
         public float TotalTime => audioSource?.clip?.length ?? 0f;
@@ -437,15 +320,11 @@ namespace BackSpeakerMod.Core.Modules
         
         public string GetCurrentTrackInfo()
         {
-            if (isWaitingForDownload && pendingPlaySong != null)
-                return $"{pendingPlaySong.title} (downloading...)";
             return currentSong?.title ?? "No track selected";
         }
         
         public string GetCurrentArtistInfo()
         {
-            if (isWaitingForDownload && pendingPlaySong != null)
-                return pendingPlaySong.GetArtist();
             return currentSong?.GetArtist() ?? "Unknown artist";
         }
         

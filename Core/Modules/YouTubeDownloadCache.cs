@@ -28,15 +28,16 @@ namespace BackSpeakerMod.Core.Modules
         public Action<SongDetails>? OnDownloadCompleted;
         public Action<SongDetails>? OnDownloadFailed;
         public Action<SongDetails>? OnDownloadStarted;
+        public Action<SongDetails>? OnDownloadProgress;
         
         public YouTubeDownloadCache()
         {
             LoggingSystem.Info("YouTube Download Cache initialized", "YouTubeCache");
-            
+
             // Create cache directory in the mod's data folder
             var gameDirectory = Directory.GetCurrentDirectory();
             cacheDirectory = Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache", "YouTube");
-            
+
             try
             {
                 Directory.CreateDirectory(cacheDirectory);
@@ -61,37 +62,38 @@ namespace BackSpeakerMod.Core.Modules
                     var videoId = song.GetVideoId();
                     if (string.IsNullOrEmpty(videoId))
                     {
-                        LoggingSystem.Warning($"Cannot check cache - no video ID for song: {song.title}", "YouTubeCache");
                         return false;
                     }
 
-                    LoggingSystem.Debug($"=== CACHE CHECK START for {song.title} (ID: {videoId}) ===", "YouTubeCache");
-                    
-                    // List ALL files in cache directory for debugging
-                    if (Directory.Exists(cacheDirectory))
+                    // Quick check: if song metadata already indicates it's cached and file exists
+                    if (song.isDownloaded && !string.IsNullOrEmpty(song.cachedFilePath) && File.Exists(song.cachedFilePath))
                     {
-                        var allFiles = Directory.GetFiles(cacheDirectory, "*.mp3", SearchOption.TopDirectoryOnly);
-                        LoggingSystem.Debug($"Cache directory contains {allFiles.Length} MP3 files:", "YouTubeCache");
-                        foreach (var file in allFiles)
+                        var fileInfo = new FileInfo(song.cachedFilePath);
+                        if (fileInfo.Length > 0)
                         {
-                            var fileInfo = new FileInfo(file);
-                            LoggingSystem.Debug($"  - {Path.GetFileName(file)} ({fileInfo.Length} bytes)", "YouTubeCache");
+                            song.fileSizeBytes = fileInfo.Length;
+                            return true;
+                        }
+                        else
+                        {
+                            // File is empty, clean up
+                            try { File.Delete(song.cachedFilePath); } catch { }
+                            ResetSongMetadata(song);
                         }
                     }
-                    else
+
+                    // Check cache directory exists
+                    if (!Directory.Exists(cacheDirectory))
                     {
-                        LoggingSystem.Warning($"Cache directory does not exist: {cacheDirectory}", "YouTubeCache");
                         return false;
                     }
 
                     // Method 1: Check exact video ID filename
                     var exactFilePath = Path.Combine(cacheDirectory, $"{videoId}.mp3");
-                    LoggingSystem.Debug($"Checking exact match: {exactFilePath}", "YouTubeCache");
                     
                     if (File.Exists(exactFilePath))
                     {
                         var fileInfo = new FileInfo(exactFilePath);
-                        LoggingSystem.Debug($"Found exact match file, size: {fileInfo.Length} bytes", "YouTubeCache");
                         
                         if (fileInfo.Length > 0)
                         {
@@ -101,37 +103,27 @@ namespace BackSpeakerMod.Core.Modules
                             song.isDownloading = false;
                             song.fileSizeBytes = fileInfo.Length;
                             
-                            LoggingSystem.Info($"✅ CACHE HIT (exact): {song.title} -> {Path.GetFileName(exactFilePath)} ({fileInfo.Length} bytes)", "YouTubeCache");
                             return true;
                         }
                         else
                         {
-                            LoggingSystem.Warning($"Found exact match but file is empty, deleting: {exactFilePath}", "YouTubeCache");
+                            // Empty file, delete it
                             try { File.Delete(exactFilePath); } catch { }
                         }
-                    }
-                    else
-                    {
-                        LoggingSystem.Debug($"No exact match found for: {exactFilePath}", "YouTubeCache");
                     }
 
                     // Method 2: Check files containing video ID (more flexible)
                     var allMp3Files = Directory.GetFiles(cacheDirectory, "*.mp3", SearchOption.TopDirectoryOnly);
-                    LoggingSystem.Debug($"Searching {allMp3Files.Length} MP3 files for video ID '{videoId}'", "YouTubeCache");
                     
                     foreach (var filePath in allMp3Files)
                     {
                         var fileName = Path.GetFileNameWithoutExtension(filePath);
-                        LoggingSystem.Debug($"Checking filename: '{fileName}' for video ID '{videoId}'", "YouTubeCache");
                         
                         if (fileName.Contains(videoId))
                         {
-                            LoggingSystem.Debug($"Found filename containing video ID: {fileName}", "YouTubeCache");
-                            
                             if (File.Exists(filePath))
                             {
                                 var fileInfo = new FileInfo(filePath);
-                                LoggingSystem.Debug($"File exists, size: {fileInfo.Length} bytes", "YouTubeCache");
                                 
                                 if (fileInfo.Length > 0)
                                 {
@@ -141,56 +133,22 @@ namespace BackSpeakerMod.Core.Modules
                                     song.isDownloading = false;
                                     song.fileSizeBytes = fileInfo.Length;
                                     
-                                    LoggingSystem.Info($"✅ CACHE HIT (contains): {song.title} -> {Path.GetFileName(filePath)} ({fileInfo.Length} bytes)", "YouTubeCache");
                                     return true;
                                 }
                                 else
                                 {
-                                    LoggingSystem.Warning($"Found matching file but it's empty, deleting: {filePath}", "YouTubeCache");
+                                    // Empty file, delete it
                                     try { File.Delete(filePath); } catch { }
                                 }
                             }
                         }
                     }
                     
-                    // Method 3: Check if song metadata thinks it's cached
-                    if (song.isDownloaded && !string.IsNullOrEmpty(song.cachedFilePath))
-                    {
-                        LoggingSystem.Debug($"Song metadata indicates cached file: {song.cachedFilePath}", "YouTubeCache");
-                        
-                        if (File.Exists(song.cachedFilePath))
-                        {
-                            var fileInfo = new FileInfo(song.cachedFilePath);
-                            LoggingSystem.Debug($"Metadata file exists, size: {fileInfo.Length} bytes", "YouTubeCache");
-                            
-                            if (fileInfo.Length > 0)
-                            {
-                                song.fileSizeBytes = fileInfo.Length;
-                                LoggingSystem.Info($"✅ CACHE HIT (metadata): {song.title} -> {Path.GetFileName(song.cachedFilePath)} ({fileInfo.Length} bytes)", "YouTubeCache");
-                                return true;
-                            }
-                            else
-                            {
-                                LoggingSystem.Warning($"Metadata file is empty, resetting: {song.cachedFilePath}", "YouTubeCache");
-                                try { File.Delete(song.cachedFilePath); } catch { }
-                                ResetSongMetadata(song);
-                            }
-                        }
-                        else
-                        {
-                            LoggingSystem.Warning($"Metadata file missing, resetting: {song.cachedFilePath}", "YouTubeCache");
-                            ResetSongMetadata(song);
-                        }
-                    }
-                    
-                    LoggingSystem.Info($"❌ CACHE MISS: {song.title} (ID: {videoId}) - not found in cache", "YouTubeCache");
-                    LoggingSystem.Debug($"=== CACHE CHECK END ===", "YouTubeCache");
                     return false;
                 }
                 catch (Exception ex)
                 {
                     LoggingSystem.Error($"Error checking cache for {song.title}: {ex.Message}", "YouTubeCache");
-                    LoggingSystem.Error($"Stack trace: {ex.StackTrace}", "YouTubeCache");
                     return false;
                 }
             }
@@ -344,7 +302,14 @@ namespace BackSpeakerMod.Core.Modules
             OnDownloadStarted?.Invoke(song);
             
             // Use YoutubeHelper with coroutine-safe callback
-            YoutubeHelper.DownloadSong(song, (success) => {
+            YoutubeHelper.DownloadSong(song, (downloadProgress) =>
+            {
+                // Update song download progress
+                song.downloadProgress = downloadProgress;
+                OnDownloadProgress?.Invoke(song);
+                LoggingSystem.Debug($"Downloading {song.title}: {downloadProgress} complete", "YouTubeCache");
+
+            }, (success) => {
                 downloadSuccess = success;
                 downloadCompleted = true;
             });
@@ -392,6 +357,9 @@ namespace BackSpeakerMod.Core.Modules
                 {
                     LoggingSystem.Warning($"Failed to save metadata for: {song.title}", "YouTubeCache");
                 }
+                
+                // Update playlist status for this song
+                YouTubePlaylistManager.UpdateSongDownloadStatus(videoId, true, cachedPath);
                 
                 // Fire download completed event
                 OnDownloadCompleted?.Invoke(song);

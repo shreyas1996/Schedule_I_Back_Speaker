@@ -233,6 +233,9 @@ namespace BackSpeakerMod.Core
                         }
                         return;
                     }
+
+                    // Make sure to reset input field state when app is closed
+                    UI.Helpers.InputFieldManager.Reset();
                 }
                 
                 appBecameActive = (!appActive && isActive);

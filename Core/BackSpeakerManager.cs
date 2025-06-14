@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
+using BackSpeakerMod.Core.Features.Audio.Managers;
 using BackSpeakerMod.Utils;
 using UnityEngine;
 
@@ -69,6 +70,7 @@ namespace BackSpeakerMod.Core
         public float CurrentVolume => systemManager.CurrentVolume;
         public int GetTrackCount() => systemManager.GetTrackCount();
         public bool IsAudioReady() => systemManager.IsAudioReady();
+        public YouTubeDownloadManager GetDownloadManager() => systemManager.GetDownloadManager();
         public float CurrentTime => systemManager.CurrentTime;
         public float TotalTime => systemManager.TotalTime;
         public float Progress => systemManager.Progress;
@@ -93,11 +95,14 @@ namespace BackSpeakerMod.Core
         // Public API - Session Track Management
         public void AddTrackToSession(MusicSourceType sessionType, AudioClip audioClip, string title, string artist) => systemManager.AddTrackToSession(sessionType, audioClip, title, artist);
         public void AddTracksToSession(MusicSourceType sessionType, List<AudioClip> audioClips, List<(string title, string artist)> trackInfo) => systemManager.AddTracksToSession(sessionType, audioClips, trackInfo);
+        public AudioSession GetSession(MusicSourceType sessionType) => systemManager.GetSession(sessionType);
         
         // Public API - YouTube Playlist Management
         public bool AddYouTubeSong(SongDetails songDetails) => systemManager.AddYouTubeSong(songDetails);
         public bool RemoveYouTubeSong(string url) => systemManager.RemoveYouTubeSong(url);
         public bool ContainsYouTubeSong(string url) => systemManager.ContainsYouTubeSong(url);
+        public void ClearYouTubePlaylist() => systemManager.ClearYouTubePlaylist();
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs) => systemManager.LoadYouTubePlaylist(playlistSongs);
 
         // Public API - Player Attachment
         public void TriggerManualAttachment() => systemManager.TriggerManualAttachment();

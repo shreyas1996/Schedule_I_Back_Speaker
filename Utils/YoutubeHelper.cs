@@ -15,12 +15,15 @@ using System.Web;
 using BackSpeakerMod.Core.Features.Audio;
 using MelonLoader;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 namespace BackSpeakerMod.Utils
 {
     public static class YoutubeHelper
     {
+        private static readonly ConcurrentQueue<string> progressUpdates = new ConcurrentQueue<string>();
+
         /// <summary>
         /// Get the YouTube cache directory path (public for access from other modules)
         /// </summary>
@@ -31,20 +34,20 @@ namespace BackSpeakerMod.Utils
                 // Use the game directory for cache
                 var gameDirectory = Directory.GetCurrentDirectory();
                 var cacheDirectory = Path.Combine(gameDirectory, "Mods", "BackSpeaker", "Cache", "YouTube");
-                
+
                 // Ensure directory exists
                 if (!Directory.Exists(cacheDirectory))
                 {
                     Directory.CreateDirectory(cacheDirectory);
                     LoggingSystem.Info($"Created YouTube cache directory: {cacheDirectory}", "YoutubeHelper");
                 }
-                
+
                 return cacheDirectory;
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error setting up YouTube cache directory: {ex.Message}", "YoutubeHelper");
-                
+
                 // Fallback to temp directory
                 var tempDir = Path.Combine(Path.GetTempPath(), "BackSpeakerMod_Cache", "YouTube");
                 try
@@ -100,14 +103,14 @@ namespace BackSpeakerMod.Utils
             }
 
             // Check if yt-dlp is available
-            if (!EmbeddedYtDlpLoader.IsYtDlpAvailable())
+            if (!YtDlpLoader.IsYtDlpAvailable())
             {
                 LoggingSystem.Error("yt-dlp is not available", "YoutubeHelper");
                 onComplete?.Invoke(new List<SongDetails>());
                 yield break;
             }
 
-            var ytDlpPath = EmbeddedYtDlpLoader.GetYtDlpPath();
+            var ytDlpPath = YtDlpLoader.GetYtDlpPath();
             if (string.IsNullOrEmpty(ytDlpPath))
             {
                 LoggingSystem.Error("Could not get yt-dlp path", "YoutubeHelper");
@@ -125,7 +128,7 @@ namespace BackSpeakerMod.Utils
             bool processCompleted = false;
 
             // Start the process execution coroutine
-            yield return MelonCoroutines.Start(ExecuteYtDlpProcessCoroutine(ytDlpPath, arguments, (output, code) => {
+            yield return MelonCoroutines.Start(ExecuteYtDlpProcessCoroutine(ytDlpPath, url, arguments, null, (output, code) => {
                 processOutput = output;
                 exitCode = code;
                 processCompleted = true;
@@ -156,12 +159,13 @@ namespace BackSpeakerMod.Utils
         /// <summary>
         /// Execute yt-dlp process using coroutines (Unity-safe)
         /// </summary>
-        private static IEnumerator ExecuteYtDlpProcessCoroutine(string ytDlpPath, string arguments, Action<string?, int> onComplete)
+        private static IEnumerator ExecuteYtDlpProcessCoroutine(string ytDlpPath, string url, string arguments, Action<string>? onDownloadProgress, Action<string?, int> onComplete)
         {
             LoggingSystem.Info("Starting yt-dlp process execution", "YoutubeHelper");
             
             Process? process = null;
             string output = "";
+            string progressOutput = "";
             string error = "";
             bool processStarted = false;
             bool processCompleted = false;
@@ -188,6 +192,29 @@ namespace BackSpeakerMod.Utils
                     if (!string.IsNullOrEmpty(e.Data))
                     {
                         output += e.Data + Environment.NewLine;
+                        if(onDownloadProgress != null)
+                        {
+                            LoggingSystem.Debug($"yt-dlp output for downloading: {e.Data}", "YoutubeHelper");
+                            // Parse download progress
+                            if (e.Data.Contains("[download]") && e.Data.Contains("%"))
+                            {
+                                LoggingSystem.Debug($"{e.Data} contains download and has percentage progress", "YoutubeHelper");
+                                var match = Regex.Match(e.Data, @"(\d+\.?\d*)%");
+                                LoggingSystem.Debug($"Regex match for percentage: {match.Success}, Groups: {match.Groups}, Value: {match.Value}", "YoutubeHelper");
+                                if (match.Success && float.TryParse(match.Groups[1].Value, out float percentage))
+                                {
+                                    LoggingSystem.Debug($"Parsed percentage: {percentage}", "YoutubeHelper");
+                                    var progress = percentage / 100f;
+                                    var videoId = ExtractVideoId(url); // Extract from command arguments
+                                    // progressOutput = $"{videoId}|{progress}";
+                                    progressUpdates.Enqueue($"{videoId}|{progress}");
+                                }
+                                else
+                                {
+                                    LoggingSystem.Warning($"Could not parse percentage from output: {e.Data}", "YoutubeHelper");
+                                }
+                            }
+                        };
                     }
                 };
                 
@@ -233,6 +260,21 @@ namespace BackSpeakerMod.Utils
             while (!processCompleted && elapsed < timeout)
             {
                 yield return new UnityEngine.WaitForSeconds(0.5f);
+                if (onDownloadProgress != null)
+                {
+                    // Call the progress callback with the current progress
+                    LoggingSystem.Debug($"Sending download progress: {progressOutput}", "YoutubeHelper");
+                    // onDownloadProgress(progressOutput);
+                    if (progressUpdates.TryDequeue(out var progressUpdate))
+                    {
+                        LoggingSystem.Debug($"Dequeued progress update: {progressUpdate}", "YoutubeHelper");
+                        onDownloadProgress?.Invoke(progressUpdate);
+                    }
+                    else
+                    {
+                        LoggingSystem.Debug("No progress updates available", "YoutubeHelper");
+                    }
+                }
                 elapsed += 0.5f;
             }
 
@@ -380,7 +422,7 @@ namespace BackSpeakerMod.Utils
         public static async Task<string> GetStreamableUrl(string url)
         {
             // get stream url using yt-dlp -g command
-            var ytDlpPath = EmbeddedYtDlpLoader.YtDlpExtractedPath;
+            var ytDlpPath = YtDlpLoader.YtDlpExtractedPath;
             var command = "";
             if (url.Contains("list="))
             {
@@ -445,7 +487,7 @@ namespace BackSpeakerMod.Utils
         /// <summary>
         /// Download a song from YouTube using MelonCoroutines (safe for Unity)
         /// </summary>
-        public static void DownloadSong(SongDetails songDetails, Action<bool>? onComplete = null)
+        public static void DownloadSong(SongDetails songDetails, Action<string>? onDownloadProgressChanged = null, Action<bool>? onComplete = null)
         {
             if (string.IsNullOrEmpty(songDetails?.url))
             {
@@ -455,13 +497,13 @@ namespace BackSpeakerMod.Utils
             }
 
             LoggingSystem.Info($"Starting download for: {songDetails.title}", "YoutubeHelper");
-            MelonCoroutines.Start(DownloadSongCoroutine(songDetails, onComplete));
+            MelonCoroutines.Start(DownloadSongCoroutine(songDetails, onDownloadProgressChanged, onComplete));
         }
 
         /// <summary>
         /// Download song coroutine using MelonCoroutines (Unity-safe)
         /// </summary>
-        private static IEnumerator DownloadSongCoroutine(SongDetails songDetails, Action<bool>? onComplete)
+        private static IEnumerator DownloadSongCoroutine(SongDetails songDetails, Action<string>? onDownloadProgressChanged, Action<bool>? onComplete)
         {
             LoggingSystem.Info($"🎵 Starting download for: {songDetails.title} by {songDetails.GetArtist()}", "YoutubeHelper");
 
@@ -474,14 +516,14 @@ namespace BackSpeakerMod.Utils
             }
 
             // Check if yt-dlp is available
-            if (!EmbeddedYtDlpLoader.IsYtDlpAvailable())
+            if (!YtDlpLoader.IsYtDlpAvailable())
             {
                 LoggingSystem.Error("yt-dlp is not available", "YoutubeHelper");
                 onComplete?.Invoke(false);
                 yield break;
             }
 
-            var ytDlpPath = EmbeddedYtDlpLoader.GetYtDlpPath();
+            var ytDlpPath = YtDlpLoader.GetYtDlpPath();
             if (string.IsNullOrEmpty(ytDlpPath))
             {
                 LoggingSystem.Error("Could not get yt-dlp path", "YoutubeHelper");
@@ -507,7 +549,14 @@ namespace BackSpeakerMod.Utils
             bool processCompleted = false;
 
             // Start the process execution coroutine
-            yield return MelonCoroutines.Start(ExecuteYtDlpProcessCoroutine(ytDlpPath, arguments, (output, code) => {
+            yield return MelonCoroutines.Start(ExecuteYtDlpProcessCoroutine(ytDlpPath, songDetails.url ?? "", arguments, (downloadPercentage) =>
+            {
+                // Handle download progress updates
+                if (onDownloadProgressChanged != null && !string.IsNullOrEmpty(downloadPercentage))
+                {
+                    onDownloadProgressChanged?.Invoke(CheckDownloadProgress(downloadPercentage));
+                }
+            }, (output, code) => {
                 processOutput = output;
                 exitCode = code;
                 processCompleted = true;
@@ -543,6 +592,30 @@ namespace BackSpeakerMod.Utils
             }
         }
 
+        private static string CheckDownloadProgress(string progressOutput)
+        {
+            if (string.IsNullOrEmpty(progressOutput))
+                return "";
+
+            // Parse the progress output
+            var parts = progressOutput.Split('|');
+            if (parts.Length < 2)
+                return "";
+
+            var videoId = parts[0];
+            if (float.TryParse(parts[1], out float progress))
+            {
+                // Notify subscribers about the download progress
+                LoggingSystem.Debug($"Download progress for {videoId}: {progress * 100}%");
+                return $"{progress * 100:F2}%";
+            }
+            else
+            {
+                LoggingSystem.Warning($"Could not parse download progress from output: {progressOutput}", "YoutubeHelper");
+                return "";
+            }
+        }
+
         /// <summary>
         /// Build yt-dlp command arguments for downloading songs
         /// </summary>
@@ -550,7 +623,7 @@ namespace BackSpeakerMod.Utils
         {
             // Use video ID as filename for consistency with cache detection
             var outputTemplate = Path.Combine(cacheDir, $"{videoId}.%(ext)s");
-            
+
             var command = $"-f \"bestaudio[ext=m4a]/bestaudio/best\" " +
                          $"--extract-audio --audio-format mp3 --audio-quality 0 " +
                          $"--output \"{outputTemplate}\" " +

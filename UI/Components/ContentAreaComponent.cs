@@ -8,7 +8,8 @@ namespace BackSpeakerMod.UI.Components
 {
     /// <summary>
     /// Content area component following design specifications exactly
-    /// Layout: TrackInfo(120px) + Progress(30px) + Controls(50px) + Actions(60px) + Playlist(50px) + Help(40px)
+    /// Layout: TrackInfo(120px) + Progress(30px) + Controls(50px) + Actions(60px) + Playlist(80px) + Help(20px)
+    /// Reduced spacing between Actions and Playlist for better YouTube controls visibility
     /// </summary>
     public class ContentAreaComponent : MonoBehaviour
     {
@@ -17,8 +18,8 @@ namespace BackSpeakerMod.UI.Components
         private const float PROGRESS_BAR_HEIGHT = 30f;
         private const float CONTROLS_HEIGHT = 50f;
         private const float ACTION_BUTTONS_HEIGHT = 60f;
-        private const float PLAYLIST_TOGGLE_HEIGHT = 50f;
-        private const float HELP_TEXT_HEIGHT = 40f;
+        private const float PLAYLIST_TOGGLE_HEIGHT = 80f;
+        private const float HELP_TEXT_HEIGHT = 20f;
         private const float PADDING = 10f;
         
         // Dependencies
@@ -74,7 +75,7 @@ namespace BackSpeakerMod.UI.Components
             // Action Buttons Panel (60px height)
             CreateActionButtonsPanel(ref currentY);
             
-            // Playlist Toggle Panel (50px height)
+            // Playlist Toggle Panel (80px height)
             CreatePlaylistTogglePanel(ref currentY);
             
             // Help Text Panel (40px height)
@@ -123,7 +124,7 @@ namespace BackSpeakerMod.UI.Components
             panelObj.transform.SetParent(this.transform, false);
             
             var panelRect = SetupPanelRect(panelObj, currentY, ACTION_BUTTONS_HEIGHT);
-            currentY -= (ACTION_BUTTONS_HEIGHT + PADDING);
+            currentY -= (ACTION_BUTTONS_HEIGHT + 0.5f); // Minimal gap - almost touching
             
             actionButtons = panelObj.AddComponent<ActionButtonsComponent>();
             actionButtons.Setup(manager!);
@@ -135,7 +136,7 @@ namespace BackSpeakerMod.UI.Components
             panelObj.transform.SetParent(this.transform, false);
             
             var panelRect = SetupPanelRect(panelObj, currentY, PLAYLIST_TOGGLE_HEIGHT);
-            currentY -= (PLAYLIST_TOGGLE_HEIGHT + PADDING);
+            currentY -= (PLAYLIST_TOGGLE_HEIGHT + 2f);
             
             playlistToggle = panelObj.AddComponent<PlaylistToggleComponent>();
             playlistToggle.Setup(manager!);

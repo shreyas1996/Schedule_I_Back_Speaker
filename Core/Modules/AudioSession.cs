@@ -229,6 +229,93 @@ namespace BackSpeakerMod.Core.Modules
         }
         
         /// <summary>
+        /// Clear all YouTube songs from this session
+        /// </summary>
+        public void ClearYouTubeSongs()
+        {
+            if (!IsYouTubeSession)
+            {
+                LoggingSystem.Warning("Cannot clear YouTube songs from non-YouTube session", "AudioSession");
+                return;
+            }
+            
+            int clearedCount = tracks.Count;
+            tracks.Clear();
+            trackInfo.Clear();
+            songDetailsInfo.Clear();
+            
+            // MODIFIED: Only reset playback state if no tracks were playing (hasBeenPlayed = false)
+            // This prevents resetting state when playlist is just being reloaded
+            if (!hasBeenPlayed)
+            {
+                currentTrackIndex = 0;
+                savedProgress = 0f;
+                isPaused = false;
+                LoggingSystem.Debug("Reset playback state since session was not active", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Debug("Preserved playback state since session was active", "AudioSession");
+            }
+            
+            LoggingSystem.Info($"Session {DisplayName}: Cleared {clearedCount} YouTube songs", "AudioSession");
+        }
+        
+        /// <summary>
+        /// Replace all YouTube songs with a new playlist
+        /// </summary>
+        public void LoadYouTubePlaylist(List<SongDetails> playlistSongs)
+        {
+            if (!IsYouTubeSession)
+            {
+                LoggingSystem.Warning("Cannot load YouTube playlist into non-YouTube session", "AudioSession");
+                return;
+            }
+            
+            // CRITICAL FIX: Preserve current state before clearing
+            var preservedCurrentTrackIndex = currentTrackIndex;
+            var preservedSavedProgress = savedProgress;
+            var preservedIsPaused = isPaused;
+            var preservedHasBeenPlayed = hasBeenPlayed;
+            
+            LoggingSystem.Debug($"Preserving current state: trackIndex={preservedCurrentTrackIndex}, progress={preservedSavedProgress}, isPaused={preservedIsPaused}", "AudioSession");
+            
+            // Clear existing songs first
+            ClearYouTubeSongs();
+            
+            // Add new songs if provided
+            if (playlistSongs != null && playlistSongs.Count > 0)
+            {
+                foreach (var song in playlistSongs)
+                {
+                    if (song != null)
+                    {
+                        tracks.Add(null); // No AudioClip for YouTube songs
+                        trackInfo.Add((song.title ?? "Unknown Title", song.GetArtist()));
+                        songDetailsInfo.Add(song);
+                    }
+                }
+            }
+            
+            // CRITICAL FIX: Restore preserved state if we have tracks and the index is still valid
+            if (tracks.Count > 0 && preservedCurrentTrackIndex < tracks.Count && preservedHasBeenPlayed)
+            {
+                currentTrackIndex = preservedCurrentTrackIndex;
+                savedProgress = preservedSavedProgress;
+                isPaused = preservedIsPaused;
+                hasBeenPlayed = preservedHasBeenPlayed;
+                
+                LoggingSystem.Info($"Restored preserved state: trackIndex={currentTrackIndex}, progress={savedProgress}, isPaused={isPaused}", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Debug("Could not restore preserved state - using default values", "AudioSession");
+            }
+            
+            LoggingSystem.Info($"Session {DisplayName}: Loaded YouTube playlist with {tracks.Count} songs", "AudioSession");
+        }
+        
+        /// <summary>
         /// Get current YouTube song details (null if not YouTube or no current song)
         /// </summary>
         public SongDetails? GetCurrentYouTubeSong()
@@ -420,6 +507,43 @@ namespace BackSpeakerMod.Core.Modules
             else
             {
                 LoggingSystem.Warning("YouTube provider not available for cached song initialization", "AudioSession");
+            }
+        }
+        
+        /// <summary>
+        /// Get all YouTube songs in this session
+        /// </summary>
+        public List<SongDetails> GetYouTubeSongs()
+        {
+            if (!IsYouTubeSession)
+            {
+                return new List<SongDetails>();
+            }
+            
+            var songs = new List<SongDetails>();
+            foreach (var songDetail in songDetailsInfo)
+            {
+                if (songDetail != null)
+                {
+                    songs.Add(songDetail);
+                }
+            }
+            return songs;
+        }
+        
+        /// <summary>
+        /// Set the current track index (for smart navigation)
+        /// </summary>
+        public void SetCurrentTrackIndex(int index)
+        {
+            if (index >= 0 && index < tracks.Count)
+            {
+                currentTrackIndex = index;
+                LoggingSystem.Debug($"Session {DisplayName}: Set current track index to {index}", "AudioSession");
+            }
+            else
+            {
+                LoggingSystem.Warning($"Session {DisplayName}: Invalid track index {index} (max: {tracks.Count - 1})", "AudioSession");
             }
         }
     }

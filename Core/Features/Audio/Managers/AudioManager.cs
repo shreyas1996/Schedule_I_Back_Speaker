@@ -15,6 +15,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
     public class AudioManager
     {
         private readonly AudioSessionManager sessionManager;
+        private readonly GameAudioManager gameAudioManager;
         private bool isInitialized = false;
         
         /// <summary>
@@ -28,6 +29,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         public AudioManager()
         {
             sessionManager = new AudioSessionManager();
+            gameAudioManager = new GameAudioManager();
             
             // Wire up events
             sessionManager.OnTracksReloaded += () => OnTracksReloaded?.Invoke();
@@ -54,6 +56,8 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
                 
                 if (isInitialized)
                 {
+                    // Initialize game audio manager
+                    gameAudioManager.Initialize();
                     LoggingSystem.Info("Audio system with sessions initialized successfully", "Audio");
                 }
                 
@@ -71,6 +75,8 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         /// </summary>
         public void Reset()
         {
+            // Restore game audio before resetting
+            gameAudioManager?.RestoreGameAudio();
             sessionManager?.Reset();
             isInitialized = false;
         }
@@ -118,6 +124,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             try
             {
                 sessionManager.Update();
+                gameAudioManager.Update();
             }
             catch (Exception ex)
             {
@@ -126,13 +133,69 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         }
 
         // Audio Control API - delegates to session manager
-        public void Play() => sessionManager?.Play();
-        public void Pause() => sessionManager?.Pause();
-        public void TogglePlayPause() => sessionManager?.TogglePlayPause();
+        public void Play()
+        {
+            if (sessionManager != null && !sessionManager.IsPlaying)
+            {
+                sessionManager.Play();
+                gameAudioManager?.ReduceGameAudio();
+                LoggingSystem.Info("Audio resumed", "Audio");
+            }
+        }
+        
+        public void Pause()
+        {
+            if (sessionManager != null && sessionManager.IsPlaying)
+            {
+                sessionManager.Pause();
+                gameAudioManager?.RestoreGameAudio();
+                LoggingSystem.Info("Audio paused", "Audio");
+            }
+        }
+        
+        public void TogglePlayPause()
+        {
+            if (sessionManager != null)
+            {
+                if (sessionManager.IsPlaying)
+                {
+                    Pause();
+                    gameAudioManager?.RestoreGameAudio();
+                }
+                else
+                {
+                    Play();
+                    gameAudioManager?.ReduceGameAudio();
+                }
+            }
+        }
         public void SetVolume(float volume) => sessionManager?.SetVolume(volume);
-        public void NextTrack() => sessionManager?.NextTrack();
-        public void PreviousTrack() => sessionManager?.PreviousTrack();
-        public void PlayTrack(int index) => sessionManager?.PlayTrack(sessionManager.GetActiveSession().SourceType, index);
+        public void NextTrack()
+        {
+            if (sessionManager != null && sessionManager.IsPlaying)
+            {
+                sessionManager.NextTrack();
+                gameAudioManager?.ReduceGameAudio();
+            }
+        }
+        
+        public void PreviousTrack()
+        {
+            if (sessionManager != null && sessionManager.IsPlaying)
+            {
+                sessionManager.PreviousTrack();
+                gameAudioManager?.ReduceGameAudio();
+            }
+        }
+        
+        public void PlayTrack(int index)
+        {
+            if (sessionManager != null)
+            {
+                sessionManager.PlayTrack(sessionManager.GetActiveSession().SourceType, index);
+                gameAudioManager?.ReduceGameAudio();
+            }
+        }
         public void SeekToTime(float time) => sessionManager?.SeekToTime(time);
         public void SeekToProgress(float progress) => sessionManager?.SeekToProgress(progress);
 
@@ -145,9 +208,10 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
         public float Progress => sessionManager?.Progress ?? 0f;
         public int CurrentTrackIndex => sessionManager?.CurrentTrackIndex ?? 0;
         public bool IsAudioReady() => sessionManager?.IsAudioReady() ?? false;
+        public YouTubeDownloadManager GetDownloadManager() => sessionManager?.GetDownloadManager();
         
-        public RepeatMode RepeatMode 
-        { 
+        public RepeatMode RepeatMode
+        {
             get => sessionManager?.RepeatMode ?? RepeatMode.None;
             set { if (sessionManager != null) sessionManager.RepeatMode = value; }
         }
@@ -172,7 +236,10 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             if (!isInitialized)
                 return "Audio system not initialized";
                 
-            return sessionManager?.GetStatus() ?? "Session manager not available";
+            var sessionStatus = sessionManager?.GetStatus() ?? "Session manager not available";
+            var gameAudioStatus = gameAudioManager?.GetStatus() ?? "Game audio manager not available";
+            
+            return $"{sessionStatus}\n{gameAudioStatus}";
         }
 
         /// <summary>
@@ -184,6 +251,7 @@ namespace BackSpeakerMod.Core.Features.Audio.Managers
             
             try
             {
+                gameAudioManager?.Shutdown();
                 sessionManager?.Shutdown();
                 isInitialized = false;
                 LoggingSystem.Info("Audio manager shutdown completed", "Audio");
