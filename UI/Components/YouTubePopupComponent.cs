@@ -95,115 +95,128 @@ public class YouTubePopupComponent : MonoBehaviour
     public void OpenYouTubeSearchPopup()
     {
         LoggingSystem.Info("YouTube popup component shown", "UI");
+        
+        // Check if we're managed by PopupManager
+        var popupManager = FindObjectOfType<PopupManager>();
+        if (popupManager != null)
+        {
+            LoggingSystem.Debug("Using PopupManager to show YouTube popup", "UI");
+            popupManager.ShowYouTubePopup();
+            return;
+        }
+        
+        // Fallback: old behavior (for backward compatibility)
+        LoggingSystem.Debug("No PopupManager found - using fallback behavior", "UI");
+        try
+        {
+            CreatePopupUI();
+        }
+        catch (Exception ex)
+        {
+            LoggingSystem.Error($"Error creating popup UI: {ex.Message}", "UI");
+            throw;
+        }
+    }
+        
+        /// <summary>
+        /// Create UI once for reuse (called by PopupManager)
+        /// </summary>
+        public void CreatePersistentUI()
+        {
             try
             {
-                CreatePopupUI();
+                LoggingSystem.Debug("Creating persistent YouTube popup UI", "UI");
+                
+                // Use this GameObject as the popup container (created by PopupManager)
+                popupContainer = this.gameObject;
+                
+                // Add background to this GameObject
+                var bgImage = popupContainer.AddComponent<Image>();
+                bgImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+                
+                // Set up RectTransform to fill parent
+                var popupRect = popupContainer.GetComponent<RectTransform>();
+                if (popupRect == null)
+                {
+                    popupRect = popupContainer.AddComponent<RectTransform>();
+                }
+                popupRect.anchorMin = Vector2.zero;
+                popupRect.anchorMax = Vector2.one;
+                popupRect.offsetMin = Vector2.zero;
+                popupRect.offsetMax = Vector2.zero;
+
+                // Create main content area
+                var contentArea = new GameObject("YouTubeContentArea");
+                contentArea.transform.SetParent(popupContainer.transform, false);
+                
+                var contentRect = contentArea.AddComponent<RectTransform>();
+                contentRect.anchorMin = new Vector2(0.1f, 0.1f);
+                contentRect.anchorMax = new Vector2(0.9f, 0.9f);
+                contentRect.offsetMin = Vector2.zero;
+                contentRect.offsetMax = Vector2.zero;
+
+                // Create all UI components
+                CreateTitleText(contentArea);
+                CreateUrlInput(contentArea);
+                CreateSearchButton(contentArea);
+                CreateSongInfoDisplay(contentArea);
+                CreateActionButtons(contentArea);
+                CreateStatusText(contentArea);
+                UpdateButtonStates();
+                
+                LoggingSystem.Debug("Persistent YouTube popup UI created successfully", "UI");
             }
             catch (Exception ex)
             {
-                LoggingSystem.Error($"Error creating popup UI: {ex.Message}", "UI");
+                LoggingSystem.Error($"Error creating persistent popup UI: {ex.Message}", "UI");
                 throw;
             }
         }
+        
+        /// <summary>
+        /// Refresh popup content without recreating UI
+        /// </summary>
+        public void RefreshContent()
+        {
+            try
+            {
+                LoggingSystem.Debug("Refreshing YouTube popup content", "UI");
+                
+                // Clear previous search data
+                isSearching = false;
+                isDownloading = false;
+                currentSongDetails.Clear();
+                
+                // Clear song table
+                ClearSongRows();
+                ShowPlaceholder();
+                
+                // Clear search input
+                if (searchBarInputField != null)
+                {
+                    searchBarInputField.text = "";
+                }
+                
+                // Reset status
+                UpdateStatus("Enter a YouTube URL to search for songs", Color.white);
+                UpdateButtonStates();
+                
+                LoggingSystem.Debug("YouTube popup content refreshed", "UI");
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Error refreshing popup content: {ex.Message}", "UI");
+            }
+        }
 
+        /// <summary>
+        /// Legacy method - no longer used since we use PopupManager for persistent UI
+        /// </summary>
         private void CreatePopupUI()
         {
-            // Create the popup container with proper background - make it fill the parent container, not this component
-            popupContainer = new GameObject("YouTubeSearchPopupContainer");
-            popupContainer.transform.SetParent(this.transform.parent, false);  // Use parent instead of this.transform
-            
-        var popupRect = popupContainer.AddComponent<RectTransform>();
-        popupRect.anchorMin = Vector2.zero;
-        popupRect.anchorMax = Vector2.one;
-        popupRect.offsetMin = Vector2.zero;
-        popupRect.offsetMax = Vector2.zero;
-
-            // Make sure it appears on top
-            popupContainer.transform.SetAsLastSibling();
-
-            // Add background
-            var bgImage = popupContainer.AddComponent<Image>();
-            bgImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
-
-            // Create main content area
-            var contentArea = new GameObject("YouTubeContentArea");
-            contentArea.transform.SetParent(popupContainer.transform, false);
-            
-            var contentRect = contentArea.AddComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0.1f, 0.1f);
-            contentRect.anchorMax = new Vector2(0.9f, 0.9f);
-            contentRect.offsetMin = Vector2.zero;
-            contentRect.offsetMax = Vector2.zero;
-
-            try {
-                // Title
-                CreateTitleText(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating title text: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // URL Input
-                CreateUrlInput(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating URL input: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Search Button
-                CreateSearchButton(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating search button: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Song Info Display (Table)
-                CreateSongInfoDisplay(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating song info display: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Action Buttons
-                CreateActionButtons(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating action buttons: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Status Text
-                CreateStatusText(contentArea);
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error creating status text: {ex.Message}", "UI");
-                throw;
-            }
-            
-            try {
-                // Update button states
-                UpdateButtonStates();
-            }
-            catch (Exception ex)
-            {
-                LoggingSystem.Error($"Error updating button states: {ex.Message}", "UI");
-                throw;
-            }
+            LoggingSystem.Warning("CreatePopupUI() called - this method is deprecated. Use CreatePersistentUI() instead.", "UI");
+            // This method is kept for backward compatibility but should not be used
+            // The PopupManager handles UI creation through CreatePersistentUI()
         }
 
         private void CreateTitleText(GameObject parent)
@@ -931,11 +944,23 @@ public class YouTubePopupComponent : MonoBehaviour
         {
             try
             {
-                LoggingSystem.Debug("Closing YouTube popup and cleaning up resources", "UI");
+                LoggingSystem.Debug("Closing YouTube popup", "UI");
                 
                 // Clear search state
                 isSearching = false;
                 isDownloading = false;
+                
+                // If we're managed by PopupManager, just hide instead of destroy
+                var popupManager = FindObjectOfType<PopupManager>();
+                if (popupManager != null)
+                {
+                    LoggingSystem.Debug("Using PopupManager to hide YouTube popup", "UI");
+                    popupManager.HideYouTubePopup();
+                    return;
+                }
+                
+                // Fallback: old destroy behavior (for backward compatibility)
+                LoggingSystem.Debug("No PopupManager found - using fallback destroy behavior", "UI");
                 
                 // Clear song data
                 currentSongDetails = null;
@@ -974,14 +999,18 @@ public class YouTubePopupComponent : MonoBehaviour
             }
             finally
             {
-                // Always destroy this component
-                try
+                // Only destroy this component if not managed by PopupManager
+                var popupManager = FindObjectOfType<PopupManager>();
+                if (popupManager == null)
                 {
-                    Destroy(this);
-                }
-                catch
-                {
-                    // Silent fallback
+                    try
+                    {
+                        Destroy(this);
+                    }
+                    catch
+                    {
+                        // Silent fallback
+                    }
                 }
             }
         }

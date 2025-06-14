@@ -236,6 +236,19 @@ namespace BackSpeakerMod.UI.Components
             LoggingSystem.Info("Showing YouTube search popup", "UI");
             try
             {
+                // Try to use PopupManager first for efficient popup handling
+                var popupManager = FindObjectOfType<PopupManager>();
+                if (popupManager != null)
+                {
+                    LoggingSystem.Debug("Using PopupManager to show YouTube popup", "UI");
+                    popupManager.ShowYouTubePopup();
+                    LoggingSystem.Info("YouTube search popup shown via PopupManager", "UI");
+                    return;
+                }
+                
+                // Fallback: old create-new-popup behavior (for backward compatibility)
+                LoggingSystem.Debug("No PopupManager found - using fallback create behavior", "UI");
+                
                 // Find our app's container using the same approach as PlaylistToggleComponent
                 Transform? appContainer = null;
                 Transform current = this.transform;

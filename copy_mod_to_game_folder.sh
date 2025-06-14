@@ -1,6 +1,9 @@
 GAME_PATH="/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/"
 MOD_PATH="$GAME_PATH/Mods/"
-DLL_PATH="bin/$(echo $1 | tr '[:lower:]' '[:upper:]')/net6.0/BackSpeakerMod.dll"
+
+# Default to Release if no configuration is specified
+CONFIG=${1:-Release}
+DLL_PATH="bin/$(echo $CONFIG | tr '[:lower:]' '[:upper:]')/net6.0/BackSpeakerMod.dll"
 
 # build the mod using the build_configurations.sh script
 ./build_configurations.sh $1

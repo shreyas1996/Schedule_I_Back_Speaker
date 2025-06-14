@@ -489,6 +489,29 @@ namespace BackSpeakerMod.UI.Components
         
         private void OpenPlaylist()
         {
+            // Try to use PopupManager first for efficient popup handling
+            var popupManager = FindObjectOfType<PopupManager>();
+            if (popupManager != null)
+            {
+                LoggingSystem.Debug("Using PopupManager to show playlist popup", "UI");
+                
+                // Get the popup container from PopupManager
+                playlistPopup = popupManager.GetPlaylistPopup();
+                if (playlistPopup != null)
+                {
+                    // Clear existing content and recreate playlist content
+                    ClearPlaylistContent(playlistPopup);
+                    CreatePlaylistContentInPopup(playlistPopup);
+                    
+                    popupManager.ShowPlaylistPopup();
+                    isPlaylistOpen = true;
+                    LoggingSystem.Info($"Opened playlist for {currentTab} via PopupManager", "UI");
+                    return;
+                }
+            }
+            
+            // Fallback: old create behavior (for backward compatibility)
+            LoggingSystem.Debug("No PopupManager found - using fallback create behavior", "UI");
             CreatePlaylistPopup();
             isPlaylistOpen = true;
             LoggingSystem.Info($"Opened playlist for {currentTab}", "UI");
@@ -496,6 +519,19 @@ namespace BackSpeakerMod.UI.Components
         
         private void ClosePlaylist()
         {
+            // Try to use PopupManager first for efficient popup handling
+            var popupManager = FindObjectOfType<PopupManager>();
+            if (popupManager != null && playlistPopup != null)
+            {
+                LoggingSystem.Debug("Using PopupManager to hide playlist popup", "UI");
+                popupManager.HidePlaylistPopup();
+                isPlaylistOpen = false;
+                LoggingSystem.Info("Closed playlist via PopupManager", "UI");
+                return;
+            }
+            
+            // Fallback: old destroy behavior (for backward compatibility)
+            LoggingSystem.Debug("No PopupManager found - using fallback destroy behavior", "UI");
             if (playlistPopup != null)
             {
                 UnityEngine.Object.Destroy(playlistPopup);
@@ -2868,6 +2904,9 @@ namespace BackSpeakerMod.UI.Components
             YouTubePlaylistManager.OnPlaylistUpdated -= OnYouTubePlaylistUpdated;
             YouTubePlaylistManager.OnPlaylistDeleted -= OnYouTubePlaylistDeleted;
             YouTubePlaylistManager.OnPlaylistIndexChanged -= OnYouTubePlaylistIndexChanged;
+            
+            // Clear any ongoing coroutines or timers
+            StopAllCoroutines();
         }
         
         private void CreateEditablePlaylistHeader(GameObject parent)
@@ -3133,6 +3172,28 @@ namespace BackSpeakerMod.UI.Components
         {
             LoggingSystem.Info("Opening manage playlists popup", "UI");
             
+            // Try to use PopupManager first for efficient popup handling
+            var popupManager = FindObjectOfType<PopupManager>();
+            if (popupManager != null)
+            {
+                LoggingSystem.Debug("Using PopupManager to show manage playlists popup", "UI");
+                
+                // Get the popup container from PopupManager
+                managePlaylistsPopup = popupManager.GetManagePlaylistsPopup();
+                if (managePlaylistsPopup != null)
+                {
+                    // Clear existing content and recreate manage content
+                    ClearManagePlaylistsContent(managePlaylistsPopup);
+                    CreateManagePlaylistsContentInPopup(managePlaylistsPopup);
+                    
+                    popupManager.ShowManagePlaylistsPopup();
+                    LoggingSystem.Info("Opened manage playlists popup via PopupManager", "UI");
+                    return;
+                }
+            }
+            
+            // Fallback: old create behavior (for backward compatibility)
+            LoggingSystem.Debug("No PopupManager found - using fallback create behavior", "UI");
             if (managePlaylistsPopup != null)
             {
                 GameObject.Destroy(managePlaylistsPopup);
@@ -3626,11 +3687,171 @@ namespace BackSpeakerMod.UI.Components
         
         private void CloseManagePlaylistsPopup()
         {
+            // Try to use PopupManager first for efficient popup handling
+            var popupManager = FindObjectOfType<PopupManager>();
+            if (popupManager != null && managePlaylistsPopup != null)
+            {
+                LoggingSystem.Debug("Using PopupManager to hide manage playlists popup", "UI");
+                popupManager.HideManagePlaylistsPopup();
+                LoggingSystem.Info("Manage playlists popup closed via PopupManager", "UI");
+                return;
+            }
+            
+            // Fallback: old destroy behavior (for backward compatibility)
+            LoggingSystem.Debug("No PopupManager found - using fallback destroy behavior", "UI");
             if (managePlaylistsPopup != null)
             {
                 GameObject.Destroy(managePlaylistsPopup);
                 managePlaylistsPopup = null;
                 LoggingSystem.Info("Manage playlists popup closed", "UI");
+            }
+        }
+        
+        /// <summary>
+        /// Clear existing content from playlist popup for reuse
+        /// </summary>
+        private void ClearPlaylistContent(GameObject popup)
+        {
+            if (popup == null) return;
+            
+            try
+            {
+                LoggingSystem.Debug("Clearing existing playlist popup content", "UI");
+                
+                // Remove all children except the background
+                var children = new List<Transform>();
+                for (int i = 0; i < popup.transform.childCount; i++)
+                {
+                    var child = popup.transform.GetChild(i);
+                    // Keep the background (usually first child), remove content panels
+                    if (child.name.Contains("Panel") || child.name.Contains("Content"))
+                    {
+                        children.Add(child);
+                    }
+                }
+                
+                foreach (var child in children)
+                {
+                    if (child != null)
+                    {
+                        UnityEngine.Object.Destroy(child.gameObject);
+                    }
+                }
+                
+                LoggingSystem.Debug("Playlist popup content cleared", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error clearing playlist content: {ex}", "UI");
+            }
+        }
+        
+        /// <summary>
+        /// Create playlist content inside the provided popup container
+        /// </summary>
+        private void CreatePlaylistContentInPopup(GameObject popup)
+        {
+            if (popup == null) return;
+            
+            try
+            {
+                LoggingSystem.Debug("Creating playlist content in reused popup", "UI");
+                
+                // Create playlist panel inside the popup
+                var playlistPanel = new GameObject("PlaylistPanel");
+                playlistPanel.transform.SetParent(popup.transform, false);
+                
+                var panelRect = playlistPanel.AddComponent<RectTransform>();
+                panelRect.anchorMin = new Vector2(0.1f, 0.1f);
+                panelRect.anchorMax = new Vector2(0.9f, 0.9f);
+                panelRect.offsetMin = Vector2.zero;
+                panelRect.offsetMax = Vector2.zero;
+                
+                var panelBg = playlistPanel.AddComponent<UnityEngine.UI.Image>();
+                panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+                
+                // Create playlist content using existing method
+                CreatePlaylistContent(playlistPanel);
+                
+                LoggingSystem.Debug("Playlist content created in reused popup", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error creating playlist content in popup: {ex}", "UI");
+            }
+        }
+        
+        /// <summary>
+        /// Clear existing content from manage playlists popup for reuse
+        /// </summary>
+        private void ClearManagePlaylistsContent(GameObject popup)
+        {
+            if (popup == null) return;
+            
+            try
+            {
+                LoggingSystem.Debug("Clearing existing manage playlists popup content", "UI");
+                
+                // Remove all children except the background
+                var children = new List<Transform>();
+                for (int i = 0; i < popup.transform.childCount; i++)
+                {
+                    var child = popup.transform.GetChild(i);
+                    // Keep the background (usually first child), remove content panels
+                    if (child.name.Contains("Panel") || child.name.Contains("Content"))
+                    {
+                        children.Add(child);
+                    }
+                }
+                
+                foreach (var child in children)
+                {
+                    if (child != null)
+                    {
+                        UnityEngine.Object.Destroy(child.gameObject);
+                    }
+                }
+                
+                LoggingSystem.Debug("Manage playlists popup content cleared", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error clearing manage playlists content: {ex}", "UI");
+            }
+        }
+        
+        /// <summary>
+        /// Create manage playlists content inside the provided popup container
+        /// </summary>
+        private void CreateManagePlaylistsContentInPopup(GameObject popup)
+        {
+            if (popup == null) return;
+            
+            try
+            {
+                LoggingSystem.Debug("Creating manage playlists content in reused popup", "UI");
+                
+                // Create manage panel inside the popup
+                var managePanel = new GameObject("ManagePanel");
+                managePanel.transform.SetParent(popup.transform, false);
+                
+                var panelRect = managePanel.AddComponent<RectTransform>();
+                panelRect.anchorMin = new Vector2(0.1f, 0.1f);
+                panelRect.anchorMax = new Vector2(0.9f, 0.9f);
+                panelRect.offsetMin = Vector2.zero;
+                panelRect.offsetMax = Vector2.zero;
+                
+                var panelBg = managePanel.AddComponent<UnityEngine.UI.Image>();
+                panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+                
+                // Create manage content using existing method
+                CreateManagePlaylistContent(managePanel);
+                
+                LoggingSystem.Debug("Manage playlists content created in reused popup", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error creating manage playlists content in popup: {ex}", "UI");
             }
         }
     }

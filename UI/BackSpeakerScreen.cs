@@ -26,9 +26,13 @@ namespace BackSpeakerMod.UI
         private GameObject? titleBar;
         private TabBarComponent? tabBar;
         private ContentAreaComponent? contentArea;
+        private PopupManager? popupManager;
         
         // Public property to access content area
         public ContentAreaComponent? ContentArea => contentArea;
+        
+        // Public property to access popup manager
+        public PopupManager? PopupManager => popupManager;
         
         public BackSpeakerScreen() : base() { }
 
@@ -90,6 +94,9 @@ namespace BackSpeakerMod.UI
             
             // Create Content Area (550px height)
             CreateContentArea();
+            
+            // Initialize PopupManager (create all popups once)
+            CreatePopupManager();
         }
         
         private void CreateTitleBar()
@@ -145,6 +152,50 @@ namespace BackSpeakerMod.UI
             
             contentArea = contentAreaObj.AddComponent<ContentAreaComponent>();
             contentArea.Setup(manager!, tabBar!);
+        }
+        
+        private void CreatePopupManager()
+        {
+            try
+            {
+                LoggingSystem.Info("Creating PopupManager for efficient popup handling", "UI");
+                
+                // Find the app container (Container child of this transform)
+                Transform? appContainer = this.transform.Find("../Container");
+                if (appContainer == null)
+                {
+                    // Try walking up to find Container
+                    Transform current = this.transform;
+                    while (current != null && appContainer == null)
+                    {
+                        if (current.name == "Container")
+                        {
+                            appContainer = current;
+                            break;
+                        }
+                        current = current.parent;
+                    }
+                }
+                
+                if (appContainer == null)
+                {
+                    LoggingSystem.Warning("Could not find app Container for PopupManager", "UI");
+                    return;
+                }
+                
+                // Create PopupManager component
+                var popupManagerObj = new GameObject("PopupManager");
+                popupManagerObj.transform.SetParent(appContainer, false);
+                
+                popupManager = popupManagerObj.AddComponent<PopupManager>();
+                popupManager.Initialize(manager!, appContainer);
+                
+                LoggingSystem.Info("✓ PopupManager created and initialized", "UI");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to create PopupManager: {ex}", "UI");
+            }
         }
         
         private void OnTracksReloaded()
