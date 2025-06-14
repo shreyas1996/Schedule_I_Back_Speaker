@@ -51,39 +51,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
-    <!-- <EmbeddedResource Include="EmbeddedResources\playerwithheadphones" />
-    <EmbeddedResource Include="EmbeddedResources\headphones" /> -->
-    <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" /> -->
     <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
-    <EmbeddedResource Include="EmbeddedResources\Libs\AudioImportLib.dll" />
-    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\yt-dlp.exe" />
-    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\ffmpeg.exe" />
-    <EmbeddedResource Include="EmbeddedResources\Libs\Binaries\ffprobe.exe" />
+
     <!-- Album Art Images -->
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\localfolder.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\jukebox.png" />
     <EmbeddedResource Include="EmbeddedResources\AlbumArt\youtube.png" />
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_vinyl.png" />
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_headphones.png" />
-    <EmbeddedResource Include="EmbeddedResources\AlbumArt\generic_waves.png" />
+
   </ItemGroup>
   
   <ItemGroup>
     <Compile Remove="my_references\**\*.cs" />
-    <!-- Exclude all sphere-related files since we're focusing on headphones -->
-    <Compile Remove="**/*Sphere*.cs" />
-    <Compile Remove="Core/Features/Spheres/**/*.cs" />
-    <Compile Remove="UI/Components/SphereControlPanel.cs" />
-    <Compile Remove="Core/Features/Testing/Spheres/**/*.cs" />
 
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
     <!-- Audio loading dependencies -->
-    <!-- AudioImportLib is now embedded as a resource and loaded at runtime -->
-
+   
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>

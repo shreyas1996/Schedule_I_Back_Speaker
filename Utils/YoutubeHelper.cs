@@ -103,14 +103,14 @@ namespace BackSpeakerMod.Utils
             }
 
             // Check if yt-dlp is available
-            if (!EmbeddedYtDlpLoader.IsYtDlpAvailable())
+            if (!YtDlpLoader.IsYtDlpAvailable())
             {
                 LoggingSystem.Error("yt-dlp is not available", "YoutubeHelper");
                 onComplete?.Invoke(new List<SongDetails>());
                 yield break;
             }
 
-            var ytDlpPath = EmbeddedYtDlpLoader.GetYtDlpPath();
+            var ytDlpPath = YtDlpLoader.GetYtDlpPath();
             if (string.IsNullOrEmpty(ytDlpPath))
             {
                 LoggingSystem.Error("Could not get yt-dlp path", "YoutubeHelper");
@@ -422,7 +422,7 @@ namespace BackSpeakerMod.Utils
         public static async Task<string> GetStreamableUrl(string url)
         {
             // get stream url using yt-dlp -g command
-            var ytDlpPath = EmbeddedYtDlpLoader.YtDlpExtractedPath;
+            var ytDlpPath = YtDlpLoader.YtDlpExtractedPath;
             var command = "";
             if (url.Contains("list="))
             {
@@ -516,14 +516,14 @@ namespace BackSpeakerMod.Utils
             }
 
             // Check if yt-dlp is available
-            if (!EmbeddedYtDlpLoader.IsYtDlpAvailable())
+            if (!YtDlpLoader.IsYtDlpAvailable())
             {
                 LoggingSystem.Error("yt-dlp is not available", "YoutubeHelper");
                 onComplete?.Invoke(false);
                 yield break;
             }
 
-            var ytDlpPath = EmbeddedYtDlpLoader.GetYtDlpPath();
+            var ytDlpPath = YtDlpLoader.GetYtDlpPath();
             if (string.IsNullOrEmpty(ytDlpPath))
             {
                 LoggingSystem.Error("Could not get yt-dlp path", "YoutubeHelper");

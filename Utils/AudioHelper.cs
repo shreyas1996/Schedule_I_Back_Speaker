@@ -47,14 +47,14 @@ namespace BackSpeakerMod.Utils
             try
             {
                 // Check if AudioImportLib is available
-                if (!EmbeddedAssemblyLoader.IsAudioImportLibAvailable())
+                if (!AudioImportLibAssemblyLoader.IsAudioImportLibAvailable())
                 {
                     LoggingSystem.Warning("AudioImportLib not available, creating placeholder clip", "AudioHelper");
                     return CreatePlaceholderClip(fileName + " (AudioImportLib unavailable)");
                 }
 
                 // Get the LoadAudioClip method via reflection
-                var loadMethod = EmbeddedAssemblyLoader.GetLoadAudioClipMethod();
+                var loadMethod = AudioImportLibAssemblyLoader.GetLoadAudioClipMethod();
                 if (loadMethod == null)
                 {
                     LoggingSystem.Warning("Could not get LoadAudioClip method from AudioImportLib", "AudioHelper");
@@ -151,7 +151,7 @@ namespace BackSpeakerMod.Utils
         /// </summary>
         public static bool IsAudioImportLibAvailable()
         {
-            return EmbeddedAssemblyLoader.IsAudioImportLibAvailable();
+            return AudioImportLibAssemblyLoader.IsAudioImportLibAvailable();
         }
 
         /// <summary>
@@ -180,14 +180,14 @@ namespace BackSpeakerMod.Utils
             try
             {
                 // Check if AudioImportLib is available
-                if (!EmbeddedAssemblyLoader.IsAudioImportLibAvailable())
+                if (!AudioImportLibAssemblyLoader.IsAudioImportLibAvailable())
                 {
                     LoggingSystem.Warning("AudioImportLib not available for URL streaming, creating placeholder clip", "AudioHelper");
                     return CreatePlaceholderClip(clipName + " (AudioImportLib unavailable)");
                 }
 
                 // Get the LoadAudioClip method via reflection
-                var loadMethod = EmbeddedAssemblyLoader.GetLoadAudioClipMethod();
+                var loadMethod = AudioImportLibAssemblyLoader.GetLoadAudioClipMethod();
                 if (loadMethod == null)
                 {
                     LoggingSystem.Warning("Could not get LoadAudioClip method from AudioImportLib for URL streaming", "AudioHelper");
