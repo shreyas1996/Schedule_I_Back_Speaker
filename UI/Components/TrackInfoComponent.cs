@@ -48,10 +48,11 @@ namespace BackSpeakerMod.UI.Components
             var artRect = albumArtContainer.AddComponent<RectTransform>();
             // Position album art in left portion, properly constrained
             artRect.anchorMin = new Vector2(0.05f, 0.05f);  // 5% from left, 5% from bottom
-            artRect.anchorMax = new Vector2(0.35f, 0.85f);  // 35% from left, 85% from bottom
+            artRect.anchorMax = new Vector2(0.15f, 0.85f);  // 15% from left, 85% from bottom
             artRect.offsetMin = Vector2.zero;
             artRect.offsetMax = Vector2.zero;
             artRect.anchoredPosition = Vector2.zero;
+            // artRect.sizeDelta = new Vector2(100, 100); // 100x100px
             
             // Album art background
             var background = albumArtContainer.AddComponent<Image>();
@@ -141,7 +142,7 @@ namespace BackSpeakerMod.UI.Components
             
             var detailsRect = detailsContainer.AddComponent<RectTransform>();
             // Position track details to the right of album art
-            detailsRect.anchorMin = new Vector2(0.4f, 0.05f);   // Start after album art
+            detailsRect.anchorMin = new Vector2(0.2f, 0.05f);   // Start after album art
             detailsRect.anchorMax = new Vector2(0.95f, 0.85f);  // Almost full width, proper height
             detailsRect.offsetMin = Vector2.zero;
             detailsRect.offsetMax = Vector2.zero;
