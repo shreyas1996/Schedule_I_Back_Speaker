@@ -1,7 +1,6 @@
 using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
-using BackSpeakerMod.Core.Features.Headphones.Data;
 using System.IO;
 using System.Reflection;
 using Il2CppInterop.Runtime.InteropTypes;

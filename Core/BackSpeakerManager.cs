@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Modules;
-using BackSpeakerMod.Core.Features.Audio.Managers;
+using BackSpeakerMod.Core.Features.Audio;
 using BackSpeakerMod.Utils;
 using UnityEngine;
 

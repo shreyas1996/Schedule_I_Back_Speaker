@@ -1,10 +1,10 @@
 using UnityEngine;
 using BackSpeakerMod.Core.System;
-using BackSpeakerMod.Core.Common.Managers;
+using BackSpeakerMod.Core.Features.Player;
 using BackSpeakerMod.Configuration;
 using System;
 
-namespace BackSpeakerMod.Core.Common.Helpers
+namespace BackSpeakerMod.Core.Features.Player
 {
     /// <summary>
     /// Unified player head detector for headphones, spheres, and other attachments

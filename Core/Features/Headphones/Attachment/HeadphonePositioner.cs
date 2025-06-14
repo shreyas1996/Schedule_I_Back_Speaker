@@ -1,8 +1,8 @@
 using UnityEngine;
+using BackSpeakerMod.Utils;
 using BackSpeakerMod.Core.System;
-using BackSpeakerMod.Core.Features.Headphones.Data;
 using BackSpeakerMod.Configuration;
-using BackSpeakerMod.Core.Common.Helpers;
+using BackSpeakerMod.Core.Features.Headphones.Managers;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Attachment
 {

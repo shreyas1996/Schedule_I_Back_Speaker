@@ -14,17 +14,17 @@ namespace BackSpeakerMod.Configuration
         {
             get
             {
-#if DEBUG
-                return LogLevel.Debug;
-#elif RELEASE && MINIMAL_LOGGING
-                return LogLevel.Error;
-#elif RELEASE
-                return LogLevel.Warning;
-#elif VERBOSE_LOGGING
-                return LogLevel.Debug;
-#else
-                return LogLevel.Info;
-#endif
+                #if DEBUG
+                    return LogLevel.Debug;
+                #elif RELEASE && MINIMAL_LOGGING
+                    return LogLevel.Error;
+                #elif RELEASE
+                    return LogLevel.Warning;
+                #elif VERBOSE_LOGGING
+                    return LogLevel.Debug;
+                #else
+                    return LogLevel.Info;
+                #endif
             }
         }
 
@@ -35,11 +35,11 @@ namespace BackSpeakerMod.Configuration
         {
             get
             {
-#if DEBUG
-                return true;
-#else
-                return false;
-#endif
+                #if DEBUG
+                    return true;
+                #else
+                    return false;
+                #endif
             }
         }
 
@@ -50,11 +50,11 @@ namespace BackSpeakerMod.Configuration
         {
             get
             {
-#if DEBUG || VERBOSE_LOGGING
-                return true;
-#else
-                return false;
-#endif
+                #if DEBUG || VERBOSE_LOGGING
+                    return true;
+                #else
+                    return false;
+                #endif
             }
         }
 
@@ -65,11 +65,11 @@ namespace BackSpeakerMod.Configuration
         {
             get
             {
-#if MINIMAL_LOGGING
-                return true;
-#else
-                return false;
-#endif
+                #if MINIMAL_LOGGING
+                    return true;
+                #else
+                    return false;
+                #endif
             }
         }
 
@@ -93,19 +93,19 @@ namespace BackSpeakerMod.Configuration
         /// </summary>
         private static string GetBuildType()
         {
-#if DEBUG
-            return "DEBUG";
-#elif RELEASE && MINIMAL_LOGGING
-            return "RELEASE (Minimal)";
-#elif RELEASE && VERBOSE_LOGGING
-            return "RELEASE (Verbose)";
-#elif RELEASE
-            return "RELEASE";
-#elif IL2CPP
-            return "IL2CPP";
-#else
-            return "UNKNOWN";
-#endif
+            #if DEBUG
+                return "DEBUG";
+            #elif RELEASE && MINIMAL_LOGGING
+                return "RELEASE (Minimal)";
+            #elif RELEASE && VERBOSE_LOGGING
+                return "RELEASE (Verbose)";
+            #elif RELEASE
+                return "RELEASE";
+            #elif IL2CPP
+                return "IL2CPP";
+            #else
+                return "UNKNOWN";
+            #endif
         }
 
         /// <summary>

@@ -4,9 +4,9 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using MelonLoader;
 using System;
-using PlayerManager = BackSpeakerMod.Core.Common.Managers.PlayerManager;
+using BackSpeakerMod.Core.Features.Player;
 
-namespace BackSpeakerMod.Core.Features.Player.Attachment
+namespace BackSpeakerMod.Core.Features.Player
 {
     public class PlayerAttachment
     {

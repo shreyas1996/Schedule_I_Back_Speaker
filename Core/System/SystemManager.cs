@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using BackSpeakerMod.Core.Features.Player.Attachment;
 using BackSpeakerMod.Core.Features.Headphones.Managers;
-using BackSpeakerMod.Core.Features.Audio.Managers;
-using BackSpeakerMod.Core.Common.Managers;
+using BackSpeakerMod.Core.Features.Audio;
+using BackSpeakerMod.Core.Features.Player;
 using BackSpeakerMod.Core.Modules;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Utils;

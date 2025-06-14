@@ -1,11 +1,11 @@
-using BackSpeakerMod.Core.Common.Managers;
+using BackSpeakerMod.Core.Features.Player;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using System;
 using UnityEngine;
 using Il2CppScheduleOne.Audio;
 
-namespace BackSpeakerMod.Core.Features.Audio.Managers
+namespace BackSpeakerMod.Core.Features.Audio
 {
     /// <summary>
     /// Manages game audio volume adjustments when BackSpeaker is playing

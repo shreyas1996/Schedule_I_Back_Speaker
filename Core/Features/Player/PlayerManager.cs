@@ -7,7 +7,7 @@ using System;
 using System.Collections;
 using BackSpeakerMod.Core.System;
 
-namespace BackSpeakerMod.Core.Common.Managers
+namespace BackSpeakerMod.Core.Features.Player
 {
     /// <summary>
     /// Scene-based player detection and management

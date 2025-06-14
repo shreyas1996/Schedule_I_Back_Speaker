@@ -1,11 +1,11 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using BackSpeakerMod.Core.System;
-using BackSpeakerMod.Core.Features.Headphones.Data;
+using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Configuration;
 using Il2CppInterop.Runtime.InteropTypes;
 
-namespace BackSpeakerMod.Core.Common.Helpers
+namespace BackSpeakerMod.Utils
 {
     /// <summary>
     /// Helper for creating and configuring URP/Lit materials at runtime

@@ -1,11 +1,11 @@
 using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
-using BackSpeakerMod.Core.Features.Headphones.Data;
 using BackSpeakerMod.Core.Features.Headphones.Loading;
 using BackSpeakerMod.Core.Features.Headphones.Attachment;
 using Il2CppScheduleOne.PlayerScripts;
-using PlayerManager = BackSpeakerMod.Core.Common.Managers.PlayerManager;
+using BackSpeakerMod.Core.Features.Player;
+using PlayerManager = BackSpeakerMod.Core.Features.Player.PlayerManager;
 using System;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Managers
@@ -21,7 +21,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         private bool isInitialized = false;
 
         // Reference to PlayerAttachment for coordinated initialization
-        private BackSpeakerMod.Core.Features.Player.Attachment.PlayerAttachment? playerAttachment = null;
+        private PlayerAttachment? playerAttachment = null;
 
         /// <summary>
         /// Initialize headphone manager
@@ -39,7 +39,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Set PlayerAttachment reference for coordinated initialization
         /// </summary>
-        public void SetPlayerAttachment(BackSpeakerMod.Core.Features.Player.Attachment.PlayerAttachment playerAttachment)
+        public void SetPlayerAttachment(PlayerAttachment playerAttachment)
         {
             this.playerAttachment = playerAttachment;
         }

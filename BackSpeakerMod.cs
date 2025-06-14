@@ -27,9 +27,9 @@ namespace BackSpeakerMod
             LoggingSystem.Info($"Build Configuration: {LoggingSystem.GetBuildInfo()}", "Mod");
             
             // Show detailed config in debug builds
-#if DEBUG || VERBOSE_LOGGING
-            LoggingSystem.Info(LoggingConfig.GetConfigSummary(), "Mod");
-#endif
+            #if DEBUG || VERBOSE_LOGGING
+                LoggingSystem.Info(LoggingConfig.GetConfigSummary(), "Mod");
+            #endif
             
             SpeakerManager = BackSpeakerManager.Instance;
         }

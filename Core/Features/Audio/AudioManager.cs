@@ -6,7 +6,7 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Modules;
 
-namespace BackSpeakerMod.Core.Features.Audio.Managers
+namespace BackSpeakerMod.Core.Features.Audio
 {
     /// <summary>
     /// High-level manager for audio functionality

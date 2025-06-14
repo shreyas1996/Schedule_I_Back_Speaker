@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-namespace BackSpeakerMod.Core.Features.Headphones.Data
+namespace BackSpeakerMod.Configuration
 {
     /// <summary>
     /// Status of headphone attachment

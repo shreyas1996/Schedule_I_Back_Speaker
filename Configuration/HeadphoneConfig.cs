@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace BackSpeakerMod.Core.Features.Headphones.Data
+namespace BackSpeakerMod.Configuration
 {
     /// <summary>
     /// URP/Lit material configuration
