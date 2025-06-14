@@ -32,6 +32,34 @@ namespace BackSpeakerMod
             #endif
             
             SpeakerManager = BackSpeakerManager.Instance;
+            
+            // Load headphone bundle at startup (only once)
+            InitializeHeadphoneBundle();
+        }
+        
+        /// <summary>
+        /// Initialize headphone bundle once at mod startup
+        /// </summary>
+        private void InitializeHeadphoneBundle()
+        {
+            try
+            {
+                LoggingSystem.Info("Loading headphone bundle at mod startup", "Mod");
+                var headphoneManager = SpeakerManager?.GetHeadphoneManager();
+                if (headphoneManager != null)
+                {
+                    SpeakerManager.InitializeHeadphoneAssets();
+                    LoggingSystem.Info("✓ Headphone bundle loaded at startup", "Mod");
+                }
+                else
+                {
+                    LoggingSystem.Warning("HeadphoneManager not available during startup", "Mod");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load headphone bundle at startup: {ex}", "Mod");
+            }
         }
 
         public override void OnLateInitializeMelon()
@@ -184,7 +212,7 @@ namespace BackSpeakerMod
 
         public override void OnUpdate()
         {
-            // Update app state tracking
+            // Update app state tracking if app exists
             SpeakerApp?.Update();
             
             // Update music manager for auto-advance functionality
@@ -193,8 +221,92 @@ namespace BackSpeakerMod
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
-            // Core manager is created by Initialization.GameInitializer when conditions are met
             LoggingSystem.Debug($"Scene loaded: {sceneName} (buildIndex: {buildIndex})", "Mod");
+            
+            // Handle main scene initialization
+            if (IsMainGameScene(sceneName))
+            {
+                LoggingSystem.Info("Main scene loaded - preparing for initialization", "Mod");
+                // Player detection will trigger the actual app creation
+            }
+            else if (sceneName.Contains("Menu"))
+            {
+                LoggingSystem.Info("Menu scene loaded - cleaning up if needed", "Mod");
+                CleanupMainSceneComponents();
+            }
+        }
+        
+        /// <summary>
+        /// Check if the scene is a main game scene
+        /// </summary>
+        private bool IsMainGameScene(string sceneName)
+        {
+            return sceneName.Contains("Main") || 
+                   sceneName.Contains("Game") || 
+                   sceneName.Contains("Level") ||
+                   sceneName == "SampleScene";
+        }
+        
+        /// <summary>
+        /// Initialize main scene components after player is ready
+        /// </summary>
+        public static void InitializeMainSceneComponents()
+        {
+            try
+            {
+                LoggingSystem.Info("Initializing main scene components", "Mod");
+                
+                // Clear any old event subscriptions before creating new app
+                if (SpeakerManager != null)
+                {
+                    SpeakerManager.ClearEventSubscriptions();
+                }
+                
+                // Create BackSpeakerApp if it doesn't exist
+                if (SpeakerApp == null && SpeakerManager != null)
+                {
+                    LoggingSystem.Info("Creating BackSpeakerApp for main scene", "Mod");
+                    SpeakerApp = new BackSpeakerApp(SpeakerManager);
+                    if (SpeakerApp.Create())
+                    {
+                        LoggingSystem.Info("✓ BackSpeakerApp created successfully", "Mod");
+                    }
+                    else
+                    {
+                        LoggingSystem.Error("Failed to create BackSpeakerApp", "Mod");
+                        SpeakerApp = null;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to initialize main scene components: {ex}", "Mod");
+            }
+        }
+        
+        /// <summary>
+        /// Cleanup main scene components when leaving main scene
+        /// </summary>
+        public static void CleanupMainSceneComponents()
+        {
+            try
+            {
+                LoggingSystem.Info("Cleaning up main scene components", "Mod");
+                
+                // Destroy BackSpeakerApp
+                if (SpeakerApp != null)
+                {
+                    LoggingSystem.Info("Destroying BackSpeakerApp", "Mod");
+                    SpeakerApp.Destroy();
+                    SpeakerApp = null;
+                }
+                
+                LoggingSystem.Info("✓ Main scene components cleaned up", "Mod");
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Failed to cleanup main scene components: {ex}", "Mod");
+            }
         }
     }
 } 

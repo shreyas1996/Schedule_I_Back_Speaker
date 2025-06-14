@@ -41,15 +41,15 @@ namespace BackSpeakerMod.UI
                 SetupScreenContainer();
                 CreateUILayout();
                 
-                // Trigger initial track loading through the manager
-                LoggingSystem.Info("Triggering initial track loading through manager", "UI");
-                manager?.ReloadTracks();
-                
-                // Subscribe to track reload events for automatic UI updates
+                // Subscribe to track reload events BEFORE triggering reload
                 if (manager != null)
                 {
                     manager.OnTracksReloaded += OnTracksReloaded;
                 }
+                
+                // Trigger initial track loading through the manager
+                LoggingSystem.Info("Triggering initial track loading through manager", "UI");
+                manager?.ReloadTracks();
                 
                 LoggingSystem.Info("BackSpeaker UI created following design specifications", "UI");
             }
@@ -149,9 +149,24 @@ namespace BackSpeakerMod.UI
         
         private void OnTracksReloaded()
         {
-            LoggingSystem.Info("Tracks reloaded - updating UI", "UI");
-            // Force immediate update of all components
-            contentArea?.UpdateContent();
+            try
+            {
+                LoggingSystem.Info("Tracks reloaded - updating UI", "UI");
+                
+                // Only update if content area is ready and not destroyed
+                if (contentArea != null && contentArea.gameObject != null)
+                {
+                    contentArea.UpdateContent();
+                }
+                else
+                {
+                    LoggingSystem.Debug("ContentArea not ready for update, skipping", "UI");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LoggingSystem.Error($"Error updating UI after track reload: {ex.Message}", "UI");
+            }
         }
         
         public void Update()
@@ -163,7 +178,18 @@ namespace BackSpeakerMod.UI
         
         private void OnDestroy()
         {
-            // Cleanup
+            // Unsubscribe from events to prevent memory leaks and old handlers firing
+            if (manager != null)
+            {
+                manager.OnTracksReloaded -= OnTracksReloaded;
+                LoggingSystem.Debug("Unsubscribed from manager events", "UI");
+            }
+            
+            // Clear references
+            manager = null;
+            titleBar = null;
+            tabBar = null;
+            contentArea = null;
         }
     }
 } 

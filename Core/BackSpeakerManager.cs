@@ -114,6 +114,13 @@ namespace BackSpeakerMod.Core
         public bool ToggleHeadphones() => systemManager.ToggleHeadphones();
         public bool AreHeadphonesAttached() => systemManager.AreHeadphonesAttached();
         public string GetHeadphoneStatus() => systemManager.GetHeadphoneStatus();
+        
+        /// <summary>
+        /// Get the headphone manager for direct access
+        /// </summary>
+        public object? GetHeadphoneManager() => systemManager.GetHeadphoneManager();
+
+        public void InitializeHeadphoneAssets() => systemManager.InitializeHeadphoneAssets();
 
         // Public API - Configuration
         public T? GetSetting<T>(string key, T? defaultValue = default(T)) => systemManager.GetSetting(key, defaultValue);
@@ -128,6 +135,22 @@ namespace BackSpeakerMod.Core
         /// Whether system is initialized
         /// </summary>
         public bool IsInitialized => systemManager.IsInitialized;
+        
+        /// <summary>
+        /// Clear all event subscriptions to prevent old handlers from firing
+        /// </summary>
+        public void ClearEventSubscriptions()
+        {
+            if (OnTracksReloaded != null)
+            {
+                // Clear all delegates from the event
+                foreach (var subscriber in OnTracksReloaded.GetInvocationList())
+                {
+                    OnTracksReloaded -= (Action)subscriber;
+                }
+                LoggingSystem.Debug("Cleared OnTracksReloaded event subscriptions", "Core");
+            }
+        }
         
         /// <summary>
         /// Shutdown all systems

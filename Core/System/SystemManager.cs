@@ -501,6 +501,27 @@ namespace BackSpeakerMod.Core.System
         public string GetDetailedHeadphoneStatus() => headphoneManager?.GetDetailedStatus() ?? "Headphone system not initialized";
         public string GetHeadphoneCameraInfo() => headphoneManager?.GetCameraInfo() ?? "Camera info not available";
         public void ForceUpdateHeadphoneVisibility() => headphoneManager?.ForceUpdateVisibility();
+        
+        /// <summary>
+        /// Get the headphone manager for direct access
+        /// </summary>
+        public HeadphoneManager? GetHeadphoneManager() => headphoneManager;
+        
+        /// <summary>
+        /// Initialize headphone assets at startup (called once)
+        /// </summary>
+        public void InitializeHeadphoneAssets()
+        {
+            try
+            {
+                LoggingSystem.Info("Loading headphone assets at startup", "SystemManager");
+                headphoneManager?.LoadHeadphoneAssets();
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load headphone assets at startup: {ex}", "SystemManager");
+            }
+        }
 
         #endregion
 

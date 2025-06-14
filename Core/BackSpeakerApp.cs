@@ -244,6 +244,59 @@ namespace BackSpeakerMod.Core
         }
 
         // UI interactions are now handled by BackSpeakerScreen
+        
+        /// <summary>
+        /// Properly destroy the BackSpeaker app and cleanup all UI components
+        /// </summary>
+        public void Destroy()
+        {
+            try
+            {
+                LoggingSystem.Info("Destroying BackSpeaker app", "BackSpeakerApp");
+                
+                // Cleanup screen component
+                if (backSpeakerScreen != null)
+                {
+                    LoggingSystem.Debug("Destroying BackSpeakerScreen", "BackSpeakerApp");
+                    UnityEngine.Object.Destroy(backSpeakerScreen.gameObject);
+                    backSpeakerScreen = null;
+                }
+                
+                // Cleanup canvas
+                if (canvas != null)
+                {
+                    LoggingSystem.Debug("Destroying canvas", "BackSpeakerApp");
+                    UnityEngine.Object.Destroy(canvas);
+                    canvas = null;
+                }
+                
+                // Cleanup app icon button listeners
+                if (appButton != null)
+                {
+                    LoggingSystem.Debug("Removing app button listeners", "BackSpeakerApp");
+                    appButton.onClick.RemoveAllListeners();
+                    appButton = null;
+                }
+                
+                // Clear references
+                app = null;
+                appIcon = null;
+                homeScreen = null;
+                appsCanvas = null;
+                manager = null;
+                
+                // Clear static references
+                Instance = null;
+                appActive = false;
+                appBecameActive = false;
+                
+                LoggingSystem.Info("✓ BackSpeaker app destroyed successfully", "BackSpeakerApp");
+            }
+            catch (global::System.Exception ex)
+            {
+                LoggingSystem.Error($"Error destroying BackSpeaker app: {ex.Message}", "BackSpeakerApp");
+            }
+        }
 
         private void LogHierarchy(Transform t, int depth)
         {

@@ -263,5 +263,22 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// Get attachment reference
         /// </summary>
         public HeadphoneAttachment GetAttachment() => attachment;
+
+        /// <summary>
+        /// Load headphone assets at startup (called once during mod initialization)
+        /// </summary>
+        public bool LoadHeadphoneAssets()
+        {
+            try
+            {
+                LoggingSystem.Info("Loading headphone assets at startup", "HeadphoneManager");
+                return loader.LoadFromEmbeddedResource();
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"Failed to load headphone assets: {ex}", "HeadphoneManager");
+                return false;
+            }
+        }
     }
 } 

@@ -197,6 +197,9 @@ namespace BackSpeakerMod.Core.Features.Player
             try
             {
                 OnPlayerReady?.Invoke(player);
+                
+                // Trigger main scene component initialization after player is ready
+                BackSpeakerModMain.InitializeMainSceneComponents();
             }
             catch (Exception ex)
             {
@@ -211,13 +214,17 @@ namespace BackSpeakerMod.Core.Features.Player
         {
             if (CurrentPlayer == null) return;
             
+            var playerBeforeClearing = CurrentPlayer;
             LoggingSystem.Info("Clearing current player", "PlayerManager");
             CurrentPlayer = null;
             isWaitingForPlayer = false;
             
             try
             {
-                OnPlayerLost?.Invoke(CurrentPlayer!);
+                OnPlayerLost?.Invoke(playerBeforeClearing);
+                
+                // Trigger main scene component cleanup when player is lost
+                BackSpeakerModMain.CleanupMainSceneComponents();
             }
             catch (Exception ex)
             {

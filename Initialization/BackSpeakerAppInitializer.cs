@@ -6,6 +6,9 @@ using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 namespace BackSpeakerMod.Initialization
 {
+    // DISABLED: Now using proper lifecycle management in BackSpeakerModMain
+    // This harmony patch caused issues with proper cleanup/recreation
+    /*
     [HarmonyPatch(typeof(Player))]
     internal static class BackSpeakerAppInitializer
     {
@@ -58,4 +61,5 @@ namespace BackSpeakerMod.Initialization
             }
         }
     }
+    */
 } 
