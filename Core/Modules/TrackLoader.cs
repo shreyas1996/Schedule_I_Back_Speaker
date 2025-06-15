@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Text.RegularExpressions;
 using Il2CppScheduleOne.Audio;
+using Il2CppScheduleOne.ObjectScripts;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using System;
 using System.Globalization;
 using Il2CppInterop.Runtime;
+using System.Linq;
 
 namespace BackSpeakerMod.Core.Modules
 {
@@ -280,10 +282,189 @@ namespace BackSpeakerMod.Core.Modules
         {
             try
             {
+                // PRIORITY 1: Try to load from main player-owned Jukebox (Il2CppScheduleOne.ObjectScripts)
+                bool foundMainJukebox = TryLoadFromMainJukebox(tracks, trackInfo);
+                
+                // PRIORITY 2: Try to load from AmbientLoopJukebox objects (existing functionality)
+                bool foundAmbientJukebox = TryLoadFromAmbientJukeboxes(tracks, trackInfo);
+                
+                return foundMainJukebox || foundAmbientJukebox;
+            }
+            catch (Exception e)
+            {
+                LoggingSystem.Error($"❌ Error loading from jukeboxes: {e.Message}", "Audio");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Try to load tracks from the main player-owned Jukebox (Il2CppScheduleOne.ObjectScripts)
+        /// This is where other mods can add tracks that we want to access
+        /// </summary>
+        private bool TryLoadFromMainJukebox(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
+        {
+            try
+            {
+                LoggingSystem.Info("🎵 Searching for main player-owned Jukebox...", "Audio");
+                
+                // Method 1: Try to find Jukebox objects by type
+                var mainJukeboxes = GameObject.FindObjectsOfType<Il2CppScheduleOne.ObjectScripts.Jukebox>();
+                
+                if (mainJukeboxes != null && mainJukeboxes.Length > 0)
+                {
+                    LoggingSystem.Info($"🎵 Found {mainJukeboxes.Length} main Jukebox(es)!", "Audio");
+                    
+                    var seen = new HashSet<AudioClip>();
+                    int addedCount = 0;
+                    
+                    foreach (var jukebox in mainJukeboxes)
+                    {
+                        if (jukebox != null)
+                        {
+                            LoggingSystem.Debug($"Processing main Jukebox: {jukebox.name}", "Audio");
+                            
+                            // Try to access tracks from the main jukebox
+                            // The exact property/method name may vary - we'll try common patterns
+                            var jukeboxTracks = GetTracksFromMainJukebox(jukebox);
+                            
+                            if (jukeboxTracks != null && jukeboxTracks.Count > 0)
+                            {
+                                foreach (var clip in jukeboxTracks)
+                                {
+                                    if (clip != null && seen.Add(clip))
+                                    {
+                                        tracks.Add(clip);
+                                        
+                                        // Get the proper metadata we stored earlier
+                                        var metadata = GetTrackMetadata(clip);
+                                        trackInfo.Add((metadata.title, metadata.artist));
+                                        addedCount++;
+                                        LoggingSystem.Debug($"Added track from main jukebox: {metadata.title} by {metadata.artist}", "Audio");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (addedCount > 0)
+                    {
+                        LoggingSystem.Info($"🎵 Successfully loaded {addedCount} tracks from main Jukebox!", "Audio");
+                        return true;
+                    }
+                }
+                else
+                {
+                    LoggingSystem.Debug("No main Jukebox objects found in scene", "Audio");
+                }
+                
+                LoggingSystem.Warning("❌ Main jukebox found but no tracks extracted", "Audio");
+                return false;
+            }
+            catch (Exception e)
+            {
+                LoggingSystem.Warning($"❌ Error accessing main Jukebox: {e.Message}", "Audio");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Get tracks from a main Jukebox object - uses the actual TrackList property
+        /// </summary>
+        private List<AudioClip> GetTracksFromMainJukebox(Il2CppScheduleOne.ObjectScripts.Jukebox jukebox)
+        {
+            try
+            {
+                LoggingSystem.Info($"🎵 ACCESSING MAIN JUKEBOX: {jukebox.name}", "Audio Main Jukebox");
+                
+                // Access the TrackList property directly
+                var trackList = jukebox.TrackList;
+                
+                if (trackList == null)
+                {
+                    LoggingSystem.Warning("❌ TrackList is null - jukebox has no tracks", "Audio Main Jukebox");
+                    return new List<AudioClip>();
+                }
+                
+                LoggingSystem.Info($"🎵 Found TrackList with {trackList.Count} tracks", "Audio Main Jukebox");
+                
+                var clips = new List<AudioClip>();
+                
+                // Extract each track with proper metadata
+                for (int i = 0; i < trackList.Count; i++)
+                {
+                    var track = trackList[i];
+                    if (track != null && track.Clip != null)
+                    {
+                        // Use the proper TrackName and ArtistName from the Track object
+                        string trackName = !string.IsNullOrEmpty(track.TrackName) ? track.TrackName : track.Clip.name;
+                        string artistName = !string.IsNullOrEmpty(track.ArtistName) ? track.ArtistName : "Main Jukebox";
+                        
+                        LoggingSystem.Debug($"  ✅ Track {i + 1}: '{trackName}' by '{artistName}' (Duration: {track.Clip.length:F1}s)", "Audio Main Jukebox");
+                        
+                        clips.Add(track.Clip);
+                        
+                        // Store the proper metadata for track info display
+                        // We need to store this mapping for later use in track info
+                        StoreTrackMetadata(track.Clip, trackName, artistName);
+                    }
+                    else
+                    {
+                        LoggingSystem.Warning($"  ❌ Track {i + 1}: Invalid track or missing clip", "Audio Main Jukebox");
+                    }
+                }
+                
+                LoggingSystem.Debug($"🎉 SUCCESSFULLY EXTRACTED {clips.Count} AUDIO CLIPS FROM MAIN JUKEBOX!", "Audio Main Jukebox");
+                return clips;
+            }
+            catch (Exception ex)
+            {
+                LoggingSystem.Error($"❌ Error accessing main jukebox tracks: {ex.Message}", "Audio Main Jukebox");
+                return new List<AudioClip>();
+            }
+        }
+        
+        // Dictionary to store track metadata mapping
+        private static Dictionary<AudioClip, (string title, string artist)> trackMetadataMap = new Dictionary<AudioClip, (string, string)>();
+        
+        /// <summary>
+        /// Store track metadata for later retrieval
+        /// </summary>
+        private void StoreTrackMetadata(AudioClip clip, string title, string artist)
+        {
+            if (clip != null)
+            {
+                trackMetadataMap[clip] = (title, artist);
+            }
+        }
+        
+        /// <summary>
+        /// Get stored track metadata, fallback to clip name if not found
+        /// </summary>
+        public static (string title, string artist) GetTrackMetadata(AudioClip clip)
+        {
+            if (clip != null && trackMetadataMap.ContainsKey(clip))
+            {
+                return trackMetadataMap[clip];
+            }
+            
+            // Fallback to clip name
+            return (clip?.name ?? "Unknown Track", "Unknown Artist");
+        }
+        
+        /// <summary>
+        /// Load from AmbientLoopJukebox objects (existing functionality, now separated)
+        /// </summary>
+        private bool TryLoadFromAmbientJukeboxes(List<AudioClip> tracks, List<(string title, string artist)> trackInfo)
+        {
+            try
+            {
+                LoggingSystem.Debug("🎵 Searching for AmbientLoopJukebox objects...", "Audio");
+                
                 var jukeboxes = GameObject.FindObjectsOfType<AmbientLoopJukebox>();
                 
                 if (jukeboxes.Length == 0)
                 {
+                    LoggingSystem.Debug("No AmbientLoopJukebox objects found", "Audio");
                     return false;
                 }
                 
@@ -301,18 +482,24 @@ namespace BackSpeakerMod.Core.Modules
                             {
                                 tracks.Add(clip);
                                 string trackName = FormatTrackName(clip.name);
-                                trackInfo.Add((trackName, "Jukebox Music"));
+                                trackInfo.Add((trackName, "Ambient Jukebox"));
                                 addedCount++;
                             }
                         }
                     }
                 }
                 
-                return addedCount > 0;
+                if (addedCount > 0)
+                {
+                    LoggingSystem.Info($"🎵 Found {addedCount} tracks from AmbientLoopJukebox objects!", "Audio");
+                    return true;
+                }
+                
+                return false;
             }
             catch (Exception e)
             {
-                LoggingSystem.Error($"❌ Error loading from jukeboxes: {e.Message}", "Audio");
+                LoggingSystem.Error($"❌ Error loading from AmbientLoopJukebox: {e.Message}", "Audio");
                 return false;
             }
         }
