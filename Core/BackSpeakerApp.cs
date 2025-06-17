@@ -6,11 +6,20 @@ using UnityEngine.Events;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Utils;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+#if IL2CPP
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.UI;
 using Il2CppScheduleOne.UI.Phone;
 using Il2CppScheduleOne.UI.Phone.ProductManagerApp;
 using Il2CppScheduleOne.PlayerScripts;
+#else
+using ScheduleOne.DevUtilities;
+using ScheduleOne.UI;
+using ScheduleOne.UI.Phone;
+using ScheduleOne.UI.Phone.ProductManagerApp;
+using ScheduleOne.PlayerScripts;
+#endif
 
 namespace BackSpeakerMod.Core
 {

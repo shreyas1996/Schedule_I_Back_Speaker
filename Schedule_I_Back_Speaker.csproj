@@ -65,24 +65,13 @@
   <ItemGroup>
     <Compile Remove="my_references\**\*.cs" />
 
+    <ProjectReference Include="S1Wrapper/S1Wrapper.csproj" />
+
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
     <!-- Audio loading dependencies -->
-   
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppFishNet.Runtime">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2CppFishNet.Runtime.dll</HintPath>
-		</Reference>
-    <Reference Include="Il2Cppmscorlib">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.dll</HintPath>
     </Reference>
@@ -139,12 +128,6 @@
     </Reference>
     <Reference Include="0Harmony">
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\0Harmony.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppInterop.Runtime">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppInterop.Common">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
     </Reference>
   </ItemGroup>
 

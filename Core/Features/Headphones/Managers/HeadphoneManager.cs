@@ -3,7 +3,7 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Features.Headphones.Loading;
 using BackSpeakerMod.Core.Features.Headphones.Attachment;
-using Il2CppScheduleOne.PlayerScripts;
+using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.Core.Features.Player;
 using PlayerManager = BackSpeakerMod.Core.Features.Player.PlayerManager;
 using System;
@@ -98,7 +98,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Attach headphones to player
         /// </summary>
-        public bool AttachHeadphones(Il2CppScheduleOne.PlayerScripts.Player? player = null)
+        public bool AttachHeadphones(IPlayer? player = null)
         {
             if (!isInitialized)
             {
@@ -132,7 +132,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Toggle headphones on/off
         /// </summary>
-        public bool ToggleHeadphones(Il2CppScheduleOne.PlayerScripts.Player? player = null)
+        public bool ToggleHeadphones(IPlayer? player = null)
         {
             if (attachment.IsAttached)
             {
@@ -225,7 +225,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Player ready event handler
         /// </summary>
-        private void OnPlayerReady(Il2CppScheduleOne.PlayerScripts.Player? player)
+        private void OnPlayerReady(IPlayer? player)
         {
             if (config.AutoAttachOnSpawn && isInitialized && loader.IsLoaded)
             {
@@ -236,7 +236,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Player lost event handler
         /// </summary>
-        private void OnPlayerLost(Il2CppScheduleOne.PlayerScripts.Player? player)
+        private void OnPlayerLost(IPlayer? player)
         {
             attachment.DetachFromPlayer();
         }

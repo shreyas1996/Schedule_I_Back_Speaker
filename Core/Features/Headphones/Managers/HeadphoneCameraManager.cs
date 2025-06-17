@@ -1,8 +1,8 @@
 using UnityEngine;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
-using Il2CppScheduleOne.PlayerScripts;
-using Il2CppScheduleOne.DevUtilities;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+using BackSpeakerMod.S1Wrapper;
 using System;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Managers
@@ -20,10 +20,10 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
 
         private readonly HeadphoneConfig config;
         private GameObject? currentHeadphoneInstance;
-        private PlayerCamera? playerCamera;
+        private IPlayerCamera? playerCamera;
         
         // Camera mode tracking
-        private PlayerCamera.ECameraMode lastCameraMode;
+        private S1CameraMode lastCameraMode;
         private bool lastFreeCamState;
         private bool lastViewingAvatarState;
         private bool isFirstPersonMode;
@@ -61,7 +61,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
             // Get PlayerCamera instance
             if (playerCamera == null)
             {
-                playerCamera = PlayerCamera.Instance;
+                playerCamera = S1Factory.GetPlayerCamera();
                 if (playerCamera == null)
                     return;
             }
@@ -122,14 +122,14 @@ namespace BackSpeakerMod.Core.Features.Headphones.Managers
         /// <summary>
         /// Determine if we're in first person mode based on camera state
         /// </summary>
-        private bool DetermineFirstPersonMode(PlayerCamera.ECameraMode cameraMode, bool freeCamEnabled, bool viewingAvatar)
+        private bool DetermineFirstPersonMode(S1CameraMode cameraMode, bool freeCamEnabled, bool viewingAvatar)
         {
             // If freecam is enabled or viewing avatar, we're in third person mode
             if (freeCamEnabled || viewingAvatar)
                 return false;
 
             // Default camera mode with no overrides = first person
-            if (cameraMode == PlayerCamera.ECameraMode.Default)
+            if (cameraMode == S1CameraMode.Default)
                 return true;
 
             // Vehicle and Skateboard modes are typically third person

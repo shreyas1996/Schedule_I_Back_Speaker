@@ -3,7 +3,9 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using System.IO;
 using System.Reflection;
+#if IL2CPP
 using Il2CppInterop.Runtime.InteropTypes;
+#endif
 
 namespace BackSpeakerMod.Core.Features.Headphones.Loading
 {
@@ -14,7 +16,11 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
     public class HeadphoneAssetLoader
     {
         private readonly HeadphoneConfig config;
+#if IL2CPP
         private Il2CppAssetBundle? persistentBundle = null;
+#else
+        private AssetBundle? persistentBundle = null;
+#endif
         private GameObject? headphonePrefab = null;
         private string? tempBundlePath = null;
         private bool isLoaded = false;
@@ -194,7 +200,11 @@ namespace BackSpeakerMod.Core.Features.Headphones.Loading
                     return false;
                 }
 
+#if IL2CPP
                 persistentBundle = Il2CppAssetBundleManager.LoadFromFile(tempBundlePath!);
+#else
+                persistentBundle = AssetBundle.LoadFromFile(tempBundlePath!);
+#endif
                 
                 if (persistentBundle == null)
                 {

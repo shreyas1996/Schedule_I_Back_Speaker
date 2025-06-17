@@ -2,13 +2,18 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System.Text.RegularExpressions;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+#if IL2CPP
 using Il2CppScheduleOne.Audio;
 using Il2CppScheduleOne.ObjectScripts;
+#else
+using ScheduleOne.Audio;
+using ScheduleOne.ObjectScripts;
+#endif
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using System;
 using System.Globalization;
-using Il2CppInterop.Runtime;
 using System.Linq;
 
 namespace BackSpeakerMod.Core.Modules
@@ -308,7 +313,7 @@ namespace BackSpeakerMod.Core.Modules
                 LoggingSystem.Info("🎵 Searching for main player-owned Jukebox...", "Audio");
                 
                 // Method 1: Try to find Jukebox objects by type
-                var mainJukeboxes = GameObject.FindObjectsOfType<Il2CppScheduleOne.ObjectScripts.Jukebox>();
+                var mainJukeboxes = GameObject.FindObjectsOfType<Jukebox>();
                 
                 if (mainJukeboxes != null && mainJukeboxes.Length > 0)
                 {
@@ -370,7 +375,7 @@ namespace BackSpeakerMod.Core.Modules
         /// <summary>
         /// Get tracks from a main Jukebox object - uses the actual TrackList property
         /// </summary>
-        private List<AudioClip> GetTracksFromMainJukebox(Il2CppScheduleOne.ObjectScripts.Jukebox jukebox)
+        private List<AudioClip> GetTracksFromMainJukebox(Jukebox jukebox)
         {
             try
             {
@@ -508,7 +513,7 @@ namespace BackSpeakerMod.Core.Modules
         {
             try
             {
-                var musicPlayer = Il2CppScheduleOne.Audio.MusicPlayer.instance;
+                var musicPlayer = MusicPlayer.instance;
                 if (musicPlayer != null && musicPlayer.Tracks != null)
                 {
                     var seen = new HashSet<AudioClip>();

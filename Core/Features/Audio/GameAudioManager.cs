@@ -3,7 +3,8 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using System;
 using UnityEngine;
-using Il2CppScheduleOne.Audio;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+using BackSpeakerMod.S1Wrapper;
 
 namespace BackSpeakerMod.Core.Features.Audio
 {
@@ -34,8 +35,8 @@ namespace BackSpeakerMod.Core.Features.Audio
         private float originalVoiceVolume = 1.0f;
         
         // Game audio system references
-        private Il2CppScheduleOne.Audio.AudioManager? gameAudioManager;
-        private Il2CppScheduleOne.Audio.MusicPlayer? gameMusicPlayer;
+        private IAudioManager? gameAudioManager;
+        private IMusicPlayer? gameMusicPlayer;
         
         // Update tracking
         private float lastRefreshTime = 0f;
@@ -83,11 +84,9 @@ namespace BackSpeakerMod.Core.Features.Audio
         {
             try
             {
-                // Try to find the game's AudioManager using Unity's FindObjectOfType
-                gameAudioManager = UnityEngine.Object.FindObjectOfType<Il2CppScheduleOne.Audio.AudioManager>();
-                
-                // Try to find the game's MusicPlayer using Unity's FindObjectOfType
-                gameMusicPlayer = UnityEngine.Object.FindObjectOfType<Il2CppScheduleOne.Audio.MusicPlayer>();
+                // Try to find the game's AudioManager and MusicPlayer via wrapper
+                gameAudioManager = S1Factory.FindAudioManager();
+                gameMusicPlayer = S1Factory.FindMusicPlayer();
                 
                 LoggingSystem.Debug($"Game audio managers - AudioManager: {(gameAudioManager != null ? "Found" : "Not Found")}, " +
                                   $"MusicPlayer: {(gameMusicPlayer != null ? "Found" : "Not Found")}", "GameAudio");
@@ -129,11 +128,11 @@ namespace BackSpeakerMod.Core.Features.Audio
                     try
                     {
                         // Store all volume types using the game's audio system
-                        originalMusicVolume = gameAudioManager.GetVolume(EAudioType.Music, false); // Get unscaled volume
-                        originalFXVolume = gameAudioManager.GetVolume(EAudioType.FX, false);
-                        originalAmbientVolume = gameAudioManager.GetVolume(EAudioType.Ambient, false);
-                        originalUIVolume = gameAudioManager.GetVolume(EAudioType.UI, false);
-                        originalVoiceVolume = gameAudioManager.GetVolume(EAudioType.Voice, false);
+                        originalMusicVolume = gameAudioManager.GetVolume(S1AudioType.Music, false); // Get unscaled volume
+                        originalFXVolume = gameAudioManager.GetVolume(S1AudioType.FX, false);
+                        originalAmbientVolume = gameAudioManager.GetVolume(S1AudioType.Ambient, false);
+                        originalUIVolume = gameAudioManager.GetVolume(S1AudioType.UI, false);
+                        originalVoiceVolume = gameAudioManager.GetVolume(S1AudioType.Voice, false);
                         
                         LoggingSystem.Debug($"Stored original volumes - " +
                                           $"Music: {originalMusicVolume:F2}, FX: {originalFXVolume:F2}, " +
@@ -153,11 +152,11 @@ namespace BackSpeakerMod.Core.Features.Audio
                 try
                 {
                     // Reduce individual audio types
-                    gameAudioManager.SetVolume(EAudioType.Music, originalMusicVolume * MUSIC_REDUCTION_FACTOR);
-                    gameAudioManager.SetVolume(EAudioType.FX, originalFXVolume * FX_REDUCTION_FACTOR);
-                    gameAudioManager.SetVolume(EAudioType.Ambient, originalAmbientVolume * AMBIENT_REDUCTION_FACTOR);
-                    gameAudioManager.SetVolume(EAudioType.UI, originalUIVolume * UI_REDUCTION_FACTOR);
-                    gameAudioManager.SetVolume(EAudioType.Voice, originalVoiceVolume * VOICE_REDUCTION_FACTOR);
+                    gameAudioManager.SetVolume(S1AudioType.Music, originalMusicVolume * MUSIC_REDUCTION_FACTOR);
+                    gameAudioManager.SetVolume(S1AudioType.FX, originalFXVolume * FX_REDUCTION_FACTOR);
+                    gameAudioManager.SetVolume(S1AudioType.Ambient, originalAmbientVolume * AMBIENT_REDUCTION_FACTOR);
+                    gameAudioManager.SetVolume(S1AudioType.UI, originalUIVolume * UI_REDUCTION_FACTOR);
+                    gameAudioManager.SetVolume(S1AudioType.Voice, originalVoiceVolume * VOICE_REDUCTION_FACTOR);
                     
                     LoggingSystem.Debug("Applied volume reduction to game audio using game's AudioManager", "GameAudio");
                 }
@@ -172,7 +171,7 @@ namespace BackSpeakerMod.Core.Features.Audio
                 {
                     try
                     {
-                        gameMusicPlayer.StopAndDisableTracks();
+                        gameMusicPlayer.Stop();
                         LoggingSystem.Debug("Stopped game music tracks", "GameAudio");
                     }
                     catch (Exception ex)
@@ -219,11 +218,11 @@ namespace BackSpeakerMod.Core.Features.Audio
                     try
                     {
                         // Restore all volume types
-                        gameAudioManager.SetVolume(EAudioType.Music, originalMusicVolume);
-                        gameAudioManager.SetVolume(EAudioType.FX, originalFXVolume);
-                        gameAudioManager.SetVolume(EAudioType.Ambient, originalAmbientVolume);
-                        gameAudioManager.SetVolume(EAudioType.UI, originalUIVolume);
-                        gameAudioManager.SetVolume(EAudioType.Voice, originalVoiceVolume);
+                        gameAudioManager.SetVolume(S1AudioType.Music, originalMusicVolume);
+                        gameAudioManager.SetVolume(S1AudioType.FX, originalFXVolume);
+                        gameAudioManager.SetVolume(S1AudioType.Ambient, originalAmbientVolume);
+                        gameAudioManager.SetVolume(S1AudioType.UI, originalUIVolume);
+                        gameAudioManager.SetVolume(S1AudioType.Voice, originalVoiceVolume);
                         
                         LoggingSystem.Debug("Restored original game audio volumes", "GameAudio");
                     }
