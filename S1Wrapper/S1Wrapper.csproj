@@ -3,13 +3,15 @@
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
+    <ScheduleOneMonoPath>$(ScheduleOnePath)\Schedule I_Data\Managed</ScheduleOneMonoPath>
+    <ScheduleOneIl2CppPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies</ScheduleOneIl2CppPath>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'IL2CPP'">
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Il2CppInterop.Runtime">
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
@@ -18,7 +20,18 @@
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'IL2CPP'">
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
