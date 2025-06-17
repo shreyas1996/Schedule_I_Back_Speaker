@@ -3,6 +3,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
+    <ScheduleOnePath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/</ScheduleOnePath>
     <ScheduleOneMonoPath>$(ScheduleOnePath)\Schedule I_Data\Managed</ScheduleOneMonoPath>
     <ScheduleOneIl2CppPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies</ScheduleOneIl2CppPath>
   </PropertyGroup>
@@ -21,6 +22,9 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Il2CppAssetBundleManager.dll">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'IL2CPP'">

@@ -97,9 +97,6 @@
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.Il2CppAssetBundleManager.dll">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\net6\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
       <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
     </Reference>
