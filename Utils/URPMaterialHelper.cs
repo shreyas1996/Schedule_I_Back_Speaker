@@ -3,7 +3,6 @@ using UnityEngine.Rendering;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Configuration;
-using Il2CppInterop.Runtime.InteropTypes;
 
 namespace BackSpeakerMod.Utils
 {

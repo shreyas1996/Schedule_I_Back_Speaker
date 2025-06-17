@@ -3,6 +3,7 @@ using BackSpeakerMod.Core.System;
 using BackSpeakerMod.Core.Features.Player;
 using BackSpeakerMod.Configuration;
 using System;
+using BackSpeakerMod.S1Wrapper.Interfaces;
 
 namespace BackSpeakerMod.Core.Features.Player
 {
@@ -16,7 +17,7 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Find the best attachment point specifically for headphones
         /// </summary>
-        public static Transform? FindHeadphoneAttachmentPoint(Il2CppScheduleOne.PlayerScripts.Player player)
+        public static Transform? FindHeadphoneAttachmentPoint(IPlayer player)
         {
             if (player == null)
             {
@@ -66,7 +67,7 @@ namespace BackSpeakerMod.Core.Features.Player
                 }
 
                 // Method 2: Search for head-like bones in the player hierarchy (fallback)
-                var headTransform = FindHeadByName(player.transform);
+                var headTransform = FindHeadByName(player.Transform);
                 if (headTransform != null)
                 {
                     LoggingSystem.Debug($"Found head by name search: {headTransform.name}", "PlayerHeadDetector");
@@ -83,7 +84,7 @@ namespace BackSpeakerMod.Core.Features.Player
                 }
 
                 // Method 3: Try to find any head/ear specific bones by name
-                var earAttachment = FindEarAttachmentPoint(player.transform);
+                var earAttachment = FindEarAttachmentPoint(player.Transform);
                 if (earAttachment != null)
                 {
                     LoggingSystem.Debug($"Found ear attachment point by name: {earAttachment.name}", "PlayerHeadDetector");
@@ -92,24 +93,24 @@ namespace BackSpeakerMod.Core.Features.Player
 
                 // Method 4: Final fallback to player transform
                 LoggingSystem.Warning("No suitable headphone attachment point found, using player transform", "PlayerHeadDetector");
-                return player.transform;
+                return player.Transform;
             }
             catch (Exception ex)
             {
                 LoggingSystem.Error($"Error finding headphone attachment point: {ex.Message}", "PlayerHeadDetector");
-                return player.transform; // Final fallback
+                return player.Transform; // Final fallback
             }
         }
 
         /// <summary>
         /// Discover and log all bones in the player hierarchy for debugging
         /// </summary>
-        private static void DiscoverAndLogAllBones(Il2CppScheduleOne.PlayerScripts.Player player)
+        private static void DiscoverAndLogAllBones(IPlayer player)
         {
             try
             {
                 LoggingSystem.Debug("=== RUNTIME BONE DISCOVERY ===", "PlayerHeadDetector");
-                LoggingSystem.Debug($"Player: {player.name}", "PlayerHeadDetector");
+                LoggingSystem.Debug($"Player: {player.Name}", "PlayerHeadDetector");
 
                 // Check Avatar bones first
                 var avatar = player.Avatar;
@@ -142,7 +143,7 @@ namespace BackSpeakerMod.Core.Features.Player
 
                 // Discover all transforms in hierarchy
                 LoggingSystem.Debug("Full transform hierarchy:", "PlayerHeadDetector");
-                LogAllTransforms(player.transform, 0);
+                LogAllTransforms(player.Transform, 0);
 
                 LoggingSystem.Debug("=== END BONE DISCOVERY ===", "PlayerHeadDetector");
             }

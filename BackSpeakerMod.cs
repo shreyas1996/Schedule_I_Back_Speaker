@@ -1,6 +1,6 @@
 using MelonLoader;
 using UnityEngine;
-using Il2CppInterop.Runtime.Injection;
+using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.Core;
 using BackSpeakerMod.Core.System;
 using BackSpeakerMod.UI;
@@ -71,7 +71,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering BackSpeakerScreen...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<BackSpeakerScreen>();
+                IL2CPPHelper.RegisterIl2CppType<BackSpeakerScreen>();
                 LoggingSystem.Info("✓ BackSpeakerScreen registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -82,7 +82,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering TabBarComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.TabBarComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.TabBarComponent>();
                 LoggingSystem.Info("✓ TabBarComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -93,7 +93,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering ContentAreaComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ContentAreaComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.ContentAreaComponent>();
                 LoggingSystem.Info("✓ ContentAreaComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -104,7 +104,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering TrackInfoComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.TrackInfoComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.TrackInfoComponent>();
                 LoggingSystem.Info("✓ TrackInfoComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -115,7 +115,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering ProgressBarComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ProgressBarComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.ProgressBarComponent>();
                 LoggingSystem.Info("✓ ProgressBarComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -126,7 +126,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering ControlsComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ControlsComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.ControlsComponent>();
                 LoggingSystem.Info("✓ ControlsComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -137,7 +137,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering ActionButtonsComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.ActionButtonsComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.ActionButtonsComponent>();
                 LoggingSystem.Info("✓ ActionButtonsComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -148,7 +148,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering PlaylistToggleComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.PlaylistToggleComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.PlaylistToggleComponent>();
                 LoggingSystem.Info("✓ PlaylistToggleComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -159,7 +159,7 @@ namespace BackSpeakerMod
             try
             {
                 LoggingSystem.Info("Registering HelpTextComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.HelpTextComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.HelpTextComponent>();
                 LoggingSystem.Info("✓ HelpTextComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -169,7 +169,7 @@ namespace BackSpeakerMod
 
             try {
                 LoggingSystem.Info("Registering YouTubeMusicProvider...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.YouTubeMusicProvider>();
+                IL2CPPHelper.RegisterIl2CppType<Core.Modules.YouTubeMusicProvider>();
                 LoggingSystem.Info("✓ YouTubeMusicProvider registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -179,7 +179,7 @@ namespace BackSpeakerMod
 
             try {
                 LoggingSystem.Info("Registering YouTubePopupComponent...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.YouTubePopupComponent>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.YouTubePopupComponent>();
                 LoggingSystem.Info("✓ YouTubePopupComponent registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -189,7 +189,7 @@ namespace BackSpeakerMod
 
             try {
                 LoggingSystem.Info("Registering LocalFolderMusicProvider...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<Core.Modules.LocalFolderMusicProvider>();
+                IL2CPPHelper.RegisterIl2CppType<Core.Modules.LocalFolderMusicProvider>();
                 LoggingSystem.Info("✓ LocalFolderMusicProvider registered successfully", "Mod");
             }
             catch (System.Exception ex)
@@ -199,7 +199,7 @@ namespace BackSpeakerMod
 
             try {
                 LoggingSystem.Info("Registering PopupManager...", "Mod");
-                ClassInjector.RegisterTypeInIl2Cpp<UI.Components.PopupManager>();
+                IL2CPPHelper.RegisterIl2CppType<UI.Components.PopupManager>();
                 LoggingSystem.Info("✓ PopupManager registered successfully", "Mod");
             }
             catch (System.Exception ex)

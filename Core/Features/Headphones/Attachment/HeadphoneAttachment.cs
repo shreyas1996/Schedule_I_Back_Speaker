@@ -5,6 +5,7 @@ using BackSpeakerMod.Configuration;
 using BackSpeakerMod.Core.Features.Player;
 using BackSpeakerMod.Core.Features.Headphones.Managers;
 using System;
+using BackSpeakerMod.S1Wrapper.Interfaces;
 
 namespace BackSpeakerMod.Core.Features.Headphones.Attachment
 {
@@ -17,7 +18,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         private readonly HeadphoneState state;
         private readonly HeadphoneCameraManager cameraManager;
         private GameObject? currentHeadphoneInstance;
-        private Il2CppScheduleOne.PlayerScripts.Player? attachedPlayer;
+        private IPlayer? attachedPlayer;
         private bool isAttached;
         private float attachmentTime;
         private HeadphoneState? currentState;
@@ -45,7 +46,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         /// <summary>
         /// Attach headphones to player's head
         /// </summary>
-        public bool AttachToPlayer(GameObject headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player? player = null)
+        public bool AttachToPlayer(GameObject headphonePrefab, IPlayer? player = null)
         {
             if (!FeatureFlags.Headphones.Enabled)
             {
@@ -60,7 +61,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
             }
 
             // Use provided player or find local player
-            player ??= Il2CppScheduleOne.PlayerScripts.Player.Local;
+            player ??= PlayerManager.CurrentPlayer;
             if (player == null)
             {
                 LoggingSystem.Warning("Cannot attach headphones - no player found", "Headphones");
@@ -76,7 +77,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
 
             try
             {
-                LoggingSystem.Info($"Attaching headphones to player: {player.name}", "Headphones");
+                LoggingSystem.Info($"Attaching headphones to player: {player.Name}", "Headphones");
 
                 // Create headphone instance - persist across scenes since it's attached to player
                 currentHeadphoneInstance = UnityEngine.Object.Instantiate(headphonePrefab);
@@ -141,7 +142,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
                 currentState.AttachedTo = headTransform ?? player.transform;
                 currentState.AttachmentTime = attachmentTime;
 
-                LoggingSystem.Info($"✓ Headphones successfully attached to {player.name} with camera management", "Headphones");
+                LoggingSystem.Info($"✓ Headphones successfully attached to {player.Name} with camera management", "Headphones");
                 return true;
             }
             catch (Exception ex)
@@ -277,7 +278,7 @@ namespace BackSpeakerMod.Core.Features.Headphones.Attachment
         /// <summary>
         /// Toggle headphones on/off
         /// </summary>
-        public bool ToggleAttachment(GameObject? headphonePrefab, Il2CppScheduleOne.PlayerScripts.Player? player = null)
+        public bool ToggleAttachment(GameObject? headphonePrefab, IPlayer? player = null)
         {
             if (state.IsAttached)
             {

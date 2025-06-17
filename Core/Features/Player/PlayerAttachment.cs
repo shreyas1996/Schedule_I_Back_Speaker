@@ -5,18 +5,19 @@ using BackSpeakerMod.Configuration;
 using MelonLoader;
 using System;
 using BackSpeakerMod.Core.Features.Player;
+using BackSpeakerMod.S1Wrapper.Interfaces;
 
 namespace BackSpeakerMod.Core.Features.Player
 {
     public class PlayerAttachment
     {
         // State tracking
-        private Il2CppScheduleOne.PlayerScripts.Player? currentPlayer = null;
+        private IPlayer? currentPlayer = null;
         private GameObject? speakerObject = null;
         private AudioSource? audioSource = null;
         
         // Static reference to current player (set by Harmony patch)
-        public static Il2CppScheduleOne.PlayerScripts.Player? CurrentPlayerInstance = null;
+        public static IPlayer? CurrentPlayerInstance = null;
         
         /// <summary>
         /// Event fired when speaker is attached to player
@@ -69,7 +70,7 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Handle player ready event from PlayerManager
         /// </summary>
-        private void OnPlayerReady(Il2CppScheduleOne.PlayerScripts.Player player)
+        private void OnPlayerReady(IPlayer player)
         {
             // Wait for headphones before attaching speaker
         }
@@ -77,7 +78,7 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Handle player lost event from PlayerManager
         /// </summary>
-        private void OnPlayerLost(Il2CppScheduleOne.PlayerScripts.Player player)
+        private void OnPlayerLost(IPlayer player)
         {
             LoggingSystem.Debug("Player lost", "PlayerAttachment");
             CleanupSpeaker(onPlayerLost: true);
@@ -120,7 +121,7 @@ namespace BackSpeakerMod.Core.Features.Player
             }
         }
 
-        private void AttachSpeakerToPlayer(Il2CppScheduleOne.PlayerScripts.Player player)
+        private void AttachSpeakerToPlayer(IPlayer player)
         {
             try
             {
@@ -167,6 +168,6 @@ namespace BackSpeakerMod.Core.Features.Player
         }
 
         public AudioSource? GetAudioSource() => audioSource;
-        public Il2CppScheduleOne.PlayerScripts.Player? GetCurrentPlayer() => currentPlayer;
+        public IPlayer? GetCurrentPlayer() => currentPlayer;
     }
-} 
+}

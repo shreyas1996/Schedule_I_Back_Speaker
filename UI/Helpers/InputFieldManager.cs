@@ -2,9 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;  // Added for BaseEventData
-using Il2CppScheduleOne;
-using Il2CppScheduleOne.UI.Phone;
-using Il2CppScheduleOne.DevUtilities;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.Core.System;
 
 namespace BackSpeakerMod.UI.Helpers
@@ -15,7 +14,7 @@ namespace BackSpeakerMod.UI.Helpers
     public static class InputFieldManager
     {
         private static bool isInputFieldFocused = false;
-        private static Phone? cachedPhoneInstance = null;
+        private static IPhone? cachedPhoneInstance = null;
         private static EventTrigger? currentEventTrigger = null;
         private static bool wasPhoneOpen = false;
 
@@ -66,7 +65,7 @@ namespace BackSpeakerMod.UI.Helpers
                 // Store phone state
                 if (cachedPhoneInstance == null)
                 {
-                    cachedPhoneInstance = PlayerSingleton<Phone>.instance;
+                    cachedPhoneInstance = S1Phone.Instance;
                     LoggingSystem.Debug("Caching phone instance", "UI");
                 }
 
@@ -77,7 +76,7 @@ namespace BackSpeakerMod.UI.Helpers
                 }
 
                 // Update game state
-                GameInput.IsTyping = true;
+                S1GameInput.IsTyping = true;
                 DisablePhoneKeybinds();
             }
         }
@@ -88,7 +87,7 @@ namespace BackSpeakerMod.UI.Helpers
             {
                 LoggingSystem.Debug($"Input field deselected - Final value: {value}", "UI");
                 isInputFieldFocused = false;
-                GameInput.IsTyping = false;
+                S1GameInput.IsTyping = false;
 
                 // Only re-enable phone if it was previously open
                 if (wasPhoneOpen)
@@ -108,9 +107,9 @@ namespace BackSpeakerMod.UI.Helpers
             {
                 if (cachedPhoneInstance != null)
                 {
-                    LoggingSystem.Debug($"Disabling phone keybinds - Current state: {cachedPhoneInstance.enabled}", "UI");
+                    LoggingSystem.Debug($"Disabling phone keybinds - Current state: {cachedPhoneInstance.Enabled}", "UI");
                     // Disable the phone script while typing to prevent keybind interference
-                    cachedPhoneInstance.enabled = false;
+                    cachedPhoneInstance.Enabled = false;
                     LoggingSystem.Debug("Phone keybinds disabled successfully", "UI");
                 }
             }
@@ -130,7 +129,7 @@ namespace BackSpeakerMod.UI.Helpers
                     if (wasPhoneOpen && cachedPhoneInstance.IsOpen)
                     {
                         LoggingSystem.Debug("Re-enabling phone keybinds", "UI");
-                        cachedPhoneInstance.enabled = true;
+                        cachedPhoneInstance.Enabled = true;
                         LoggingSystem.Debug("Phone keybinds restored successfully", "UI");
                     }
                     else
@@ -153,7 +152,7 @@ namespace BackSpeakerMod.UI.Helpers
             {
                 LoggingSystem.Debug("Cleaning up focused input field state", "UI");
                 isInputFieldFocused = false;
-                GameInput.IsTyping = false;
+                S1GameInput.IsTyping = false;
                 
                 // Only attempt to restore phone state if it was open
                 if (wasPhoneOpen && cachedPhoneInstance != null)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Il2CppScheduleOne.PlayerScripts;
+using BackSpeakerMod.S1Wrapper.Interfaces;
+using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.Configuration;
 using MelonLoader;
 using System;
@@ -18,17 +19,17 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Event fired when player is detected and ready
         /// </summary>
-        public static event global::System.Action<Il2CppScheduleOne.PlayerScripts.Player>? OnPlayerReady;
+        public static event global::System.Action<IPlayer>? OnPlayerReady;
 
         /// <summary>
         /// Event fired when player is lost (scene change, etc.)
         /// </summary>
-        public static event global::System.Action<Il2CppScheduleOne.PlayerScripts.Player>? OnPlayerLost;
+        public static event global::System.Action<IPlayer>? OnPlayerLost;
 
         /// <summary>
         /// Current detected player
         /// </summary>
-        public static Il2CppScheduleOne.PlayerScripts.Player? CurrentPlayer { get; private set; }
+        public static IPlayer? CurrentPlayer { get; private set; }
 
         /// <summary>
         /// Whether we're currently in the main game scene
@@ -143,7 +144,7 @@ namespace BackSpeakerMod.Core.Features.Player
             
             while (IsActive && IsInMainScene && elapsed < timeout)
             {
-                var player = Il2CppScheduleOne.PlayerScripts.Player.Local;
+                var player = S1Factory.GetLocalPlayer();
                 if (player != null && IsPlayerValid(player))
                 {
                     LoggingSystem.Info("Player detected and validated!", "PlayerManager");
@@ -167,14 +168,14 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Validate that the player is properly initialized
         /// </summary>
-        private static bool IsPlayerValid(Il2CppScheduleOne.PlayerScripts.Player player)
+        private static bool IsPlayerValid(IPlayer player)
         {
             try
             {
                 // Basic validation checks
-                return player != null && 
-                       player.gameObject != null && 
-                       player.gameObject.activeInHierarchy &&
+                return player != null &&
+                       player.GameObject != null &&
+                       player.GameObject.activeInHierarchy &&
                        player.Avatar != null;
             }
             catch (Exception ex)
@@ -187,12 +188,12 @@ namespace BackSpeakerMod.Core.Features.Player
         /// <summary>
         /// Set the current player and notify listeners
         /// </summary>
-        private static void SetCurrentPlayer(Il2CppScheduleOne.PlayerScripts.Player player)
+        private static void SetCurrentPlayer(IPlayer player)
         {
             if (CurrentPlayer == player) return;
             
             CurrentPlayer = player;
-            LoggingSystem.Info($"Player set: {player.name}", "PlayerManager");
+            LoggingSystem.Info($"Player set: {player.Name}", "PlayerManager");
             
             try
             {
