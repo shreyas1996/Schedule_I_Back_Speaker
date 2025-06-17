@@ -5,6 +5,10 @@ namespace BackSpeakerMod.S1Wrapper
     public static class S1Environment
     {
         private static bool? _isIl2Cpp;
+
+        /// <summary>
+        /// Returns <c>true</c> when the Il2CppInterop runtime is available.
+        /// </summary>
         public static bool IsIl2Cpp
         {
             get
@@ -13,7 +17,9 @@ namespace BackSpeakerMod.S1Wrapper
                 {
                     try
                     {
-                        _isIl2Cpp = Type.GetType("Il2CppInterop.Runtime.Il2Cpp" + "String", throwOnError: false) != null;
+                        _isIl2Cpp = Type.GetType(
+                            "Il2CppInterop.Runtime.Injection.ClassInjector, Il2CppInterop.Runtime",
+                            throwOnError: false) != null;
                     }
                     catch
                     {
