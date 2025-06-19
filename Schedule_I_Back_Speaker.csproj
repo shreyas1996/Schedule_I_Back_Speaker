@@ -8,48 +8,33 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ScheduleOnePath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/</ScheduleOnePath>
+    <ScheduleOneMonoPath>$(ScheduleOnePath)\Schedule I_Data\Managed</ScheduleOneMonoPath>
+    <ScheduleOneIl2CppPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies</ScheduleOneIl2CppPath>
   </PropertyGroup>
 
-  <!-- Debug Configuration -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DefineConstants>DEBUG;TRACE;VERBOSE_LOGGING</DefineConstants>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <Optimize>false</Optimize>
+    <!-- This is used to define the IL2CPP configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'DEBUG_IL2CPP'">
+    <!-- Define bus configurations (Debug or Release) -->
+    <DefineConstants>IL2CPP;DEBUG</DefineConstants>
   </PropertyGroup>
 
-  <!-- Release Configuration -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DefineConstants>RELEASE;MINIMAL_LOGGING</DefineConstants>
-    <DebugType>pdbonly</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <Optimize>true</Optimize>
+  <!-- This is used to define the Mono configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'DEBUG_MONO'">
+    <DefineConstants>MONO;DEBUG</DefineConstants>
   </PropertyGroup>
 
-  <!-- Verbose Configuration (optimized with debug logging) -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Verbose'">
-    <DefineConstants>RELEASE;VERBOSE_LOGGING</DefineConstants>
-    <DebugType>pdbonly</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <Optimize>true</Optimize>
-  </PropertyGroup>
-
-  <!-- Minimal Configuration (errors only) -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Minimal'">
-    <DefineConstants>RELEASE;MINIMAL_LOGGING</DefineConstants>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>true</Optimize>
-  </PropertyGroup>
-
-  <!-- IL2CPP Configuration (if needed) -->
+  <!-- This is used to define the IL2CPP configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'IL2CPP'">
-    <DefineConstants>IL2CPP;RELEASE;MINIMAL_LOGGING</DefineConstants>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>true</Optimize>
+    <DefineConstants>IL2CPP</DefineConstants>
   </PropertyGroup>
 
+  <!-- This is used to define the Mono configuration -->
+
+  <PropertyGroup Condition="'$(Configuration)' == 'MONO'">
+    <DefineConstants>MONO</DefineConstants>
+  </PropertyGroup>
+
+  <!-- This is used to define the Embedded Resources -->
   <ItemGroup>
 
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
@@ -62,6 +47,7 @@
 
   </ItemGroup>
   
+  <!-- This is used to define the Compile References -->
   <ItemGroup>
     <Compile Remove="my_references\**\*.cs" />
 
@@ -70,69 +56,74 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
     <!-- Audio loading dependencies -->
+
+  </ItemGroup>
+
+  <!-- This is used to define the IL2CPP References -->
+  <ItemGroup Condition="'$(Configuration)' == 'IL2CPP' OR '$(Configuration)' == 'DEBUG_IL2CPP'">
    
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Il2CppFishNet.Runtime">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2CppFishNet.Runtime.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\Il2CppFishNet.Runtime.dll</HintPath>
 		</Reference>
     <Reference Include="Il2Cppmscorlib">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\Il2Cppmscorlib.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.AudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Il2CppAssetBundleManager.dll">
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\UnityEngine.Il2CppAssetBundleManager.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UnityWebRequestModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.TextRenderingModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.TextRenderingModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UI.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIElementsModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UIElementsModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UIElementsModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.UIModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.UIModule.dll</HintPath>
 		</Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.ImageConversionModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.ImageConversionModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.IMGUIModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.IMGUIModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.IMGUIModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.InputLegacyModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.InputLegacyModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.InputModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.InputModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.InputModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.JSONSerializeModule">
-			<HintPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies\UnityEngine.JSONSerializeModule.dll</HintPath>
+			<HintPath>$(ScheduleOneIl2CppPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
 		</Reference>
     <Reference Include="MelonLoader">
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\MelonLoader.dll</HintPath>
@@ -146,6 +137,35 @@
     <Reference Include="Il2CppInterop.Common">
       <HintPath>$(ScheduleOnePath)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <!-- This is used to define the Mono References -->
+  <ItemGroup Condition="'$(Configuration)' == 'MONO' OR '$(Configuration)' == 'DEBUG_MONO'">
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2CppFishNet.Runtime">
+      <HintPath>$(ScheduleOneMonoPath)\Il2CppFishNet.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(ScheduleOneMonoPath)\Il2Cppmscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.AssetBundleModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+
   </ItemGroup>
 
 </Project>
