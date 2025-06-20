@@ -87,74 +87,76 @@ namespace BackSpeakerMod.NewBackend.Utils
         /// <summary>
         /// Log debug information (hidden by default)
         /// </summary>
-        public static void Debug(string message, string category = "General")
+        /// 
+        // change the categories to args that can be any number of strings with a default of "General"
+        public static void Debug(string message, params string[] categories)
         {
 #if !MINIMAL_LOGGING
-            Log(NewLogLevel.Debug, message, category);
+            Log(NewLogLevel.Debug, message, categories);
 #endif
         }
 
         /// <summary>
         /// Log important information
         /// </summary>
-        public static void Info(string message, string category = "General")
+        public static void Info(string message, params string[] categories)
         {
 #if !MINIMAL_LOGGING
-            Log(NewLogLevel.Info, message, category);
+            Log(NewLogLevel.Info, message, categories);
 #endif
         }
 
         /// <summary>
         /// Log warnings and concerning events
         /// </summary>
-        public static void Warning(string message, string category = "General")
+        public static void Warning(string message, params string[] categories)
         {
-            Log(NewLogLevel.Warning, message, category);  // Always log warnings
+            Log(NewLogLevel.Warning, message, categories);  // Always log warnings
         }
 
         /// <summary>
         /// Log errors and critical issues
         /// </summary>
-        public static void Error(string message, string category = "General")
+        public static void Error(string message, params string[] categories)
         {
-            Log(NewLogLevel.Error, message, category);  // Always log errors
+            Log(NewLogLevel.Error, message, categories);  // Always log errors
         }
 
         /// <summary>
         /// Verbose debug logging (only in debug builds)
         /// </summary>
-        public static void Verbose(string message, string category = "General")
+        public static void Verbose(string message, params string[] categories)
         {
 #if DEBUG || VERBOSE_LOGGING
-            Log(NewLogLevel.Debug, $"[VERBOSE] {message}", category);
+            Log(NewLogLevel.Debug, $"[VERBOSE] {message}", categories);
 #endif
         }
 
         /// <summary>
         /// Performance logging (only in debug builds)
         /// </summary>
-        public static void Performance(string message, string category = "Performance")
+        public static void Performance(string message, params string[] categories)
         {
 #if DEBUG
-            Log(NewLogLevel.Debug, $"[PERF] {message}", category);
+            Log(NewLogLevel.Debug, $"[PERF] {message}", categories);
 #endif
         }
 
         /// <summary>
         /// Internal logging method with level filtering
         /// </summary>
-        private static void Log(NewLogLevel level, string message, string category)
+        private static void Log(NewLogLevel level, string message, params string[] categories)
         {
             if (!Enabled || level < MinLevel) return;
 
-            var prefix = GetLogPrefix(level, category);
+            var prefix = GetLogPrefix(level, categories);
             MelonLogger.Msg($"{prefix}{message}");
         }
 
         /// <summary>
         /// Get formatted log prefix based on level and category
         /// </summary>
-        private static string GetLogPrefix(NewLogLevel level, string category)
+        private static string GetLogPrefix(NewLogLevel level, params string[] categories)
         {
             var levelStr = level switch
             {
@@ -164,8 +166,21 @@ namespace BackSpeakerMod.NewBackend.Utils
                 NewLogLevel.Error => "[ERROR]",
                 _ => "[LOG]"
             };
+            // if no categories are provided, use "General"
+            if(categories.Length == 0)
+            {
+                categories = new string[] { "General" };
+            }
 
-            return $"{levelStr}[{category}] ";
+            // reverse the categories
+            Array.Reverse(categories);
+            // wrap each category in square brackets
+            for(int i = 0; i < categories.Length; i++)
+            {
+                categories[i] = $"[{categories[i]}]";
+            }
+
+            return $"{levelStr} {string.Join(" ", categories)} ";
         }
 
         /// <summary>

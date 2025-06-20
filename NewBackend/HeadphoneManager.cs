@@ -9,14 +9,30 @@ using BackSpeakerMod.NewBackend.Configs;
 
 namespace BackSpeakerMod.NewBackend
 {
+    public enum S1CameraModeState {
+        Default,
+        Skateboard,
+        Vehicle,
+        FreeCam,
+        ViewingAvatar
+    }
     /// <summary>
     /// Manages headphone asset loading and attachment to player
     /// </summary>
     public class HeadphoneManager
     {
         private IPlayer? _player;
+        private IPlayerCamera? _playerCamera;
         private GameObject? _headphoneObject;
         private bool _headphonesAttached = false;
+        private S1CameraMode _lastCameraMode = S1CameraMode.Default;
+        private bool _lastFreeCamState = false;
+        private bool _lastViewingAvatarState = false;
+        private S1CameraModeState _lastCameraModeState = S1CameraModeState.Default;
+        
+        // Timing for camera state checks
+        private float _lastCameraCheckTime = 0f;
+        private const float CAMERA_CHECK_INTERVAL = 0.1f; // Check every 100ms instead of every frame
         
         private readonly string _assetBundleName = "BackSpeakerMod.EmbeddedResources.scheduleoneheadphones";
         public event Action<bool>? OnHeadphonesStateChanged;
@@ -29,6 +45,7 @@ namespace BackSpeakerMod.NewBackend
         public IEnumerator Initialize(IPlayer player)
         {
             _player = player;
+            _playerCamera = new S1PlayerCamera().GetCamera();
             NewLoggingSystem.Info("Initializing HeadphoneManager", "HeadphoneManager");
 
             try
@@ -147,6 +164,9 @@ namespace BackSpeakerMod.NewBackend
             NewLoggingSystem.Debug("Applying shader and materials to headphone object", "HeadphoneManager");
             FixShaderAndMaterial.ApplyShaderAndMaterials(_headphoneObject);
             NewLoggingSystem.Debug("✓ Shader and materials applied to headphone object", "HeadphoneManager");
+
+            // Set camera based visibility
+            ForceUpdateCameraBasedVisibility();
             
             UnityEngine.Object.DontDestroyOnLoad(_headphoneObject);
             
@@ -176,6 +196,133 @@ namespace BackSpeakerMod.NewBackend
                 _headphonesAttached = false;
                 OnHeadphonesStateChanged?.Invoke(false);
                 NewLoggingSystem.Info("✓ Headphones detached from player", "HeadphoneManager");
+            }
+        }
+
+        public void Update()
+        {
+            CameraBasedVisibility();
+        }
+
+        public void ForceUpdateCameraBasedVisibility()
+        {
+            if(_headphoneObject == null) {
+                NewLoggingSystem.Error("Headphone object is null", "ForceUpdateCameraBasedVisibility", "HeadphoneManager");
+                return;
+            }
+            if(_playerCamera == null) {
+                NewLoggingSystem.Error("Player camera is null", "ForceUpdateCameraBasedVisibility", "HeadphoneManager");
+                return;
+            }
+            int targetLayer = GetTargetLayerBasedOnCameraMode();
+            S1DevUtilities.SetLayerRecursively(_headphoneObject, targetLayer);
+            NewLoggingSystem.Debug($"Force updated camera based visibility, setting layer to {targetLayer}", "HeadphoneManager");
+        }
+
+        public void CameraBasedVisibility()
+        {
+            if (_headphoneObject != null) {
+                if(_headphonesAttached) {
+                    if(_playerCamera == null) {
+                        NewLoggingSystem.Error("Player camera is null", "HeadphoneManager");
+                        return;
+                    }
+                    
+                    // Only check camera state periodically to reduce spam
+                    if (UnityEngine.Time.time - _lastCameraCheckTime >= CAMERA_CHECK_INTERVAL)
+                    {
+                        _lastCameraCheckTime = UnityEngine.Time.time;
+                        var isCameraStateChanged = CheckCameraStateChanges();
+                        if(isCameraStateChanged) {
+                            int targetLayer = GetTargetLayerBasedOnCameraMode();
+                            S1DevUtilities.SetLayerRecursively(_headphoneObject, targetLayer);
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool CheckCameraStateChanges()
+        {
+            if(_playerCamera == null) {
+                NewLoggingSystem.Error("Player camera is null", "HeadphoneManager");
+                return false;
+            }
+            
+            try
+            {
+                var currentCameraMode = _playerCamera.CameraMode;
+                var currentFreeCamState = _playerCamera.FreeCamEnabled;
+                var currentViewingAvatarState = _playerCamera.ViewingAvatar;
+                
+                // Determine current camera mode state based on all factors
+                S1CameraModeState currentCameraModeState = DetermineCurrentCameraModeState(
+                    currentCameraMode, currentFreeCamState, currentViewingAvatarState);
+                
+                // Check if anything actually changed
+                bool changed = 
+                    _lastCameraMode != currentCameraMode ||
+                    _lastFreeCamState != currentFreeCamState ||
+                    _lastViewingAvatarState != currentViewingAvatarState ||
+                    _lastCameraModeState != currentCameraModeState;
+                
+                if (changed)
+                {
+                    NewLoggingSystem.Debug($"Camera state changed: Mode={currentCameraMode}, FreeCam={currentFreeCamState}, ViewingAvatar={currentViewingAvatarState}, State={currentCameraModeState}", "HeadphoneManager");
+                    
+                    // Update tracked values
+                    _lastCameraMode = currentCameraMode;
+                    _lastFreeCamState = currentFreeCamState;
+                    _lastViewingAvatarState = currentViewingAvatarState;
+                    _lastCameraModeState = currentCameraModeState;
+                }
+                
+                return changed;
+            }
+            catch (System.Exception ex)
+            {
+                NewLoggingSystem.Error($"Error checking camera state: {ex.Message}", "HeadphoneManager");
+                return false;
+            }
+        }
+        
+        private S1CameraModeState DetermineCurrentCameraModeState(S1CameraMode cameraMode, bool freeCamEnabled, bool viewingAvatar)
+        {
+            // Priority order: FreeCam > ViewingAvatar > Vehicle > Skateboard > Default
+            if (freeCamEnabled)
+                return S1CameraModeState.FreeCam;
+            
+            if (viewingAvatar)
+                return S1CameraModeState.ViewingAvatar;
+                
+            if (cameraMode == S1CameraMode.Vehicle)
+                return S1CameraModeState.Vehicle;
+                
+            if (cameraMode == S1CameraMode.Skateboard)
+                return S1CameraModeState.Skateboard;
+                
+            return S1CameraModeState.Default;
+        }
+
+        public int GetTargetLayerBasedOnCameraMode()
+        {
+            if(_playerCamera == null) {
+                NewLoggingSystem.Error("Player camera is null", "HeadphoneManager");
+                return 0;
+            }
+            
+            // In first person mode (Default with no overrides), hide headphones
+            bool isFirstPersonMode = _lastCameraModeState == S1CameraModeState.Default;
+            
+            if (isFirstPersonMode)
+            {
+                NewLoggingSystem.Debug("Camera state is first person (Default), setting layer to 31 (hidden)", "HeadphoneManager");
+                return 31; // Third person only layer - invisible in first person
+            }
+            else
+            {
+                NewLoggingSystem.Debug($"Camera state is third person ({_lastCameraModeState}), setting layer to 0 (visible)", "HeadphoneManager");
+                return 0; // Default layer - visible in third person modes
             }
         }
 

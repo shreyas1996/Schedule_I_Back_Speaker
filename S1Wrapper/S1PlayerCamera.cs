@@ -5,14 +5,8 @@ namespace BackSpeakerMod.S1Wrapper
     public class S1PlayerCamera : IPlayerCamera
     {
         private readonly IPlayerCamera? _camera;
-        public static IPlayerCamera? Instance { get; private set; }
-        private S1PlayerCamera()
+        public S1PlayerCamera()
         {
-            if (Instance != null)
-            {
-                // LoggingSystem.Warning("S1PlayerCamera instance already exists, skipping initialization");
-                return;
-            }
             #if IL2CPP
                 if (S1Environment.IsIl2Cpp)
                 {
@@ -21,9 +15,9 @@ namespace BackSpeakerMod.S1Wrapper
             #else
                 _camera = new Mono.MonoPlayerCamera(ScheduleOne.PlayerScripts.PlayerCamera.Instance);
             #endif
-            Instance = this;
-            // LoggingSystem.Info("S1PlayerCamera instance created");
         }
+
+        public IPlayerCamera? GetCamera() => _camera;
         public S1CameraMode CameraMode => _camera?.CameraMode ?? S1CameraMode.Default;
         public bool FreeCamEnabled => _camera?.FreeCamEnabled ?? false;
         public bool ViewingAvatar => _camera?.ViewingAvatar ?? false;

@@ -119,6 +119,13 @@ namespace BackSpeakerMod.NewBackend
         public System.Collections.Generic.List<NewSongDetails> GetPlaylistTracks(string playlistName, string source) => _playlistManager?.GetPlaylistTracks(playlistName, source) ?? new System.Collections.Generic.List<NewSongDetails>();
         public bool CreatePlaylist(string playlistName, string source) => _playlistManager?.CreatePlaylist(playlistName, source) ?? false;
         public bool DeletePlaylist(string playlistName, string source) => _playlistManager?.DeletePlaylist(playlistName, source) ?? false;
+
+        public void Update()
+        {
+            if(_headphoneManager != null) {
+                _headphoneManager.Update();
+            }
+        }
         
         public void Shutdown()
         {

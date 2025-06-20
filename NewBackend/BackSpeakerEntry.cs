@@ -67,6 +67,13 @@ namespace BackSpeakerMod.NewBackend
                 ShutdownSystem();
             }
         }
+
+        public override void OnUpdate()
+        {
+            if(_mainManager != null) {
+                _mainManager.Update();
+            }
+        }
         
         private bool IsMainScene(string sceneName)
         {
