@@ -45,7 +45,7 @@ namespace BackSpeakerMod.UIWrapper
                 }
 
                 // Find template app to clone from
-                var templateApp = appsCanvas.transform.FindChild(config.TemplateAppName);
+                var templateApp = FindChild(appsCanvas.transform, config.TemplateAppName);
                 if (templateApp == null)
                 {
                     result.ErrorMessage = $"Template app '{config.TemplateAppName}' not found";
@@ -123,14 +123,14 @@ namespace BackSpeakerMod.UIWrapper
                 TitleColor = Color.white,
                 BackgroundColor = new Color(0.1f, 0.1f, 0.1f, 1f),
                 ClearExistingContent = true,
-                ReuseLastIcon = true,
+                ReuseLastIcon = false, // Always create new icons to prevent conflicts
                 OnAppIconClick = () => OnBackSpeakerAppIconClick(appName)
             };
 
             var result = CreatePhoneApp(config);
             if (result.Success && result.CreatedApp != null && setupUI != null)
             {
-                var container = result.CreatedApp.transform.FindChild("Container");
+                var container = FindChild(result.CreatedApp.transform, "Container");
                 if (container != null)
                 {
                     setupUI(container);
@@ -149,7 +149,7 @@ namespace BackSpeakerMod.UIWrapper
             var appsCanvas = GetAppsCanvas();
             if (appsCanvas != null)
             {
-                var ourApp = appsCanvas.FindChild(appName);
+                var ourApp = FindChild(appsCanvas, appName);
                 if (ourApp != null)
                 {
                     ourApp.gameObject.SetActive(true);
@@ -207,6 +207,30 @@ namespace BackSpeakerMod.UIWrapper
             }
         }
 
+        /// <summary>
+        /// Find child transform by name (Unity-compatible)
+        /// </summary>
+        private static Transform? FindChild(Transform parent, string name)
+        {
+            if (parent == null) return null;
+            
+            // Use Find method for direct children
+            var child = parent.Find(name);
+            if (child != null) return child;
+            
+            // Fallback to manual search
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var childTransform = parent.GetChild(i);
+                if (childTransform.name == name)
+                {
+                    return childTransform;
+                }
+            }
+            
+            return null;
+        }
+
         #endregion
 
         #region Private Implementation
@@ -232,19 +256,14 @@ namespace BackSpeakerMod.UIWrapper
                     return result;
                 }
 
-                // Clone or reuse the last icon
-                GameObject appIcon;
-                if (config.ReuseLastIcon && iconCount > 0)
-                {
-                    appIcon = iconTemplate;
-                }
-                else
-                {
-                    appIcon = UnityEngine.Object.Instantiate(iconTemplate, appIcons.transform);
-                }
+                // Always create a new icon (never reuse existing ones directly to avoid conflicts)
+                GameObject appIcon = UnityEngine.Object.Instantiate(iconTemplate, appIcons.transform);
+                
+                // Set unique name for the new icon
+                appIcon.name = config.AppName + "_Icon";
 
                 // Update icon label
-                var labelTransform = appIcon.transform.FindChild("Label");
+                var labelTransform = FindChild(appIcon.transform, "Label");
                 if (labelTransform != null)
                 {
                     var labelText = labelTransform.GetComponent<Text>();
@@ -257,7 +276,7 @@ namespace BackSpeakerMod.UIWrapper
                 // Update icon sprite
                 if (config.IconSprite != null)
                 {
-                    var maskTransform = appIcon.transform.FindChild("Mask");
+                    var maskTransform = FindChild(appIcon.transform, "Mask");
                     if (maskTransform != null && maskTransform.childCount > 0)
                     {
                         var iconImage = maskTransform.GetChild(0).GetComponent<Image>();
@@ -330,11 +349,12 @@ namespace BackSpeakerMod.UIWrapper
         {
             try
             {
-                var container = appCanvas.transform.FindChild("Container");
+                var container = FindChild(appCanvas.transform, "Container");
                 if (container == null) return;
 
                 // Update topbar title
-                var topbarTitle = container.FindChild("Topbar")?.FindChild("Title");
+                var topbar = FindChild(container, "Topbar");
+                var topbarTitle = topbar != null ? FindChild(topbar, "Title") : null;
                 if (topbarTitle != null)
                 {
                     var titleText = topbarTitle.GetComponent<Text>();
@@ -346,7 +366,7 @@ namespace BackSpeakerMod.UIWrapper
                 }
 
                 // Update background color
-                var background = container.FindChild("Background");
+                var background = FindChild(container, "Background");
                 if (background != null)
                 {
                     var backgroundImage = background.GetComponent<Image>();
@@ -373,14 +393,14 @@ namespace BackSpeakerMod.UIWrapper
             try
             {
                 // Remove common content elements but keep structure
-                var scrollView = container.FindChild("Scroll View");
+                var scrollView = FindChild(container, "Scroll View");
                 if (scrollView != null)
                 {
                     scrollView.DetachChildren();
                     UnityEngine.Object.Destroy(scrollView.gameObject);
                 }
 
-                var details = container.FindChild("Details");
+                var details = FindChild(container, "Details");
                 if (details != null)
                 {
                     UnityEngine.Object.Destroy(details.gameObject);

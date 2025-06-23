@@ -4,6 +4,7 @@ using MelonLoader;
 using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.NewBackend.Utils;
+using BackSpeakerMod.NewFrontend;
 
 
 namespace BackSpeakerMod.NewBackend
@@ -37,6 +38,7 @@ namespace BackSpeakerMod.NewBackend
         private HeadphoneManager? _headphoneManager;
         private AudioManager? _audioManager;
         private PlaylistManager? _playlistManager;
+        private BackSpeakerPhoneApp? _phoneApp;
         
         // Core state
         private bool _isInitialized = false;
@@ -81,6 +83,10 @@ namespace BackSpeakerMod.NewBackend
             // Initialize playlist manager
             _playlistManager = new PlaylistManager();
             yield return MelonCoroutines.Start(_playlistManager.Initialize());
+            
+            // Initialize phone app
+            _phoneApp = new BackSpeakerPhoneApp();
+            _phoneApp.Initialize();
             
             // Subscribe to events
             if (_headphoneManager != null)
@@ -135,6 +141,7 @@ namespace BackSpeakerMod.NewBackend
             _audioManager?.Shutdown();
             _headphoneManager?.Shutdown();
             _playlistManager?.Shutdown();
+            _phoneApp?.Shutdown();
             
             // Clear references
             _currentPlayer = null;

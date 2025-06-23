@@ -6,83 +6,93 @@ using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.NewBackend.Utils;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using static BackSpeakerMod.S1Wrapper.Interfaces.ExitAction;
 
 namespace BackSpeakerMod.S1Wrapper.Il2Cpp
 {
+    /// <summary>
+    /// IL2CPP wrapper for Schedule I App<T> components
+    /// Provides access to ProductManagerApp and other app types
+    /// </summary>
     public class Il2CppApp : IApp
     {
-        private readonly object _app; // Use object to handle generic App<T>
+        private readonly object _app; // The actual App<T> component
         private readonly Type _appType;
+        private readonly GameObject _gameObject;
 
         public Il2CppApp(object app)
         {
             _app = app ?? throw new ArgumentNullException(nameof(app));
             _appType = app.GetType();
+            
+            // Get the GameObject from the component
+            if (_app is Component component)
+            {
+                _gameObject = component.gameObject;
+            }
+            else
+            {
+                throw new ArgumentException("App must be a Unity Component", nameof(app));
+            }
         }
 
+        // Basic app properties
         public string Name => GetProperty<string>("AppName") ?? "Unknown App";
         public bool IsRunning => GetProperty<bool>("isOpen");
         public Sprite? Icon => GetProperty<Sprite>("AppIcon");
         
+        // App lifecycle
         public void Start() => CallMethod("SetIsOpen", true);
         public void Stop() => CallMethod("SetIsOpen", false);
         public void OnClick(RaycastResult raycastResult) => CallMethod("ShortcutClicked");
         
+        // Generic data storage (not supported by Schedule I apps)
         public void SetData(string key, object value)
         {
-            // Apps don't have generic data storage, so this is a no-op for IL2CPP apps
+            NewLoggingSystem.Warning($"SetData not supported by Schedule I apps: {key}", "Il2CppApp");
         }
         
         public T GetData<T>(string key)
         {
-            // Apps don't have generic data storage, so return default
+            NewLoggingSystem.Warning($"GetData not supported by Schedule I apps: {key}", "Il2CppApp");
             return default(T);
         }
 
-        public string AppName => GetProperty<string>("AppName") ?? "Unknown App";
+        // App<T> specific properties
+        public string AppName 
+        { 
+            get => GetProperty<string>("AppName") ?? "Unknown App";
+            set => SetProperty("AppName", value);
+        }
         public string IconLabel => GetProperty<string>("IconLabel") ?? "Unknown";
         public Sprite AppIcon => GetProperty<Sprite>("AppIcon");
         public bool isOpen => GetProperty<bool>("isOpen");
 
+        // App<T> specific methods
         public void SetIsOpen(bool open) => CallMethod("SetIsOpen", open);
         public void SetOpen(bool open) => CallMethod("SetOpen", open);
         public void SetIsHorizontal(bool horizontal) => CallMethod("SetIsHorizontal", horizontal);
         public void SetLookOffsetMultiplier(float multiplier) => CallMethod("SetLookOffsetMultiplier", multiplier);
-        public void RequestCloseApp() => CallMethod("RequestCloseApp");
-        public void SetLookOffset(float lookOffset) => CallMethod("SetLookOffset", lookOffset);
         
-        public bool MouseRaycast(out RaycastResult result)
-        {
-            result = default;
-            try
-            {
-                var method = _appType.GetMethod("MouseRaycast");
-                if (method != null)
-                {
-                    var parameters = new object[] { null };
-                    var returnValue = method.Invoke(_app, parameters);
-                    if (returnValue is bool success)
-                    {
-                        if (parameters[0] is RaycastResult raycastResult)
-                        {
-                            result = raycastResult;
-                        }
-                        return success;
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Silently handle reflection failures
-            }
-            return false;
-        }
-
-        public void SetNotificationCount(int amount) => CallMethod("SetNotificationCount", amount);
-        public void GenerateHomeScreenIcon() => CallMethod("GenerateHomeScreenIcon");
+        // App<T> advanced properties
+        public bool IsHorizontal => GetProperty<bool>("IsHorizontal");
+        public float LookOffsetMultiplier => GetProperty<float>("LookOffsetMultiplier");
+        public Transform AppCanvas => _gameObject.transform;
+        public GameObject AppGameObject => _gameObject;
+        
+        // App<T> state management
+        public bool WasOpenLastFrame => GetProperty<bool>("WasOpenLastFrame");
+        public bool JustOpened => GetProperty<bool>("JustOpened");
+        public bool JustClosed => GetProperty<bool>("JustClosed");
+        
+        // App<T> events and callbacks
+        public void OnAppOpened() => CallMethod("OnAppOpened");
+        public void OnAppClosed() => CallMethod("OnAppClosed");
+        public void OnAppUpdate() => CallMethod("OnAppUpdate");
+        
+        // Phone integration
         public void ShortcutClicked() => CallMethod("ShortcutClicked");
-        public void Exit(ExitAction action) => CallMethod("Exit", action);
+        public void RegisterWithPhone() => CallMethod("RegisterWithPhone");
+        public void UnregisterFromPhone() => CallMethod("UnregisterFromPhone");
 
         private T GetProperty<T>(string propertyName)
         {
@@ -101,6 +111,22 @@ namespace BackSpeakerMod.S1Wrapper.Il2Cpp
                 // Silently handle reflection failures
             }
             return default(T);
+        }
+
+        private void SetProperty<T>(string propertyName, T value)
+        {
+            try
+            {
+                var property = _appType.GetProperty(propertyName);
+                if (property != null && property.CanWrite)
+                {
+                    property.SetValue(_app, value);
+                }
+            }
+            catch (Exception)
+            {
+                // Silently handle reflection failures
+            }
         }
 
         private void CallMethod(string methodName, params object[] parameters)
