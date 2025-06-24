@@ -1,119 +1,101 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace BackSpeakerMod.S1Wrapper.Interfaces
 {
     /// <summary>
-    /// Exit action for app closing
+    /// App orientation enum - matches App<T>.EOrientation exactly
     /// </summary>
-    public enum ExitAction
+    public enum EOrientation
     {
-        Close = 0,
-        Minimize = 1,
-        Hide = 2
+        Horizontal,
+        Vertical
     }
 
     /// <summary>
-    /// Unified interface for Schedule I App<T> components
-    /// Wraps both IL2CPP and Mono App implementations
+    /// Exit action for app closing
+    /// </summary>
+    public class ExitAction
+    {
+        public bool Used { get; set; }
+    }
+
+    /// <summary>
+    /// Interface for Schedule I App<T> wrapper - matches App<T> structure exactly
     /// </summary>
     public interface IApp
     {
-        // Basic app properties
-        string Name { get; }
-        bool IsRunning { get; }
-        Sprite? Icon { get; }
-        
-        // App lifecycle
-        void Start();
-        void Stop();
-        void OnClick(RaycastResult raycastResult);
-        
-        // Generic data storage
-        void SetData(string key, object value);
-        T GetData<T>(string key);
-
-        // App<T> specific properties (from Schedule I assembly)
-        string AppName { get; set; }
+        // Core Properties (from App<T>.cs)
+        bool isOpen { get; }
+        string AppName { get; }
         string IconLabel { get; }
         Sprite AppIcon { get; }
-        bool isOpen { get; }
-
-        // App<T> specific methods
-        void SetIsOpen(bool open);
+        EOrientation Orientation { get; }
+        bool AvailableInTutorial { get; }
+        
+        // Protected/Internal Properties
+        RectTransform appContainer { get; }
+        RectTransform notificationContainer { get; }
+        Text notificationText { get; }
+        Button appIconButton { get; }
+        
+        // Core Methods (from App<T>.cs)  
         void SetOpen(bool open);
-        void SetIsHorizontal(bool horizontal);
-        void SetLookOffsetMultiplier(float multiplier);
+        void SetNotificationCount(int amount);
+        void Exit(ExitAction exit);
         
-        // App<T> advanced properties
+        // Unity Component Access
+        Transform Transform { get; }
+        GameObject GameObject { get; }
+        
+        // Static App Management
+        List<IApp> Apps { get; }
+        IApp GetApp(int index);
+        
+        // Helper Properties
         bool IsHorizontal { get; }
+        bool IsVertical { get; }
         float LookOffsetMultiplier { get; }
-        Transform AppCanvas { get; }
-        GameObject AppGameObject { get; }
-        
-        // App<T> state management
-        bool WasOpenLastFrame { get; }
-        bool JustOpened { get; }
-        bool JustClosed { get; }
-        
-        // App<T> events and callbacks
-        void OnAppOpened();
-        void OnAppClosed();
-        void OnAppUpdate();
-        
-        // Phone integration
-        void ShortcutClicked();
-        void RegisterWithPhone();
-        void UnregisterFromPhone();
     }
 
     /// <summary>
-    /// Interface for Phone system wrapper
+    /// Interface for HomeScreen wrapper - matches HomeScreen.cs structure exactly
     /// </summary>
-    public interface IPhoneSystem
+    public interface IHomeScreen
     {
-        bool IsPhoneOpen { get; }
-        bool IsPhoneAvailable { get; }
-        Transform HomeScreen { get; }
-        Transform AppsCanvas { get; }
-        Transform AppIcons { get; }
+        // Core Properties (from HomeScreen.cs)
+        bool isOpen { get; }
         
-        void OpenPhone();
-        void ClosePhone();
-        void OpenApp(IApp app);
-        void CloseApp(IApp app);
-        void RegisterApp(IApp app);
-        void UnregisterApp(IApp app);
+        // Core Methods (from HomeScreen.cs)
+        void SetIsOpen(bool o);
+        void SetCanvasActive(bool a);
+        Button GenerateAppIcon<T>(IApp prog) where T : class;
         
-        IApp[] GetAllApps();
-        IApp? GetApp(string appName);
-        bool HasApp(string appName);
+        // Unity Component Access
+        Transform Transform { get; }
+        GameObject GameObject { get; }
+        Canvas canvas { get; }
     }
 
     /// <summary>
-    /// Interface for PlayerSingleton access
+    /// Interface for AppsCanvas wrapper - matches AppsCanvas.cs structure exactly
     /// </summary>
-    public interface IPlayerSingleton<T> where T : class
+    public interface IAppsCanvas
     {
-        T Instance { get; }
-        bool HasInstance { get; }
+        // Core Properties (from AppsCanvas.cs)
+        bool isOpen { get; }
+        
+        // Core Methods (from AppsCanvas.cs)
+        void SetIsOpen(bool o);
+        
+        // Unity Component Access
+        Transform Transform { get; }
+        GameObject GameObject { get; }
+        Canvas canvas { get; }
     }
 
-    /// <summary>
-    /// Interface for App Canvas management
-    /// </summary>
-    public interface IAppCanvas
-    {
-        Transform Container { get; }
-        Transform Topbar { get; }
-        Transform Background { get; }
-        Transform Content { get; }
-        
-        void SetTitle(string title);
-        void SetBackgroundColor(Color color);
-        void ClearContent();
-        void AddContent(GameObject content);
-        void SetHorizontalMode(bool horizontal);
-    }
+
 }

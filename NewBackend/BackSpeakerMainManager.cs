@@ -108,6 +108,9 @@ namespace BackSpeakerMod.NewBackend
         public NewSongDetails? GetCurrentTrack() => _audioManager?.GetCurrentTrack();
         public bool IsPlaying() => _audioManager?.IsPlaying() ?? false;
         
+        // PHASE 1: Phone app access for rotation debugging
+        public BackSpeakerPhoneApp? GetPhoneApp() => _phoneApp;
+        
         // Audio control
         public void Play() => _audioManager?.Play();
         public void Pause() => _audioManager?.Pause();
@@ -130,6 +133,11 @@ namespace BackSpeakerMod.NewBackend
         {
             if(_headphoneManager != null) {
                 _headphoneManager.Update();
+            }
+            
+            // PHASE 1: Portrait mode monitoring
+            if(_phoneApp != null) {
+                _phoneApp.Update();
             }
         }
         

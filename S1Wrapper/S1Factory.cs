@@ -265,10 +265,146 @@ namespace BackSpeakerMod.S1Wrapper
 
         #region App Creation and Management
 
+        private static void SetupPortraitContainer(Transform container, string appName)
+        {
+            var containerRect = container.GetComponent<RectTransform>();
+            if (containerRect == null)
+            {
+                NewLoggingSystem.Warning($"Container has no RectTransform in {appName}", "S1Factory");
+                return;
+            }
+            
+            NewLoggingSystem.Info($"Original container: Size={containerRect.sizeDelta}, Rotation={containerRect.localRotation.eulerAngles}, Scale={containerRect.localScale}", "S1Factory");
+            
+            // DEBUGGING: Let's trace the entire hierarchy and their sizes
+            NewLoggingSystem.Info("=== HIERARCHY DEBUG ===", "S1Factory");
+            var current = containerRect;
+            var level = 0;
+            while (current != null && level < 5)
+            {
+                var hierarchySize = new Vector2(current.rect.width, current.rect.height);
+                NewLoggingSystem.Info($"Level {level}: {current.name} - sizeDelta={current.sizeDelta}, actualSize={hierarchySize}, anchors=({current.anchorMin}, {current.anchorMax})", "S1Factory");
+                current = current.parent?.GetComponent<RectTransform>();
+                level++;
+            }
+            NewLoggingSystem.Info("=== END HIERARCHY DEBUG ===", "S1Factory");
+            
+            // STEP 1: Get the actual calculated size from Unity's layout system
+            // The container has sizeDelta=(0,0) but Unity calculates the actual size as (1201, 655)
+            var actualSize = new Vector2(containerRect.rect.width, containerRect.rect.height);
+            var originalSizeDelta = containerRect.sizeDelta;
+            var originalAnchors = $"min={containerRect.anchorMin}, max={containerRect.anchorMax}";
+            
+            NewLoggingSystem.Info($"Container original sizeDelta: {originalSizeDelta}, actualSize: {actualSize}, anchors: {originalAnchors}", "S1Factory");
+            
+            // STEP 2: Set explicit portrait dimensions and disable stretch behavior
+            // We need to break away from the landscape parent and set our own portrait size
+            if (actualSize.x > 0 && actualSize.y > 0)
+            {
+                // Swap dimensions for portrait: landscape width (1201) becomes portrait height
+                var portraitWidth = actualSize.y;   // 655 becomes width
+                var portraitHeight = actualSize.x;  // 1201 becomes height
+                
+                // Set explicit size instead of stretching
+                containerRect.sizeDelta = new Vector2(portraitWidth, portraitHeight);
+                
+                // Use center anchors so it doesn't stretch to fill parent
+                containerRect.anchorMin = new Vector2(0.5f, 0.5f);  // Center anchor
+                containerRect.anchorMax = new Vector2(0.5f, 0.5f);  // Center anchor
+                containerRect.anchoredPosition = Vector2.zero;      // Centered position
+                containerRect.pivot = new Vector2(0.5f, 0.5f);      // Center pivot
+                
+                // STEP 3: Rotate the container 90 degrees counter-clockwise for portrait orientation
+                // This makes the portrait-sized container display in portrait orientation
+                containerRect.localRotation = Quaternion.Euler(0, 0, 90);
+                
+                NewLoggingSystem.Info($"Container set to explicit portrait size: {containerRect.sizeDelta} and rotated 90°", "S1Factory");
+            }
+            else
+            {
+                NewLoggingSystem.Warning("Could not get actual container size, using fallback portrait dimensions", "S1Factory");
+                // Fallback portrait dimensions
+                containerRect.sizeDelta = new Vector2(655f, 1201f);
+                containerRect.anchorMin = new Vector2(0.5f, 0.5f);
+                containerRect.anchorMax = new Vector2(0.5f, 0.5f);
+                containerRect.anchoredPosition = Vector2.zero;
+                containerRect.pivot = new Vector2(0.5f, 0.5f);
+                containerRect.localRotation = Quaternion.Euler(0, 0, 90);
+            }
+
+            NewLoggingSystem.Info($"Configured container: Size={containerRect.sizeDelta}, Rotation={containerRect.localRotation.eulerAngles}, Scale={containerRect.localScale}", "S1Factory");
+            NewLoggingSystem.Info($"✓ Container configured for portrait mode during creation", "S1Factory");
+        }
+
+        /// <summary>
+        /// Configure the cloned app container for portrait mode
+        /// This sets up the container transformation during app creation, not runtime
+        /// </summary>
+        private static void ConfigureContainerOrientation(GameObject clonedCanvas, string appName, bool isPortrait)
+        {
+            try
+            {
+                NewLoggingSystem.Info($"🔄 Configuring container for portrait mode during app creation: {appName}", "S1Factory");
+                
+                // Find the app container within the cloned canvas
+                var container = FindAppContainer(clonedCanvas);
+                if (container == null)
+                {
+                    NewLoggingSystem.Warning($"No container found in {appName} app canvas", "S1Factory");
+                    return;
+                }
+
+                if(isPortrait) {
+                    SetupPortraitContainer(container, appName);
+                }
+                
+                // STEP 4: Fix background anchoring for portrait container
+                // The background needs to properly fill the portrait container
+                var background = container.Find("Background");
+                if (background != null)
+                {
+                    var backgroundRect = background.GetComponent<RectTransform>();
+                    if (backgroundRect != null)
+                    {
+                        NewLoggingSystem.Info($"Fixing background anchors for portrait container", "S1Factory");
+                        
+                        // Ensure background fills the entire portrait container
+                        backgroundRect.anchorMin = Vector2.zero;
+                        backgroundRect.anchorMax = Vector2.one;
+                        backgroundRect.offsetMin = Vector2.zero;
+                        backgroundRect.offsetMax = Vector2.zero;
+                        backgroundRect.anchoredPosition = Vector2.zero;
+                        
+                        // Ensure background is behind everything else
+                        background.SetAsFirstSibling();
+                        
+                        // Set a solid background color to ensure visibility
+                        var backgroundImage = background.GetComponent<Image>();
+                        if (backgroundImage != null)
+                        {
+                            backgroundImage.color = new Color(0.1f, 0.1f, 0.1f, 1f); // Dark background
+                            NewLoggingSystem.Info("✓ Background color set to dark", "S1Factory");
+                        }
+                    }
+                }
+                else
+                {
+                    NewLoggingSystem.Warning("Background element not found in container", "S1Factory");
+                }
+                
+                // STEP 5: Setup BackSpeaker specific container content
+                SetupBackSpeakerContainer(container, appName);
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Failed to configure container for portrait mode: {ex}", "S1Factory");
+            }
+        }
+
         /// <summary>
         /// Clone app exactly like old code - simple and direct
         /// </summary>
-        public static (IApp?, GameObject?) CloneApp(string appName, System.Action? onIconClick)
+        public static (IApp?, GameObject?) CloneApp(string appName, System.Action? onIconClick, Sprite appIcon, bool isPortrait = false)
         {
             try
             {
@@ -310,6 +446,7 @@ namespace BackSpeakerMod.S1Wrapper
                 if (appComponent != null)
                 {
                     appComponent.AppName = appName;
+                    // No need to hack orientation - we'll set it properly when opening the app
                 }
 
                 clonedCanvas.name = appName + "App";
@@ -330,7 +467,10 @@ namespace BackSpeakerMod.S1Wrapper
                 
                 
                 // Modify the LAST existing icon (exactly like old code)
-                ModifyLastIcon(appName, clonedCanvas, onIconClick);
+                ModifyLastIcon(appName, clonedCanvas, appIcon, onIconClick);
+                
+                // Configure container for portrait mode and setup BackSpeaker content
+                ConfigureContainerOrientation(clonedCanvas, appName, isPortrait);
                 
                 // Return simple wrapper
                 if (appComponent != null)
@@ -349,10 +489,12 @@ namespace BackSpeakerMod.S1Wrapper
             }
         }
         
+
+        
         /// <summary>
         /// Modify the last icon exactly like old code
         /// </summary>
-        private static void ModifyLastIcon(string appName, GameObject clonedCanvas, System.Action? onIconClick)
+        private static void ModifyLastIcon(string appName, GameObject clonedCanvas, Sprite iconSprite, System.Action? onIconClick)
         {
             try
             {
@@ -374,13 +516,12 @@ namespace BackSpeakerMod.S1Wrapper
                 }
                 
                 // Set BackSpeaker sprite
-                var backSpeakerSprite = BackSpeakerMod.NewBackend.Utils.ResourceLoader.LoadEmbeddedSprite("BackSpeakerMod.EmbeddedResources.back_speaker_logo.png");
-                if (backSpeakerSprite != null)
+                if (iconSprite != null)
                 {
                     var mask = appIcon.transform.FindChild("Mask").GetChild(0).GetComponent<Image>();
                     if (mask != null)
                     {
-                        mask.sprite = backSpeakerSprite;
+                        mask.sprite = iconSprite;
                     }
                 }
                 
@@ -400,7 +541,113 @@ namespace BackSpeakerMod.S1Wrapper
             }
         }
         
+        /// <summary>
+        /// Setup BackSpeaker specific container content
+        /// Handles titlebar, removes ProductManager elements, configures background
+        /// </summary>
+        private static void SetupBackSpeakerContainer(Transform container, string appName)
+        {
+            try
+            {
+                NewLoggingSystem.Info("🔧 Setting up BackSpeaker container content", "S1Factory");
+                
+                // Update topbar title to "BackSpeaker"
+                var topbar = container.Find("Topbar");
+                if (topbar != null)
+                {
+                    var title = topbar.Find("Title");
+                    if (title != null)
+                    {
+                        var titleText = title.GetComponent<Text>();
+                        if (titleText != null)
+                        {
+                            titleText.text = appName;
+                            NewLoggingSystem.Info("✓ Topbar title updated to 'BackSpeaker'", "S1Factory");
+                        }
+                        else
+                        {
+                            NewLoggingSystem.Warning("Title Text component not found", "S1Factory");
+                        }
+                    }
+                    else
+                    {
+                        NewLoggingSystem.Warning("Title GameObject not found in Topbar", "S1Factory");
+                    }
+                }
+                else
+                {
+                    NewLoggingSystem.Warning("Topbar GameObject not found", "S1Factory");
+                }
+
+                // Remove ProductManager specific elements
+                var scrollView = container.Find("Scroll View");
+                if (scrollView != null)
+                {
+                    scrollView.DetachChildren();
+                    UnityEngine.Object.Destroy(scrollView.gameObject);
+                    NewLoggingSystem.Info("✓ Removed Scroll View", "S1Factory");
+                }
+
+                var details = container.Find("Details");
+                if (details != null)
+                {
+                    UnityEngine.Object.Destroy(details.gameObject);
+                    NewLoggingSystem.Info("✓ Removed Details", "S1Factory");
+                }
+
+                // Background is already configured in ConfigureContainerForPortrait
+                NewLoggingSystem.Info("✓ BackSpeaker container setup complete", "S1Factory");
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Error setting up BackSpeaker container: {ex}", "S1Factory");
+            }
+        }
         
+        /// <summary>
+        /// Add screen content to an app container
+        /// This is called by BackSpeakerPhoneApp to provide the actual UI content
+        /// </summary>
+        public static void AddScreenToContainer(Transform container, GameObject screenContent)
+        {
+            try
+            {
+                NewLoggingSystem.Info("📱 Adding screen content to configured container", "S1Factory");
+                
+                if (container == null)
+                {
+                    NewLoggingSystem.Error("Container is null, cannot add screen content", "S1Factory");
+                    return;
+                }
+                
+                if (screenContent == null)
+                {
+                    NewLoggingSystem.Error("Screen content is null, cannot add to container", "S1Factory");
+                    return;
+                }
+                
+                // Set the screen content as a child of the container
+                screenContent.transform.SetParent(container, false);
+                
+                // Ensure the screen content fills the container
+                var screenRect = screenContent.GetComponent<RectTransform>();
+                if (screenRect != null)
+                {
+                    screenRect.anchorMin = Vector2.zero;
+                    screenRect.anchorMax = Vector2.one;
+                    screenRect.offsetMin = Vector2.zero;
+                    screenRect.offsetMax = Vector2.zero;
+                    screenRect.anchoredPosition = Vector2.zero;
+                }
+                
+                NewLoggingSystem.Info("✓ Screen content added to container successfully", "S1Factory");
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Error adding screen content to container: {ex}", "S1Factory");
+            }
+        }
+
         /// <summary>
         /// Find app container (like old code)
         /// </summary>
@@ -571,10 +818,30 @@ namespace BackSpeakerMod.S1Wrapper
                         
                         // Wrap it in our interface
 #if IL2CPP
-                        return new Il2Cpp.Il2CppApp(component);
+                        // Cast to the expected IL2CPP type
+                        var il2cppApp = component as Il2CppScheduleOne.UI.App<Il2CppScheduleOne.UI.Phone.ProductManagerApp.ProductManagerApp>;
+                        if (il2cppApp != null)
+                        {
+                            return new Il2Cpp.Il2CppApp(il2cppApp);
+                        }
+                        else
+                        {
+                            NewLoggingSystem.Warning($"Component is not IL2CPP App type: {componentType.FullName}", "S1Factory");
+                            return null;
+                        }
 #endif
 #if !IL2CPP
-                        return new BackSpeakerMod.S1Wrapper.Mono.MonoApp(component);
+                        // Cast to the expected Mono type
+                        var monoApp = component as ScheduleOne.UI.App<ScheduleOne.UI.Phone.ProductManagerApp>;
+                        if (monoApp != null)
+                        {
+                            return new BackSpeakerMod.S1Wrapper.Mono.MonoApp(monoApp);
+                        }
+                        else
+                        {
+                            NewLoggingSystem.Warning($"Component is not Mono App type: {componentType.FullName}", "S1Factory");
+                            return null;
+                        }
 #endif
                     }
                 }

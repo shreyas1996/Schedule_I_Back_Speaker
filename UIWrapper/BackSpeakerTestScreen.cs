@@ -191,8 +191,6 @@ namespace BackSpeakerMod.UIWrapper
             }
             
             // Create test buttons
-            CreateTestButton(buttonsPanel.transform, "Test Audio");
-            CreateTestButton(buttonsPanel.transform, "Test UI");
             CreateTestButton(buttonsPanel.transform, "Test System");
             
             // Add layout element
@@ -217,15 +215,11 @@ namespace BackSpeakerMod.UIWrapper
             var button = S1Factory.AddComponent<Button>(buttonGO);
             if (button != null)
             {
-                // Simple button setup without event handler for IL2CPP compatibility  
+                // PHASE 1: Add button click handlers for testing
                 try
                 {
-                    if (button != null)
-                    {
-                        // Log button creation success - event handlers can be added later
-                        NewLoggingSystem.Info($"Button '{text}' created successfully", "TestScreen");
-                        // TODO: Add proper IL2CPP-compatible event handler later
-                    }
+                    button.onClick.AddListener((UnityAction)delegate() { OnTestButtonClick(text); });
+                    NewLoggingSystem.Info($"Button '{text}' created with click handler", "TestScreen");
                 }
                 catch (Exception ex)
                 {
@@ -313,11 +307,21 @@ namespace BackSpeakerMod.UIWrapper
             try
             {
                 var status = S1Factory.GetSystemStatus();
+                
+                // App orientation status
+                var phoneApp = BackSpeakerMod.NewBackend.BackSpeakerMainManager.Instance?.GetPhoneApp();
+                string rotationStatus = "Unknown";
+                if (phoneApp != null)
+                {
+                    rotationStatus = phoneApp.IsInPortraitMode() ? "✓ Portrait" : "✗ Landscape";
+                }
+                
                 return $"System Status:\n" +
                        $"Environment: {status.Environment}\n" +
                        $"Player: {(status.HasPlayer ? "✓" : "✗")}\n" +
                        $"Audio: {(status.HasAudioManager ? "✓" : "✗")}\n" +
                        $"Phone: {(status.HasPhone ? "✓" : "✗")}\n" +
+                       $"Rotation: {rotationStatus}\n" +
                        $"Jukeboxes: {status.JukeboxCount}";
             }
             catch (Exception ex)
@@ -340,6 +344,33 @@ namespace BackSpeakerMod.UIWrapper
         private static void OnTestButtonClick(string buttonName)
         {
             NewLoggingSystem.Info($"Test button clicked: {buttonName}", "TestScreen");
+            
+            try
+            {
+                var mainManager = BackSpeakerMod.NewBackend.BackSpeakerMainManager.Instance;
+                var phoneApp = mainManager?.GetPhoneApp();
+                
+                switch (buttonName)
+                {
+                    case "Test System":
+                        NewLoggingSystem.Info("🔍 Running system tests...", "TestScreen");
+                        var systemStatus = S1Factory.GetSystemStatus();
+                        NewLoggingSystem.Info($"System Environment: {systemStatus.Environment}", "TestScreen");
+                        NewLoggingSystem.Info($"Has Player: {systemStatus.HasPlayer}", "TestScreen");
+                        NewLoggingSystem.Info($"Has Audio Manager: {systemStatus.HasAudioManager}", "TestScreen");
+                        NewLoggingSystem.Info($"Has Phone: {systemStatus.HasPhone}", "TestScreen");
+                        NewLoggingSystem.Info($"Jukebox Count: {systemStatus.JukeboxCount}", "TestScreen");
+                        break;
+                        
+                    default:
+                        NewLoggingSystem.Info($"Unknown test button: {buttonName}", "TestScreen");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Error in test button handler: {ex}", "TestScreen");
+            }
         }
     }
 } 

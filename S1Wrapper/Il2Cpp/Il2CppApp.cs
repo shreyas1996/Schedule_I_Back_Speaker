@@ -6,142 +6,79 @@ using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.NewBackend.Utils;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace BackSpeakerMod.S1Wrapper.Il2Cpp
 {
     /// <summary>
-    /// IL2CPP wrapper for Schedule I App<T> components
-    /// Provides access to ProductManagerApp and other app types
+    /// IL2CPP wrapper for Schedule I App<ProductManagerApp> - accurately mirrors App<T> structure
     /// </summary>
     public class Il2CppApp : IApp
     {
-        private readonly object _app; // The actual App<T> component
-        private readonly Type _appType;
-        private readonly GameObject _gameObject;
+        private readonly Il2CppScheduleOne.UI.App<Il2CppScheduleOne.UI.Phone.ProductManagerApp.ProductManagerApp> _app;
 
-        public Il2CppApp(object app)
+        public Il2CppApp(Il2CppScheduleOne.UI.App<Il2CppScheduleOne.UI.Phone.ProductManagerApp.ProductManagerApp> app)
         {
             _app = app ?? throw new ArgumentNullException(nameof(app));
-            _appType = app.GetType();
-            
-            // Get the GameObject from the component
-            if (_app is Component component)
-            {
-                _gameObject = component.gameObject;
-            }
-            else
-            {
-                throw new ArgumentException("App must be a Unity Component", nameof(app));
-            }
         }
 
-        // Basic app properties
-        public string Name => GetProperty<string>("AppName") ?? "Unknown App";
-        public bool IsRunning => GetProperty<bool>("isOpen");
-        public Sprite? Icon => GetProperty<Sprite>("AppIcon");
-        
-        // App lifecycle
-        public void Start() => CallMethod("SetIsOpen", true);
-        public void Stop() => CallMethod("SetIsOpen", false);
-        public void OnClick(RaycastResult raycastResult) => CallMethod("ShortcutClicked");
-        
-        // Generic data storage (not supported by Schedule I apps)
-        public void SetData(string key, object value)
+        // Core Properties (from App<T>.cs) - exact matches
+        public bool isOpen => _app.isOpen;
+        public string AppName => _app.AppName;
+        public string IconLabel => _app.IconLabel;
+        public Sprite AppIcon => _app.AppIcon;
+        public EOrientation Orientation => (EOrientation)_app.Orientation;
+        public bool AvailableInTutorial => _app.AvailableInTutorial;
+
+        // Protected/Internal Properties - using reflection for access
+        public RectTransform appContainer => _app.appContainer;
+        public RectTransform notificationContainer => GetPrivateField<RectTransform>("notificationContainer");
+        public Text notificationText => GetPrivateField<Text>("notificationText");
+        public Button appIconButton => GetPrivateField<Button>("appIconButton");
+
+        // Core Methods (from App<T>.cs) - exact matches
+        public void SetOpen(bool open) => _app.SetOpen(open);
+        public void SetNotificationCount(int amount) => _app.SetNotificationCount(amount);
+        public void Exit(ExitAction exit)
         {
-            NewLoggingSystem.Warning($"SetData not supported by Schedule I apps: {key}", "Il2CppApp");
-        }
-        
-        public T GetData<T>(string key)
-        {
-            NewLoggingSystem.Warning($"GetData not supported by Schedule I apps: {key}", "Il2CppApp");
-            return default(T);
+            // Convert our ExitAction to the game's ExitAction
+            var gameExitAction = new Il2CppScheduleOne.DevUtilities.ExitAction();
+            gameExitAction.Used = exit.Used;
+            _app.Exit(gameExitAction);
+            exit.Used = gameExitAction.Used;
         }
 
-        // App<T> specific properties
-        public string AppName 
-        { 
-            get => GetProperty<string>("AppName") ?? "Unknown App";
-            set => SetProperty("AppName", value);
-        }
-        public string IconLabel => GetProperty<string>("IconLabel") ?? "Unknown";
-        public Sprite AppIcon => GetProperty<Sprite>("AppIcon");
-        public bool isOpen => GetProperty<bool>("isOpen");
+        // Unity Component Access
+        public Transform Transform => _app.transform;
+        public GameObject GameObject => _app.gameObject;
 
-        // App<T> specific methods
-        public void SetIsOpen(bool open) => CallMethod("SetIsOpen", open);
-        public void SetOpen(bool open) => CallMethod("SetOpen", open);
-        public void SetIsHorizontal(bool horizontal) => CallMethod("SetIsHorizontal", horizontal);
-        public void SetLookOffsetMultiplier(float multiplier) => CallMethod("SetLookOffsetMultiplier", multiplier);
-        
-        // App<T> advanced properties
-        public bool IsHorizontal => GetProperty<bool>("IsHorizontal");
-        public float LookOffsetMultiplier => GetProperty<float>("LookOffsetMultiplier");
-        public Transform AppCanvas => _gameObject.transform;
-        public GameObject AppGameObject => _gameObject;
-        
-        // App<T> state management
-        public bool WasOpenLastFrame => GetProperty<bool>("WasOpenLastFrame");
-        public bool JustOpened => GetProperty<bool>("JustOpened");
-        public bool JustClosed => GetProperty<bool>("JustClosed");
-        
-        // App<T> events and callbacks
-        public void OnAppOpened() => CallMethod("OnAppOpened");
-        public void OnAppClosed() => CallMethod("OnAppClosed");
-        public void OnAppUpdate() => CallMethod("OnAppUpdate");
-        
-        // Phone integration
-        public void ShortcutClicked() => CallMethod("ShortcutClicked");
-        public void RegisterWithPhone() => CallMethod("RegisterWithPhone");
-        public void UnregisterFromPhone() => CallMethod("UnregisterFromPhone");
+        // Static App Management - not implemented for individual apps
+        public List<IApp> Apps => new List<IApp>(); // Would need static access
+        public IApp GetApp(int index) => null; // Would need static access
 
-        private T GetProperty<T>(string propertyName)
+        // Helper Properties
+        public bool IsHorizontal => Orientation == EOrientation.Horizontal;
+        public bool IsVertical => Orientation == EOrientation.Vertical;
+        public float LookOffsetMultiplier => 1.0f; // Default value
+
+        // Internal access to wrapped object
+        public Il2CppScheduleOne.UI.App<Il2CppScheduleOne.UI.Phone.ProductManagerApp.ProductManagerApp> InternalApp => _app;
+
+        /// <summary>
+        /// Helper method to access private/protected fields via reflection
+        /// </summary>
+        private T GetPrivateField<T>(string fieldName) where T : class
         {
             try
             {
-                var property = _appType.GetProperty(propertyName);
-                if (property != null)
-                {
-                    var value = property.GetValue(_app);
-                    if (value is T typedValue)
-                        return typedValue;
-                }
+                var field = _app.GetType().GetField(fieldName, 
+                    System.Reflection.BindingFlags.NonPublic | 
+                    System.Reflection.BindingFlags.Instance);
+                return field?.GetValue(_app) as T;
             }
-            catch (Exception)
+            catch
             {
-                // Silently handle reflection failures
-            }
-            return default(T);
-        }
-
-        private void SetProperty<T>(string propertyName, T value)
-        {
-            try
-            {
-                var property = _appType.GetProperty(propertyName);
-                if (property != null && property.CanWrite)
-                {
-                    property.SetValue(_app, value);
-                }
-            }
-            catch (Exception)
-            {
-                // Silently handle reflection failures
-            }
-        }
-
-        private void CallMethod(string methodName, params object[] parameters)
-        {
-            try
-            {
-                var method = _appType.GetMethod(methodName);
-                if (method != null)
-                {
-                    method.Invoke(_app, parameters);
-                }
-            }
-            catch (Exception)
-            {
-                // Silently handle reflection failures
+                return null;
             }
         }
     }

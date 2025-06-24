@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using MelonLoader;
 using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.NewBackend.Utils;
@@ -11,7 +12,7 @@ namespace BackSpeakerMod.NewFrontend
 {
     /// <summary>
     /// BackSpeaker Phone App - manages app creation and UI
-    /// Creates one properly working BackSpeaker app
+    /// Creates one properly working BackSpeaker app with portrait orientation
     /// </summary>
     public class BackSpeakerPhoneApp
     {
@@ -26,6 +27,9 @@ namespace BackSpeakerMod.NewFrontend
         private GameObject? _appIcon;
         private Button? _appButton;
         private Transform? _appContainer;
+        
+        // Rotation control - now handled in S1Factory during cloning
+        
         /// <summary>
         /// Initialize the phone app (called from main manager after player detection)
         /// </summary>
@@ -47,10 +51,10 @@ namespace BackSpeakerMod.NewFrontend
                 // Create one properly working BackSpeaker app
                 CreateBackSpeakerApp();
                 
-                // Set up the app if creation was successful
+                                // Set up the app if creation was successful
                 if (_backSpeakerApp != null)
                 {
-                    // SetupBackSpeakerApp();
+                    NewLoggingSystem.Info("✓ BackSpeaker app created with portrait orientation (fixed in S1Factory)", "PhoneApp");
                     _isInitialized = true;
                     NewLoggingSystem.Info("✓ BackSpeaker Phone App initialized successfully", "PhoneApp");
                 }
@@ -96,7 +100,8 @@ namespace BackSpeakerMod.NewFrontend
                 NewLoggingSystem.Info("Creating BackSpeaker app exactly like old code...", "PhoneApp");
                 
                 // Clone app exactly like old code
-                var (app, canvas) = S1Factory.CloneApp("BackSpeaker", OnHomeScreenBtnClick);
+                var backSpeakerSprite = BackSpeakerMod.NewBackend.Utils.ResourceLoader.LoadEmbeddedSprite("BackSpeakerMod.EmbeddedResources.back_speaker_logo.png");
+                var (app, canvas) = S1Factory.CloneApp("BackSpeaker", OnHomeScreenBtnClick, backSpeakerSprite, true);
                 _backSpeakerApp = app;
                 _backSpeakerCanvas = canvas;
                 
@@ -134,78 +139,51 @@ namespace BackSpeakerMod.NewFrontend
         }
         
         /// <summary>
-        /// Setup BackSpeaker app content - exactly like old code
+        /// Setup BackSpeaker app content - Simplified to just add screen content to pre-configured container
         /// </summary>
         private void SetupBackSpeakerContent()
         {
             try
             {
-                NewLoggingSystem.Info("Setting up BackSpeaker app content", "PhoneApp");
+                NewLoggingSystem.Info("Adding BackSpeaker screen content to configured container", "PhoneApp");
 
-                // Update topbar title
-                var topbar = _appContainer?.FindChild("Topbar");
-                if (topbar != null)
+                // Container is already configured by S1Factory (titlebar, background, portrait mode, etc.)
+                // We just need to add our screen content
+                if (_appContainer != null)
                 {
-                    var title = topbar.FindChild("Title");
-                    if (title != null)
+                    // Create BackSpeaker screen GameObject
+                    var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
+                    
+                    // Add BackSpeakerTestScreen component using S1Factory
+                    var backSpeakerScreen = S1Factory.RegisterAndAddComponent<BackSpeakerTestScreen>(backSpeakerScreenObj);
+                    if (backSpeakerScreen != null)
                     {
-                        var titleText = title.GetComponent<Text>();
-                        if (titleText != null)
+                        // Create the test screen content
+                        var testScreenContent = backSpeakerScreen.CreateTestScreen();
+                        
+                        if (testScreenContent != null)
                         {
-                            titleText.text = "BackSpeaker";
-                            NewLoggingSystem.Info("✓ Topbar title updated to 'BackSpeaker'", "PhoneApp");
+                            // Use S1Factory to properly add the screen to the container
+                            S1Factory.AddScreenToContainer(_appContainer, testScreenContent);
+                            _backSpeakerCanvas.active = true;
+                            NewLoggingSystem.Info("✓ BackSpeaker screen content added successfully", "PhoneApp");
                         }
                         else
                         {
-                            NewLoggingSystem.Warning("Title Text component not found", "PhoneApp");
+                            NewLoggingSystem.Error("Failed to create BackSpeaker screen content", "PhoneApp");
                         }
                     }
                     else
                     {
-                        NewLoggingSystem.Warning("Title GameObject not found in Topbar", "PhoneApp");
+                        NewLoggingSystem.Error("Failed to add BackSpeakerTestScreen component", "PhoneApp");
                     }
                 }
                 else
                 {
-                    NewLoggingSystem.Warning("Topbar GameObject not found", "PhoneApp");
+                    NewLoggingSystem.Error("App container is null, cannot add screen content", "PhoneApp");
                 }
 
-                // Remove Scroll View and Details 
-                _appContainer?.FindChild("Scroll View").DetachChildren();
-                UnityEngine.Object.Destroy(_appContainer?.FindChild("Scroll View"));
-                UnityEngine.Object.Destroy(_appContainer?.FindChild("Details").gameObject);
-
-                // Set up background
-                GameObject gameObject3 = _appContainer?.FindChild("Background").gameObject;
-                gameObject3.transform.SetAsFirstSibling();
-                var imgBackground = gameObject3.GetComponent<Image>();
-                imgBackground.color = new Color(0.1f, 0.1f, 0.1f, 1f); // Dark background
-                
-                // Create BackSpeaker screen GameObject exactly like old code
-                var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
-                backSpeakerScreenObj.transform.SetParent(_appContainer, false);
-                
-                // Add BackSpeakerTestScreen component using S1Factory
-                var backSpeakerScreen = S1Factory.RegisterAndAddComponent<BackSpeakerTestScreen>(backSpeakerScreenObj);
-                if (backSpeakerScreen != null)
-                {
-                    // Setup the screen with manager reference
-                    var manager = BackSpeakerMod.NewBackend.BackSpeakerMainManager.Instance;
-                    if (manager != null)
-                    {
-                        backSpeakerScreen.CreateTestScreen();
-                        _backSpeakerCanvas.active = true;
-                        NewLoggingSystem.Info("✓ BackSpeaker screen component added and setup", "PhoneApp");
-                    }
-                    else
-                    {
-                        NewLoggingSystem.Warning("BackSpeakerMainManager instance not found", "PhoneApp");
-                    }
-                }
-                else
-                {
-                    NewLoggingSystem.Error("Failed to add BackSpeakerTestScreen component", "PhoneApp");
-                }
+                NewLoggingSystem.Info("✓ BackSpeaker app content setup complete", "PhoneApp");
             }
             catch (Exception ex)
             {
@@ -232,10 +210,44 @@ namespace BackSpeakerMod.NewFrontend
             // OLD CODE: No playlist open, proceed with normal app opening
             NewLoggingSystem.Info("Opening BackSpeaker app normally", "PhoneApp");
 
-            // OLD CODE: EXACT logic
-            if (_homeScreen != null) _homeScreen.GetComponent<Canvas>().enabled = false;
-            if (_appsCanvas != null) _appsCanvas.GetComponent<Canvas>().enabled = true;
-            if (_backSpeakerCanvas != null) _backSpeakerCanvas.active = true;
+            try
+            {
+                // Get phone reference for proper orientation handling
+                var phone = S1Factory.GetPhone();
+                if (phone == null)
+                {
+                    NewLoggingSystem.Warning("Phone not available", "PhoneApp");
+                    return;
+                }
+
+                // Open the app properly using the app's SetOpen method
+                if (_backSpeakerApp != null)
+                {
+                    NewLoggingSystem.Info("Opening BackSpeaker app via SetOpen(true)", "PhoneApp");
+                    _backSpeakerApp.SetOpen(true);
+
+                    // Set phone to portrait mode (not horizontal) - this is the key fix!
+                    NewLoggingSystem.Info("Setting phone to portrait mode", "PhoneApp");
+                    phone.SetIsHorizontal(false);
+                    phone.SetLookOffsetMultiplier(1.0f);
+
+                    if (_homeScreen != null) _homeScreen.GetComponent<Canvas>().enabled = false;
+                    if (_appsCanvas != null) _appsCanvas.GetComponent<Canvas>().enabled = true;
+                    if (_backSpeakerCanvas != null) _backSpeakerCanvas.active = true;
+                    
+                    // Container is now properly configured during app creation - no runtime rotation needed
+                }
+                else
+                {
+                    NewLoggingSystem.Warning("BackSpeaker app is null", "PhoneApp");
+                }
+                
+                NewLoggingSystem.Info("✓ BackSpeaker app opened in portrait mode", "PhoneApp");
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Error opening BackSpeaker app: {ex}", "PhoneApp");
+            }
         }
         
         /// <summary>
@@ -249,15 +261,41 @@ namespace BackSpeakerMod.NewFrontend
             {
                 NewLoggingSystem.Info("Setting up BackSpeaker app properties...", "PhoneApp");
                 
-                // Set app properties for BackSpeaker app
-                _backSpeakerApp.SetData("AppName", "BackSpeaker");
-                _backSpeakerApp.SetData("IconLabel", "BackSpeaker");
+                // App properties are now set in S1Factory during cloning
+                NewLoggingSystem.Info("✓ App properties set during cloning in S1Factory", "PhoneApp");
                 
                 NewLoggingSystem.Info("✓ BackSpeaker app setup complete", "PhoneApp");
             }
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Exception setting up BackSpeaker app: {ex}", "PhoneApp");
+            }
+        }
+        
+        /// <summary>
+        /// Check if the app is currently in portrait mode
+        /// </summary>
+        public bool IsInPortraitMode()
+        {
+            var phone = S1Factory.GetPhone();
+            return phone != null && phone.IsInPortraitMode;
+        }
+        
+        /// <summary>
+        /// Update method - no longer needed for rotation monitoring since it's fixed in S1Factory
+        /// </summary>
+        public void Update()
+        {
+            var phone = S1Factory.GetPhone();
+            if (phone != null)
+            {
+                if(phone.IsOpen) {
+                    if(_backSpeakerApp != null) {
+                        if(_backSpeakerApp.isOpen) {
+                            phone.SetLookOffsetMultiplier(1.0f);
+                        }
+                    }
+                }
             }
         }
         
@@ -289,7 +327,7 @@ namespace BackSpeakerMod.NewFrontend
                             UnityEngine.Object.Destroy(appCanvas.gameObject);
                         }
                         
-                        _backSpeakerApp.Stop();
+                        _backSpeakerApp.SetOpen(false);
                     }
                     catch (Exception ex)
                     {
