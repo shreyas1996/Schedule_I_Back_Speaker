@@ -3,35 +3,46 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
-    <AssemblyName>BackSpeakerMod</AssemblyName>
     <RootNamespace>BackSpeakerMod</RootNamespace>
+    <AssemblyName>BackSpeakerMod_$(Configuration)</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <ScheduleOnePath>/Users/shreyas/Library/Application Support/CrossOver/Bottles/Schedule I/drive_c/Program Files (x86)/Steam/steamapps/common/Schedule I/</ScheduleOnePath>
     <ScheduleOneMonoPath>$(ScheduleOnePath)\Schedule I_Data\Managed</ScheduleOneMonoPath>
     <ScheduleOneIl2CppPath>$(ScheduleOnePath)\MelonLoader\Il2CppAssemblies</ScheduleOneIl2CppPath>
   </PropertyGroup>
 
-    <!-- This is used to define the IL2CPP configuration -->
-  <PropertyGroup Condition="'$(Configuration)' == 'DEBUG_IL2CPP'">
-    <!-- Define bus configurations (Debug or Release) -->
-    <DefineConstants>IL2CPP;DEBUG</DefineConstants>
+    <!-- Framework-specific properties -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <DefineConstants>IL2CPP</DefineConstants>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- This is used to define the Mono configuration -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <DefineConstants>MONO</DefineConstants>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <!-- Configuration-specific properties -->
+  <PropertyGroup Condition="'$(Configuration)' == 'DEBUG_IL2CPP'">
+    <DefineConstants>IL2CPP;DEBUG</DefineConstants>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)' == 'DEBUG_MONO'">
     <DefineConstants>MONO;DEBUG</DefineConstants>
+    <TargetFramework>net472</TargetFramework>
   </PropertyGroup>
 
-  <!-- This is used to define the IL2CPP configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'IL2CPP'">
     <DefineConstants>IL2CPP</DefineConstants>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
-
-  <!-- This is used to define the Mono configuration -->
 
   <PropertyGroup Condition="'$(Configuration)' == 'MONO'">
     <DefineConstants>MONO</DefineConstants>
+    <TargetFramework>net472</TargetFramework>
   </PropertyGroup>
 
   <!-- This is used to define the Embedded Resources -->
@@ -50,17 +61,17 @@
   <!-- This is used to define the Compile References -->
   <ItemGroup>
     <Compile Remove="my_references\**\*.cs" />
+  </ItemGroup>
 
+  <!-- NuGet packages only for IL2CPP builds -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-
-    <!-- Audio loading dependencies -->
-
   </ItemGroup>
 
   <!-- This is used to define the IL2CPP References -->
-  <ItemGroup Condition="'$(Configuration)' == 'IL2CPP' OR '$(Configuration)' == 'DEBUG_IL2CPP'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
    
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(ScheduleOneIl2CppPath)\Assembly-CSharp-firstpass.dll</HintPath>
@@ -140,21 +151,51 @@
   </ItemGroup>
 
   <!-- This is used to define the Mono References -->
-  <ItemGroup Condition="'$(Configuration)' == 'MONO' OR '$(Configuration)' == 'DEBUG_MONO'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(ScheduleOneMonoPath)\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Il2CppFishNet.Runtime">
-      <HintPath>$(ScheduleOneMonoPath)\Il2CppFishNet.Runtime.dll</HintPath>
+    <Reference Include="FishNet.Runtime">
+      <HintPath>$(ScheduleOneMonoPath)\FishNet.Runtime.dll</HintPath>
     </Reference>
-    <Reference Include="Il2Cppmscorlib">
-      <HintPath>$(ScheduleOneMonoPath)\Il2Cppmscorlib.dll</HintPath>
+    <Reference Include="mscorlib">
+      <HintPath>$(ScheduleOneMonoPath)\mscorlib.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(ScheduleOneMonoPath)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.UIElementsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.InputModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>$(ScheduleOneMonoPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>$(ScheduleOneMonoPath)\UnityEngine.AssetBundleModule.dll</HintPath>
@@ -164,6 +205,12 @@
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>$(ScheduleOneMonoPath)\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+     <Reference Include="MelonLoader">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net35\MelonLoader.dll</HintPath>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(ScheduleOnePath)\MelonLoader\net35\0Harmony.dll</HintPath>
     </Reference>
 
   </ItemGroup>

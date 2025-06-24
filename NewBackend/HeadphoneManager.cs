@@ -134,6 +134,14 @@ namespace BackSpeakerMod.NewBackend
                 NewLoggingSystem.Error("Player transform is null", "HeadphoneManager");
                 return;
             }
+            if(_player.Avatar == null) {
+                NewLoggingSystem.Error("Player avatar is null", "HeadphoneManager");
+                return;
+            }
+            if(_player.Avatar?.HeadBone == null) {
+                NewLoggingSystem.Error("Player avatar head bone is null", "HeadphoneManager");
+                return;
+            }
             
             // Find head attachment point
             // Transform headTransform = FindHeadAttachmentPoint(_player.GameObject);

@@ -31,7 +31,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
         public bool AvailableInTutorial => _app.AvailableInTutorial;
 
         // Protected/Internal Properties - using reflection for access
-        public RectTransform appContainer => _app.appContainer;
+        public RectTransform appContainer => GetPrivateField<RectTransform>("appContainer");
         public RectTransform notificationContainer => GetPrivateField<RectTransform>("notificationContainer");
         public Text notificationText => GetPrivateField<Text>("notificationText");
         public Button appIconButton => GetPrivateField<Button>("appIconButton");

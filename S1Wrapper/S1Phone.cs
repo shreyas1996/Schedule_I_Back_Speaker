@@ -16,7 +16,7 @@ namespace BackSpeakerMod.S1Wrapper
                     }
                     return null;
                 #else
-                    var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.instance;
+                    var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.Instance;
                     return phone != null ? new Mono.MonoPhone(phone) : null;
                 #endif
             }

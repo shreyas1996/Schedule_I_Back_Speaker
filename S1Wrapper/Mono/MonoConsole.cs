@@ -6,11 +6,50 @@ namespace BackSpeakerMod.S1Wrapper.Mono
 {
     public class MonoConsole : IConsole
     {
-        private readonly ScheduleOne.Console _console;
+        private readonly object _console;
 
-        public MonoConsole(ScheduleOne.Console console)
+        public MonoConsole(object console)
         {
             _console = console ?? throw new ArgumentNullException(nameof(console));
+        }
+
+        public void Log(string message)
+        {
+            try
+            {
+                var method = _console.GetType().GetMethod("Log");
+                method?.Invoke(_console, new object[] { message });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
+        }
+
+        public void LogError(string message)
+        {
+            try
+            {
+                var method = _console.GetType().GetMethod("LogError");
+                method?.Invoke(_console, new object[] { message });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
+        }
+
+        public void LogWarning(string message)
+        {
+            try
+            {
+                var method = _console.GetType().GetMethod("LogWarning");
+                method?.Invoke(_console, new object[] { message });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
 
         public void ExecuteCommand(string command)
@@ -23,11 +62,11 @@ namespace BackSpeakerMod.S1Wrapper.Mono
                 // Try to execute the command through the console
                 if (_console != null)
                 {
-                    // Different ways to execute commands depending on the console API
-                    // Try the most common method first
-                    if (_console.ProcessCommand != null)
+                    // Use reflection to find available command execution methods
+                    var processMethod = _console.GetType().GetMethod("ProcessCommand");
+                    if (processMethod != null)
                     {
-                        _console.ProcessCommand(command);
+                        processMethod.Invoke(_console, new object[] { command });
                     }
                     else
                     {
@@ -47,7 +86,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             }
         }
 
-        public bool IsAvailable => _console != null && _console.gameObject.activeInHierarchy;
+        public bool IsAvailable => _console != null && _console.GetType().GetProperty("gameObject")?.GetValue(_console) is UnityEngine.GameObject gameObject && gameObject.activeInHierarchy;
 
         public void SetEnabled(bool enabled)
         {
@@ -55,28 +94,13 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             {
                 if (_console != null)
                 {
-                    _console.gameObject.SetActive(enabled);
+                    _console.GetType().GetProperty("gameObject")?.SetValue(_console, _console.GetType().GetProperty("gameObject")?.GetValue(_console) is UnityEngine.GameObject gameObject ? gameObject : null);
                 }
             }
             catch (Exception)
             {
                 // Handle cases where console control isn't available
             }
-        }
-
-        public void Log(string message)
-        {
-            _console.Log(message);
-        }
-
-        public void LogError(string message)
-        {
-            _console.LogError(message);
-        }
-
-        public void LogWarning(string message)
-        {
-            _console.LogWarning(message);
         }
     }
 }

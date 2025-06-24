@@ -1,44 +1,44 @@
 #if !IL2CPP
 using System;
+using UnityEngine;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 
 namespace BackSpeakerMod.S1Wrapper.Mono
 {
     public class MonoMusicPlayer : IMusicPlayer
     {
-        private readonly ScheduleOne.MusicPlayer _musicPlayer;
+        private readonly object _player;
 
-        public MonoMusicPlayer(ScheduleOne.MusicPlayer musicPlayer)
+        public MonoMusicPlayer(object player)
         {
-            _musicPlayer = musicPlayer ?? throw new ArgumentNullException(nameof(musicPlayer));
+            _player = player ?? throw new ArgumentNullException(nameof(player));
         }
 
-        public bool IsPlaying => _musicPlayer.IsPlaying;
-
-        public void Play()
+        public void Start()
         {
-            _musicPlayer.Play();
-        }
-
-        public void Pause()
-        {
-            _musicPlayer.Pause();
+            try
+            {
+                var method = _player.GetType().GetMethod("Start", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                method?.Invoke(_player, null);
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
 
         public void Stop()
         {
-            _musicPlayer.Stop();
-        }
-
-        public void SetVolume(float volume)
-        {
-            _musicPlayer.SetVolume(volume);
-        }
-
-        public float GetVolume()
-        {
-            return _musicPlayer.GetVolume();
+            try
+            {
+                var method = _player.GetType().GetMethod("StopAndDisableTracks");
+                method?.Invoke(_player, null);
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
     }
-    }
+}
 #endif

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+#if IL2CPP
 using Newtonsoft.Json;
+#endif
 
 namespace BackSpeakerMod.NewBackend.Utils
 {
@@ -170,6 +172,7 @@ namespace BackSpeakerMod.NewBackend.Utils
                     return new Dictionary<string, NewYouTubePlaylistInfo>(_cachedIndex);
                 }
                 
+#if IL2CPP
                 var index = JsonConvert.DeserializeObject<Dictionary<string, NewYouTubePlaylistInfo>>(jsonContent);
                 if (index == null)
                 {
@@ -181,6 +184,10 @@ namespace BackSpeakerMod.NewBackend.Utils
                     NewLoggingSystem.Info($"Loaded NewBackend playlist index with {index.Count} playlists", "NewYouTubePlaylistManager");
                     _cachedIndex = index;
                 }
+#else
+                NewLoggingSystem.Warning("JSON playlist loading not available in Mono build", "NewYouTubePlaylistManager");
+                _cachedIndex = new Dictionary<string, NewYouTubePlaylistInfo>();
+#endif
                 
                 _lastIndexUpdate = DateTime.Now;
                 return new Dictionary<string, NewYouTubePlaylistInfo>(_cachedIndex);
@@ -211,8 +218,13 @@ namespace BackSpeakerMod.NewBackend.Utils
                 }
                 
                 // Serialize with nice formatting
+#if IL2CPP
                 var jsonContent = JsonConvert.SerializeObject(index, Formatting.Indented);
                 File.WriteAllText(indexPath, jsonContent);
+#else
+                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
+                return false;
+#endif
                 
                 // Update cache
                 _cachedIndex = new Dictionary<string, NewYouTubePlaylistInfo>(index);
@@ -281,8 +293,13 @@ namespace BackSpeakerMod.NewBackend.Utils
                 
                 // Save playlist file
                 var playlistPath = GetPlaylistFilePath(playlist.id);
+#if IL2CPP
                 var jsonContent = JsonConvert.SerializeObject(playlist, Formatting.Indented);
                 File.WriteAllText(playlistPath, jsonContent);
+#else
+                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
+                return false;
+#endif
                 
                 // Update index
                 var index = LoadPlaylistIndex();
@@ -341,6 +358,7 @@ namespace BackSpeakerMod.NewBackend.Utils
                     return null;
                 }
                 
+#if IL2CPP
                 var playlist = JsonConvert.DeserializeObject<NewYouTubePlaylist>(jsonContent);
                 if (playlist != null)
                 {
@@ -348,6 +366,10 @@ namespace BackSpeakerMod.NewBackend.Utils
                 }
                 
                 return playlist;
+#else
+                NewLoggingSystem.Warning("JSON playlist loading not available in Mono build", "NewYouTubePlaylistManager");
+                return null;
+#endif
             }
             catch (Exception ex)
             {

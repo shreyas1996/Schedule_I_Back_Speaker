@@ -154,7 +154,7 @@ namespace BackSpeakerMod.UIWrapper
 
         private static Button CreateControlButton(Transform parent, string symbol, System.Action onClick, ControlsComponentConfig config)
         {
-            var button = S1UIFactory.CreateButton(parent, symbol, (UnityAction)(() => onClick?.Invoke()), null);
+                            var button = S1UIFactory.CreateButton(parent, symbol, S1Factory.ConvertToUnityAction(() => onClick?.Invoke()), null);
             
             var buttonRect = button.GetComponent<RectTransform>();
             S1UIFactory.SetAnchors(buttonRect, AnchorPresets.StretchAll);
@@ -255,7 +255,7 @@ namespace BackSpeakerMod.UIWrapper
                 var tabIndex = i;
                 
                 var button = S1UIFactory.CreateButton(layout.ButtonSlots[i].transform, tabName, 
-                    (UnityAction)(() => config.OnTabClick?.Invoke(tabIndex)), null);
+                    S1Factory.ConvertToUnityAction(() => config.OnTabClick?.Invoke(tabIndex)), null);
                 
                 var buttonRect = button.GetComponent<RectTransform>();
                 S1UIFactory.SetAnchors(buttonRect, AnchorPresets.StretchAll);
@@ -286,7 +286,7 @@ namespace BackSpeakerMod.UIWrapper
             try
             {
                 var button = S1UIFactory.CreateButton(parent, text, 
-                    onClick != null ? (UnityAction)onClick : null, size);
+                    S1Factory.ConvertToUnityAction(onClick), size);
                 
                 if (button != null)
                 {
@@ -337,7 +337,7 @@ namespace BackSpeakerMod.UIWrapper
 
                 // Create close button
                 popup.CloseButton = S1UIFactory.CreateButton(popup.Layout.PopupContainer.transform, "X", 
-                    onClose != null ? (UnityAction)onClose : null, new Vector2(30, 30));
+                    S1Factory.ConvertToUnityAction(onClose), new Vector2(30, 30));
                 popup.CloseButton.name = "CloseButton";
 
                 return popup;
@@ -368,12 +368,12 @@ namespace BackSpeakerMod.UIWrapper
 
                 // Create confirm button
                 var confirmButton = S1UIFactory.CreateButton(popup.Layout.PopupContainer.transform, "Confirm", 
-                    onConfirm != null ? (UnityAction)onConfirm : null, new Vector2(80, 30));
+                    S1Factory.ConvertToUnityAction(onConfirm), new Vector2(80, 30));
                 confirmButton.name = "ConfirmButton";
 
                 // Create cancel button  
                 var cancelButton = S1UIFactory.CreateButton(popup.Layout.PopupContainer.transform, "Cancel", 
-                    onCancel != null ? (UnityAction)onCancel : null, new Vector2(80, 30));
+                    S1Factory.ConvertToUnityAction(onCancel), new Vector2(80, 30));
                 cancelButton.name = "CancelButton";
 
                 return popup;

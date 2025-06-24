@@ -19,7 +19,7 @@ namespace BackSpeakerMod.S1Wrapper
                     }
                     return null;
                 #else
-                    var appsCanvas = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.AppsCanvas>.instance;
+                    var appsCanvas = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.AppsCanvas>.Instance;
                     return appsCanvas != null ? new Mono.MonoAppsCanvas(appsCanvas) : null;
                 #endif
             }

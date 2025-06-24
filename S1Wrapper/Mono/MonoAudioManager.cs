@@ -6,31 +6,65 @@ namespace BackSpeakerMod.S1Wrapper.Mono
 {
     public class MonoAudioManager : IAudioManager
     {
-        private readonly ScheduleOne.AudioManager _audioManager;
+        private readonly object _audioManager;
 
-        public MonoAudioManager(ScheduleOne.AudioManager audioManager)
+        public MonoAudioManager(object audioManager)
         {
             _audioManager = audioManager ?? throw new ArgumentNullException(nameof(audioManager));
         }
 
         public void PlaySound(string soundName)
         {
-            _audioManager.PlaySound(soundName);
+            try
+            {
+                var method = _audioManager.GetType().GetMethod("PlaySound");
+                method?.Invoke(_audioManager, new object[] { soundName });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
 
         public void StopSound(string soundName)
         {
-            _audioManager.StopSound(soundName);
+            try
+            {
+                var method = _audioManager.GetType().GetMethod("StopSound");
+                method?.Invoke(_audioManager, new object[] { soundName });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
 
         public void SetVolume(float volume)
         {
-            _audioManager.SetVolume(volume);
+            try
+            {
+                var method = _audioManager.GetType().GetMethod("SetVolume");
+                method?.Invoke(_audioManager, new object[] { volume });
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
 
         public float GetVolume()
         {
-            return _audioManager.GetVolume();
+            try
+            {
+                var method = _audioManager.GetType().GetMethod("GetVolume");
+                var result = method?.Invoke(_audioManager, null);
+                return result is float volume ? volume : 0f;
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+                return 0f;
+            }
         }
 
         // Legacy methods for compatibility

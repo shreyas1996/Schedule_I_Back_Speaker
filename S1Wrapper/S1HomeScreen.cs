@@ -19,7 +19,7 @@ namespace BackSpeakerMod.S1Wrapper
                     }
                     return null;
                 #else
-                    var homeScreen = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.HomeScreen>.instance;
+                    var homeScreen = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.HomeScreen>.Instance;
                     return homeScreen != null ? new Mono.MonoHomeScreen(homeScreen) : null;
                 #endif
             }

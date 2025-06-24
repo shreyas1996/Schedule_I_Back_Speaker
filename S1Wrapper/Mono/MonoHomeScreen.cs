@@ -35,7 +35,21 @@ namespace BackSpeakerMod.S1Wrapper.Mono
         // Unity Component Access
         public Transform Transform => _homeScreen.transform;
         public GameObject GameObject => _homeScreen.gameObject;
-        public Canvas canvas => _homeScreen.canvas;
+        public Canvas canvas
+        {
+            get
+            {
+                try
+                {
+                    var field = _homeScreen.GetType().GetField("canvas", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    return field?.GetValue(_homeScreen) as Canvas;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+        }
 
         // Internal access to wrapped object
         public ScheduleOne.UI.Phone.HomeScreen InternalHomeScreen => _homeScreen;

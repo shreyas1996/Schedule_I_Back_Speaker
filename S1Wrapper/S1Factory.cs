@@ -62,7 +62,9 @@ namespace BackSpeakerMod.S1Wrapper
 
             try
             {
+#if IL2CPP
                 IL2CPPHelper.Initialize();
+#endif
                 _initialized = true;
             }
             catch (System.Exception)
@@ -179,7 +181,7 @@ namespace BackSpeakerMod.S1Wrapper
             }
             return null;
 #else
-            var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.instance;
+            var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.Instance;
             return phone != null ? new Mono.MonoPhone(phone) : null;
 #endif
         }
@@ -530,7 +532,8 @@ namespace BackSpeakerMod.S1Wrapper
                 if (appButton != null)
                 {
                     // appButton.onClick.RemoveAllListeners();
-                    appButton.onClick.AddListener((UnityEngine.Events.UnityAction)delegate() { onIconClick?.Invoke(); });
+                    var iconClickAction = ConvertToUnityAction(() => onIconClick?.Invoke());
+                if (iconClickAction != null) appButton.onClick.AddListener(iconClickAction);
                 }
                 
                 NewLoggingSystem.Debug("✓ Modified last icon for BackSpeaker", "S1Factory");
@@ -832,7 +835,7 @@ namespace BackSpeakerMod.S1Wrapper
 #endif
 #if !IL2CPP
                         // Cast to the expected Mono type
-                        var monoApp = component as ScheduleOne.UI.App<ScheduleOne.UI.Phone.ProductManagerApp>;
+                        var monoApp = component as ScheduleOne.UI.App<ScheduleOne.UI.Phone.ProductManagerApp.ProductManagerApp>;
                         if (monoApp != null)
                         {
                             return new BackSpeakerMod.S1Wrapper.Mono.MonoApp(monoApp);
@@ -1080,7 +1083,36 @@ namespace BackSpeakerMod.S1Wrapper
         /// <summary>
         /// Register a type in IL2CPP (if needed)
         /// </summary>
-        public static void RegisterType<T>() where T : UnityEngine.Object => IL2CPPHelper.RegisterIl2CppType<T>();
+        public static void RegisterType<T>() where T : UnityEngine.Object 
+        {
+            #if IL2CPP
+                IL2CPPHelper.RegisterIl2CppType<T>();
+            #endif
+        }
+
+        /// <summary>
+        /// Convert System.Action to UnityAction safely for both IL2CPP and Mono
+        /// </summary>
+        public static UnityEngine.Events.UnityAction? ConvertToUnityAction(System.Action? action)
+        {
+            if (action == null) return null;
+
+            try
+            {
+#if IL2CPP
+                // For IL2CPP, direct cast works
+                return (UnityEngine.Events.UnityAction)action;
+#else
+                // For Mono, need to create new UnityAction instance
+                return new UnityEngine.Events.UnityAction(action);
+#endif
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Failed to convert Action to UnityAction: {ex}", "S1Factory");
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets all active Schedule One systems in a single call

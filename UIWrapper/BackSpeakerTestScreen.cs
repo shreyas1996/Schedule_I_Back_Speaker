@@ -218,7 +218,8 @@ namespace BackSpeakerMod.UIWrapper
                 // PHASE 1: Add button click handlers for testing
                 try
                 {
-                    button.onClick.AddListener((UnityAction)delegate() { OnTestButtonClick(text); });
+                    var unityAction = S1Factory.ConvertToUnityAction(() => OnTestButtonClick(text));
+                    if (unityAction != null) button.onClick.AddListener(unityAction);
                     NewLoggingSystem.Info($"Button '{text}' created with click handler", "TestScreen");
                 }
                 catch (Exception ex)

@@ -280,25 +280,29 @@ namespace BackSpeakerMod.UIWrapper
             if (controls.PlayPauseButton != null)
             {
                 controls.PlayPauseButton.onClick.RemoveAllListeners();
-                controls.PlayPauseButton.onClick.AddListener((UnityAction)(() => TogglePlayback(manager)));
+                var playPauseAction = S1Factory.ConvertToUnityAction(() => TogglePlayback(manager));
+                if (playPauseAction != null) controls.PlayPauseButton.onClick.AddListener(playPauseAction);
             }
 
             if (controls.NextButton != null)
             {
                 controls.NextButton.onClick.RemoveAllListeners();
-                controls.NextButton.onClick.AddListener((UnityAction)(() => { /* Next track functionality not implemented yet */ }));
+                var nextAction = S1Factory.ConvertToUnityAction(() => { /* Next track functionality not implemented yet */ });
+                if (nextAction != null) controls.NextButton.onClick.AddListener(nextAction);
             }
 
             if (controls.PreviousButton != null)
             {
                 controls.PreviousButton.onClick.RemoveAllListeners();
-                controls.PreviousButton.onClick.AddListener((UnityAction)(() => { /* Previous track functionality not implemented yet */ }));
+                var previousAction = S1Factory.ConvertToUnityAction(() => { /* Previous track functionality not implemented yet */ });
+                if (previousAction != null) controls.PreviousButton.onClick.AddListener(previousAction);
             }
 
             if (controls.StopButton != null)
             {
                 controls.StopButton.onClick.RemoveAllListeners();
-                controls.StopButton.onClick.AddListener((UnityAction)(() => manager?.Pause()));
+                var stopAction = S1Factory.ConvertToUnityAction(() => manager?.Pause());
+                if (stopAction != null) controls.StopButton.onClick.AddListener(stopAction);
             }
         }
 
@@ -311,11 +315,12 @@ namespace BackSpeakerMod.UIWrapper
                 var button = tabBar.TabButtons[i];
                 
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener((UnityAction)(() =>
+                var buttonAction = S1Factory.ConvertToUnityAction(() =>
                 {
                     tabBar.SetActiveTab(tabIndex);
                     SwitchToTab(tabIndex, container);
-                }));
+                });
+                if (buttonAction != null) button.onClick.AddListener(buttonAction);
             }
         }
 

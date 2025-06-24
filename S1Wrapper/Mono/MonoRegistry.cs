@@ -15,14 +15,14 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             _registry[key] = value;
         }
 
-        public T Get<T>(string key)
-        {
-            if (_registry.TryGetValue(key, out var value) && value is T typedValue)
-            {
-                return typedValue;
-            }
-            return default(T);
-        }
+        // public T Get<T>(string key)
+        // {
+        //     if (_registry.TryGetValue(key, out var value) && value is T typedValue)
+        //     {
+        //         return typedValue;
+        //     }
+        //     return default(T);
+        // }
 
         public bool TryGet<T>(string key, out T value)
         {

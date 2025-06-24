@@ -292,7 +292,8 @@ namespace BackSpeakerMod.UIWrapper
                 if (button != null)
                 {
                     button.onClick.RemoveAllListeners();
-                    button.onClick.AddListener((UnityAction)(() => config.OnAppIconClick?.Invoke()));
+                    var unityAction = S1Factory.ConvertToUnityAction(() => config.OnAppIconClick?.Invoke());
+                if (unityAction != null) button.onClick.AddListener(unityAction);
                 }
 
                 result.Success = true;

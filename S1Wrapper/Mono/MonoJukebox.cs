@@ -8,80 +8,16 @@ namespace BackSpeakerMod.S1Wrapper.Mono
 {
     public class MonoJukebox : IJukebox
     {
-        private readonly ScheduleOne.Jukebox _jukebox;
+        private readonly ScheduleOne.ObjectScripts.Jukebox jukebox;
 
-        public MonoJukebox(ScheduleOne.Jukebox jukebox)
+        public MonoJukebox(ScheduleOne.ObjectScripts.Jukebox jukebox)
         {
-            _jukebox = jukebox ?? throw new ArgumentNullException(nameof(jukebox));
+            this.jukebox = jukebox ?? throw new ArgumentNullException(nameof(jukebox));
         }
 
-        public GameObject GameObject => _jukebox.gameObject;
-        public Transform Transform => _jukebox.transform;
-        public string Name => _jukebox.name;
-
-        public AudioClip? CurrentTrack => _jukebox.CurrentTrack;
-
-        public bool IsPlaying => _jukebox.IsPlaying;
-
-        public void Play()
-        {
-            _jukebox.Play();
-        }
-
-        public void Pause()
-        {
-            _jukebox.Pause();
-        }
-
-        public void Stop()
-        {
-            _jukebox.Stop();
-        }
-
-        public void NextTrack()
-        {
-            _jukebox.NextTrack();
-        }
-
-        public void PreviousTrack()
-        {
-            _jukebox.PreviousTrack();
-        }
-
-        public void SetVolume(float volume)
-        {
-            _jukebox.SetVolume(volume);
-        }
-
-        public float GetVolume()
-        {
-            return _jukebox.GetVolume();
-        }
-
-        public void LoadTrack(AudioClip clip)
-        {
-            _jukebox.LoadTrack(clip);
-        }
-
-        public float GetCurrentTime()
-        {
-            return _jukebox.GetCurrentTime();
-        }
-
-        public float GetTrackLength()
-        {
-            return _jukebox.GetTrackLength();
-        }
-
-        public void SetTime(float time)
-        {
-            _jukebox.SetTime(time);
-        }
-
-        public AudioClip GetCurrentTrack()
-        {
-            return _jukebox.GetCurrentTrack();
-        }
+        public GameObject GameObject => jukebox.gameObject;
+        public Transform Transform => jukebox.transform;
+        public string Name => jukebox.name;
 
         public List<AudioClip> GetTracks()
         {
@@ -89,22 +25,36 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             
             try
             {
-                // Try to access the TrackList property if it exists
-                if (_jukebox.TrackList != null && _jukebox.TrackList.Count > 0)
+                // Mono Jukebox has 27 tracks (TRACK_COUNT constant)
+                for (int i = 0; i < 27; i++)
                 {
-                    foreach (var track in _jukebox.TrackList)
+                    try
                     {
+                        var track = jukebox.GetType().GetMethod("GetTrack", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(jukebox, new object[] { i });
                         if (track != null)
                         {
-                            tracks.Add(track);
+                            var clipProperty = track.GetType().GetProperty("Clip");
+                            if (clipProperty != null)
+                            {
+                                var clip = clipProperty.GetValue(track) as AudioClip;
+                                if (clip != null)
+                                {
+                                    tracks.Add(clip);
+                                }
+                            }
                         }
+                    }
+                    catch
+                    {
+                        // Skip invalid tracks
+                        continue;
                     }
                 }
                 
                 // Fallback: Try to get tracks from AudioSource components
                 if (tracks.Count == 0)
                 {
-                    var audioSources = _jukebox.GetComponentsInChildren<AudioSource>();
+                    var audioSources = jukebox.GetComponentsInChildren<AudioSource>();
                     foreach (var source in audioSources)
                     {
                         if (source.clip != null)
@@ -117,7 +67,6 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             catch (Exception)
             {
                 // If accessing properties fails, return empty list
-                // This handles cases where the jukebox structure might be different
             }
 
             return tracks;
@@ -125,7 +74,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
 
         public int TrackCount => GetTracks().Count;
         public bool HasTracks => TrackCount > 0;
-        public bool IsActive => _jukebox != null && _jukebox.gameObject.activeInHierarchy;
+        public bool IsActive => jukebox != null && jukebox.gameObject.activeInHierarchy;
 
         public AudioClip? GetTrack(int index)
         {

@@ -45,7 +45,7 @@ namespace BackSpeakerMod.S1Wrapper
                 // Handle common PlayerSingleton types
                 if (typeof(T).Name.Contains("Phone"))
                 {
-                    var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.instance;
+                    var phone = ScheduleOne.DevUtilities.PlayerSingleton<ScheduleOne.UI.Phone.Phone>.Instance;
                     return phone as T;
                 }
                 

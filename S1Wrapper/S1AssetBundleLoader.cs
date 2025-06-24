@@ -63,11 +63,19 @@ namespace BackSpeakerMod.S1Wrapper
                     NewLoggingSystem.Debug($"Read {data.Length} bytes from embedded resource", "S1AssetBundleLoader");
 
                     // Load from memory using the appropriate method for the runtime
-                    var bundle = IL2CPPHelper.LoadFromMemory(data);
+                    #if IL2CPP
+                        var bundle = IL2CPPHelper.LoadFromMemory(data);
+                    #else
+                        var bundle = MonoHelper.LoadFromMemory(data);
+                    #endif
                     if (bundle != null)
                     {
                         NewLoggingSystem.Debug($"Loaded asset bundle: {resourceName}", "S1AssetBundleLoader");
-                        _assetBundles.Add(resourceName, new Il2Cpp.Il2CppAssetBundleWrapper(bundle));
+                        #if IL2CPP
+                            _assetBundles.Add(resourceName, new Il2Cpp.Il2CppAssetBundleWrapper(bundle));
+                        #else
+                            _assetBundles.Add(resourceName, new Mono.MonoAssetBundleWrapper(bundle));
+                        #endif
                         return _assetBundles[resourceName];
                     }
                     NewLoggingSystem.Error($"Failed to load asset bundle: {resourceName}", "S1AssetBundleLoader");
@@ -195,9 +203,7 @@ namespace BackSpeakerMod.S1Wrapper
                     try
                     {
                         // Try Il2CppAssetBundleManager first
-#pragma warning disable CS0618
                         var bundle = Il2CppAssetBundleManager.LoadFromMemory(data);
-#pragma warning restore CS0618
                         if (bundle != null)
                         {
                             _assetBundles.Add(name, new Il2Cpp.Il2CppAssetBundleWrapper(bundle));
@@ -226,9 +232,7 @@ namespace BackSpeakerMod.S1Wrapper
                 }
                 return false;
 #else
-#pragma warning disable CS0618
-                var bundle = Il2CppAssetBundleManager.LoadFromMemory(data);
-#pragma warning restore CS0618
+                var bundle = AssetBundle.LoadFromMemory(data);
                 if (bundle != null)
                 {
                     _assetBundles.Add(name, new Mono.MonoAssetBundleWrapper(bundle));

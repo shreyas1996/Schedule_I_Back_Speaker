@@ -112,7 +112,7 @@ namespace BackSpeakerMod.UIWrapper
             playlistLabelRect.anchoredPosition = new Vector2(20, -130);
 
             // Playlist dropdown (simplified as button for now)
-            var playlistButton = S1UIFactory.CreateButton(parent, "Select Playlist ▼", (UnityAction)(() => config.OnPlaylistSelect?.Invoke()), new Vector2(200, 35));
+                            var playlistButton = S1UIFactory.CreateButton(parent, "Select Playlist ▼", S1Factory.ConvertToUnityAction(() => config.OnPlaylistSelect?.Invoke()), new Vector2(200, 35));
             var playlistButtonRect = playlistButton.GetComponent<RectTransform>();
             S1UIFactory.SetAnchors(playlistButtonRect, AnchorPresets.TopLeft);
             playlistButtonRect.anchoredPosition = new Vector2(20, -160);
@@ -130,7 +130,7 @@ namespace BackSpeakerMod.UIWrapper
             for (int i = 0; i < 5; i++)
             {
                 var playlistItem = S1UIFactory.CreateButton(listLayout.ContentArea.transform, $"Playlist {i + 1}", 
-                    (UnityAction)(() => config.OnPlaylistItemClick?.Invoke(i.ToString())), new Vector2(320, 35));
+                    S1Factory.ConvertToUnityAction(() => config.OnPlaylistItemClick?.Invoke(i.ToString())), new Vector2(320, 35));
                 
                 var itemRect = playlistItem.GetComponent<RectTransform>();
                 S1UIFactory.SetAnchors(itemRect, AnchorPresets.TopCenter);
@@ -158,7 +158,7 @@ namespace BackSpeakerMod.UIWrapper
             S1UIFactory.SetAnchors(autoPlayLabelRect, AnchorPresets.TopLeft);
             autoPlayLabelRect.anchoredPosition = new Vector2(20, -70);
 
-            var autoPlayToggle = S1UIFactory.CreateButton(parent, "ON", (UnityAction)(() => config.OnAutoPlayToggle?.Invoke()), new Vector2(50, 30));
+                            var autoPlayToggle = S1UIFactory.CreateButton(parent, "ON", S1Factory.ConvertToUnityAction(() => config.OnAutoPlayToggle?.Invoke()), new Vector2(50, 30));
             var autoPlayToggleRect = autoPlayToggle.GetComponent<RectTransform>();
             S1UIFactory.SetAnchors(autoPlayToggleRect, AnchorPresets.TopRight);
             autoPlayToggleRect.anchoredPosition = new Vector2(-20, -70);

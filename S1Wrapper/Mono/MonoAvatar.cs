@@ -1,39 +1,108 @@
 #if !IL2CPP
 using System;
-using BackSpeakerMod.S1Wrapper.Interfaces;
 using UnityEngine;
+using BackSpeakerMod.S1Wrapper.Interfaces;
 
 namespace BackSpeakerMod.S1Wrapper.Mono
 {
     public class MonoAvatar : IAvatar
     {
-        private readonly ScheduleOne.Avatar _avatar;
+        private readonly object _avatar;
 
-        public MonoAvatar(ScheduleOne.Avatar avatar)
+        public MonoAvatar(object avatar)
         {
             _avatar = avatar ?? throw new ArgumentNullException(nameof(avatar));
         }
 
-        public Transform Transform => _avatar.transform;
+        public Transform Transform
+        {
+            get
+            {
+                try
+                {
+                    var property = _avatar.GetType().GetProperty("transform");
+                    return property?.GetValue(_avatar) as Transform;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+        }
+
+        public Transform? HeadBone 
+        { 
+            get 
+            { 
+                try
+                {
+                    // In Mono, HeadBone is a field, not a property
+                    var field = _avatar.GetType().GetField("HeadBone");
+                    return field?.GetValue(_avatar) as Transform;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            } 
+        }
         
         public void SetPosition(Vector3 position)
         {
-            _avatar.transform.position = position;
+            try
+            {
+                var transform = Transform;
+                if (transform != null)
+                {
+                    transform.position = position;
+                }
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
         
         public Vector3 GetPosition()
         {
-            return _avatar.transform.position;
+            try
+            {
+                var transform = Transform;
+                return transform != null ? transform.position : Vector3.zero;
+            }
+            catch (Exception)
+            {
+                return Vector3.zero;
+            }
         }
         
         public void SetRotation(Quaternion rotation)
         {
-            _avatar.transform.rotation = rotation;
+            try
+            {
+                var transform = Transform;
+                if (transform != null)
+                {
+                    transform.rotation = rotation;
+                }
+            }
+            catch (Exception)
+            {
+                // Handle reflection failures silently
+            }
         }
         
         public Quaternion GetRotation()
         {
-            return _avatar.transform.rotation;
+            try
+            {
+                var transform = Transform;
+                return transform != null ? transform.rotation : Quaternion.identity;
+            }
+            catch (Exception)
+            {
+                return Quaternion.identity;
+            }
         }
     }
 }

@@ -6,7 +6,9 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using MelonLoader;
+#if IL2CPP
 using Newtonsoft.Json.Linq;
+#endif
 
 namespace BackSpeakerMod.NewBackend.Utils
 {
@@ -376,6 +378,7 @@ namespace BackSpeakerMod.NewBackend.Utils
         {
             var songDetailsList = new List<NewSongDetails>();
 
+#if IL2CPP
             try
             {
                 var lines = rawOutput.Split('\n');
@@ -410,6 +413,10 @@ namespace BackSpeakerMod.NewBackend.Utils
             {
                 NewLoggingSystem.Error($"Error processing yt-dlp JSON output: {ex}", "NewYoutubeHelper");
             }
+#else
+            // Mono fallback - basic parsing without JSON library
+            NewLoggingSystem.Warning("YouTube JSON processing not available in Mono build", "NewYoutubeHelper");
+#endif
 
             return songDetailsList;
         }
