@@ -27,6 +27,8 @@ namespace BackSpeakerMod.NewFrontend
         private GameObject? _appIcon;
         private Button? _appButton;
         private Transform? _appContainer;
+        private bool _isPortrait = false;
+        private float _lookOffsetMultiplier = 1.0f;
         
         // Rotation control - now handled in S1Factory during cloning
         
@@ -44,14 +46,14 @@ namespace BackSpeakerMod.NewFrontend
             try
             {
                 NewLoggingSystem.Info("Initializing BackSpeaker Phone App", "PhoneApp");
-                
-                // Register required components (none needed for built-in Unity components)
-                // RegisterRequiredComponents();
+
+                // Set portrait mode to true
+                _isPortrait = true;
                 
                 // Create one properly working BackSpeaker app
                 CreateBackSpeakerApp();
                 
-                                // Set up the app if creation was successful
+                // Set up the app if creation was successful
                 if (_backSpeakerApp != null)
                 {
                     NewLoggingSystem.Info("✓ BackSpeaker app created with portrait orientation (fixed in S1Factory)", "PhoneApp");
@@ -70,27 +72,6 @@ namespace BackSpeakerMod.NewFrontend
         }
         
         /// <summary>
-        /// Register components required for IL2CPP
-        /// </summary>
-        private void RegisterRequiredComponents()
-        {
-            try
-            {
-                // Note: Built-in Unity UI components (Button, Text, Image, LayoutGroups, etc.) 
-                // do NOT need to be registered - Unity handles them automatically
-                
-                // Only register custom components here if they exist
-                // Currently no custom components need registration for the phone app
-                
-                NewLoggingSystem.Info("✓ Component registration check complete", "PhoneApp");
-            }
-            catch (Exception ex)
-            {
-                NewLoggingSystem.Error($"Failed to register components: {ex}", "PhoneApp");
-            }
-        }
-        
-        /// <summary>
         /// Create the BackSpeaker app exactly like old code
         /// </summary>
         private void CreateBackSpeakerApp()
@@ -101,7 +82,7 @@ namespace BackSpeakerMod.NewFrontend
                 
                 // Clone app exactly like old code
                 var backSpeakerSprite = BackSpeakerMod.NewBackend.Utils.ResourceLoader.LoadEmbeddedSprite("BackSpeakerMod.EmbeddedResources.back_speaker_logo.png");
-                var (app, canvas) = S1Factory.CloneApp("BackSpeaker", OnHomeScreenBtnClick, backSpeakerSprite, true);
+                var (app, canvas) = S1Factory.CloneApp("BackSpeaker", OnHomeScreenBtnClick, backSpeakerSprite, _isPortrait);
                 _backSpeakerApp = app;
                 _backSpeakerCanvas = canvas;
                 
@@ -134,7 +115,6 @@ namespace BackSpeakerMod.NewFrontend
         {
             _homeScreen = GameObject.Find("HomeScreen");
             _appsCanvas = GameObject.Find("AppsCanvas");
-            // _backSpeakerCanvas = _appsCanvas?.transform.FindChild("BackSpeakerApp").gameObject;
             _appContainer = _backSpeakerCanvas?.transform.FindChild("Container");
         }
         
@@ -198,15 +178,6 @@ namespace BackSpeakerMod.NewFrontend
         {
             NewLoggingSystem.Info("Home button clicked", "PhoneApp");
 
-            // OLD CODE: Check if playlist is open (simplified for now - no playlist component yet)
-            // var playlistComponent = backSpeakerScreen?.ContentArea?.PlaylistToggle;
-            // if (playlistComponent != null && playlistComponent.IsPlaylistOpen())
-            // {
-            //     NewLoggingSystem.Info("Playlist is open, closing it instead of exiting app", "PhoneApp");
-            //     playlistComponent.ClosePlaylistIfOpen();
-            //     return;
-            // }
-
             // OLD CODE: No playlist open, proceed with normal app opening
             NewLoggingSystem.Info("Opening BackSpeaker app normally", "PhoneApp");
 
@@ -228,8 +199,12 @@ namespace BackSpeakerMod.NewFrontend
 
                     // Set phone to portrait mode (not horizontal) - this is the key fix!
                     NewLoggingSystem.Info("Setting phone to portrait mode", "PhoneApp");
-                    phone.SetIsHorizontal(false);
-                    phone.SetLookOffsetMultiplier(1.0f);
+                    if(_isPortrait) {
+                        phone.SetIsHorizontal(false);
+                        phone.SetLookOffsetMultiplier(_lookOffsetMultiplier);
+                    } else {
+                        phone.SetIsHorizontal(true);
+                    }
 
                     if (_homeScreen != null) _homeScreen.GetComponent<Canvas>().enabled = false;
                     if (_appsCanvas != null) _appsCanvas.GetComponent<Canvas>().enabled = true;
@@ -292,7 +267,9 @@ namespace BackSpeakerMod.NewFrontend
                 if(phone.IsOpen) {
                     if(_backSpeakerApp != null) {
                         if(_backSpeakerApp.isOpen) {
-                            phone.SetLookOffsetMultiplier(1.0f);
+                            if(_isPortrait) {
+                                phone.SetLookOffsetMultiplier(_lookOffsetMultiplier);
+                            }
                         }
                     }
                 }
