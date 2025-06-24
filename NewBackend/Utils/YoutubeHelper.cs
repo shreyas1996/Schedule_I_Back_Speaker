@@ -122,7 +122,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             }
         }
 
-        public static void DownloadSong(NewSongDetails songDetails, System.Action<string> onDownloadProgressChanged, System.Action<bool> onComplete)
+        public static void DownloadSong(NewSongDetails songDetails, System.Action<string>? onDownloadProgressChanged, System.Action<bool> onComplete)
         {
             if (songDetails == null || string.IsNullOrEmpty(songDetails.url))
             {
@@ -207,7 +207,7 @@ namespace BackSpeakerMod.NewBackend.Utils
 
         private static IEnumerator ExecuteYtDlpProcessCoroutine(string ytDlpPath, string arguments, System.Action<string, int> onComplete)
         {
-            Process process = null;
+            Process? process = null;
             string output = "";
             bool processCompleted = false;
             int exitCode = -1;
@@ -268,7 +268,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             onComplete?.Invoke(output, exitCode);
         }
 
-        private static IEnumerator DownloadSongCoroutine(NewSongDetails songDetails, System.Action<string> onDownloadProgressChanged, System.Action<bool> onComplete)
+        private static IEnumerator DownloadSongCoroutine(NewSongDetails songDetails, System.Action<string>? onDownloadProgressChanged, System.Action<bool> onComplete)
         {
             var cacheDir = GetYouTubeCacheDirectory();
             var ytDlpPath = NewYtDlpLoader.GetYtDlpPath();
@@ -301,9 +301,9 @@ namespace BackSpeakerMod.NewBackend.Utils
             onComplete?.Invoke(downloadSuccess);
         }
 
-        private static IEnumerator ExecuteDownloadProcessCoroutine(string ytDlpPath, string arguments, System.Action<string> onProgress, System.Action<bool> onComplete)
+        private static IEnumerator ExecuteDownloadProcessCoroutine(string ytDlpPath, string arguments, System.Action<string>? onProgress, System.Action<bool> onComplete)
         {
-            Process process = null;
+            Process? process = null;
             bool processCompleted = false;
             int exitCode = -1;
 

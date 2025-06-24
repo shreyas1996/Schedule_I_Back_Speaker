@@ -34,7 +34,6 @@ namespace BackSpeakerMod.NewBackend
         private float _lastCameraCheckTime = 0f;
         private const float CAMERA_CHECK_INTERVAL = 0.1f; // Check every 100ms instead of every frame
         
-        private readonly string _assetBundleName = "BackSpeakerMod.EmbeddedResources.scheduleoneheadphones";
         public event Action<bool>? OnHeadphonesStateChanged;
         
         public bool AreHeadphonesAttached => _headphonesAttached;

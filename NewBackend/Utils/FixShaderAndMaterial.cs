@@ -6,8 +6,8 @@ namespace BackSpeakerMod.NewBackend.Utils
 {
     public class MaterialConfig
     {
-        public string Name { get; set; }
-        public Material Material { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public Material? Material { get; set; }
     }
 
     public static class FixShaderAndMaterial
@@ -70,7 +70,7 @@ namespace BackSpeakerMod.NewBackend.Utils
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
                             material.SetInt("_IsOpaque", materialConfig.IsOpaque ? 1 : 0);
                         }
-                        if(materialConfig.CullMode != null && material.HasProperty("_CullMode"))
+                        if(material.HasProperty("_CullMode"))
                         {
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
                             material.SetInt("_CullMode", (int)materialConfig.CullMode);

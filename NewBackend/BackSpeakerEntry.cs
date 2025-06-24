@@ -34,7 +34,6 @@ namespace BackSpeakerMod.NewBackend
         public static bool RunTestsOnStartup = false; // Set to true to run tests
         public static bool RunQuickSmokeTest = true; // Set to false to disable smoke test
         
-        [Obsolete]
         public override void OnInitializeMelon()
         {
             _instance = this;
@@ -106,7 +105,14 @@ namespace BackSpeakerMod.NewBackend
             try
             {
                 _mainManager = BackSpeakerMainManager.Instance;
-                _mainManager.Initialize(_currentPlayer);
+                if (_mainManager != null && _currentPlayer != null)
+                {
+                    _mainManager.Initialize(_currentPlayer);
+                }
+                else
+                {
+                    throw new InvalidOperationException("MainManager or CurrentPlayer is null");
+                }
                 
                 NewLoggingSystem.Info("✓ BackSpeaker system initialized successfully", "Entry");
             }

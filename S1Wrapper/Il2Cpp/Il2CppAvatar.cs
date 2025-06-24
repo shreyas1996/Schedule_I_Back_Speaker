@@ -2,14 +2,15 @@
 using System;
 using UnityEngine;
 using BackSpeakerMod.S1Wrapper.Interfaces;
+using Il2CppScheduleOne.AvatarFramework;
 
 namespace BackSpeakerMod.S1Wrapper.Il2Cpp
 {
     public class Il2CppAvatar : IAvatar
     {
-        private readonly object _avatar;
+        private readonly Avatar _avatar;
 
-        public Il2CppAvatar(object avatar)
+        public Il2CppAvatar(Avatar avatar)
         {
             _avatar = avatar ?? throw new ArgumentNullException(nameof(avatar));
         }
@@ -18,15 +19,7 @@ namespace BackSpeakerMod.S1Wrapper.Il2Cpp
         {
             get
             {
-                try
-                {
-                    var property = _avatar.GetType().GetProperty("transform");
-                    return property?.GetValue(_avatar) as Transform;
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
+                return _avatar.transform;
             }
         }
 
@@ -34,75 +27,28 @@ namespace BackSpeakerMod.S1Wrapper.Il2Cpp
         { 
             get 
             { 
-                try
-                {
-                    // Access the actual HeadBone property from the game's Avatar class
-                    var property = _avatar.GetType().GetProperty("HeadBone");
-                    return property?.GetValue(_avatar) as Transform;
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
+                return _avatar.HeadBone;
             } 
         }
         
         public void SetPosition(Vector3 position)
         {
-            try
-            {
-                var transform = Transform;
-                if (transform != null)
-                {
-                    transform.position = position;
-                }
-            }
-            catch (Exception)
-            {
-                // Handle reflection failures silently
-            }
+            _avatar.transform.position = position;
         }
         
         public Vector3 GetPosition()
         {
-            try
-            {
-                var transform = Transform;
-                return transform != null ? transform.position : Vector3.zero;
-            }
-            catch (Exception)
-            {
-                return Vector3.zero;
-            }
+            return _avatar.transform.position;
         }
         
         public void SetRotation(Quaternion rotation)
         {
-            try
-            {
-                var transform = Transform;
-                if (transform != null)
-                {
-                    transform.rotation = rotation;
-                }
-            }
-            catch (Exception)
-            {
-                // Handle reflection failures silently
-            }
+            _avatar.transform.rotation = rotation;
         }
         
         public Quaternion GetRotation()
         {
-            try
-            {
-                var transform = Transform;
-                return transform != null ? transform.rotation : Quaternion.identity;
-            }
-            catch (Exception)
-            {
-                return Quaternion.identity;
-            }
+            return _avatar.transform.rotation;
         }
     }
 }

@@ -2,6 +2,7 @@ using UnityEngine;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 using System.Collections.Generic;
 using System;
+using System.Reflection;
 
 namespace BackSpeakerMod.S1Wrapper.Il2Cpp
 {
@@ -25,48 +26,14 @@ namespace BackSpeakerMod.S1Wrapper.Il2Cpp
             
             try
             {
-                // Try to access the TrackList property if it exists
+                // Access TrackList directly - it's a public property in IL2CPP
                 if (jukebox.TrackList != null && jukebox.TrackList.Count > 0)
                 {
                     foreach (var track in jukebox.TrackList)
                     {
-                        if (track != null)
+                        if (track?.Clip != null)
                         {
-                            // Try different ways to get AudioClip from Track
-                            AudioClip clip = null;
-                            
-                            // Method 1: Try direct clip property
-                            try
-                            {
-                                var clipField = track.GetType().GetField("clip");
-                                if (clipField != null)
-                                {
-                                    clip = clipField.GetValue(track) as AudioClip;
-                                }
-                            }
-                            catch { }
-                            
-                            // Method 2: Try audioClip property
-                            if (clip == null)
-                            {
-                                try
-                                {
-                                    var clipProperty = track.GetType().GetProperty("audioClip");
-                                    if (clipProperty != null)
-                                    {
-                                        clip = clipProperty.GetValue(track) as AudioClip;
-                                    }
-                                }
-                                catch { }
-                            }
-                            
-                            // Method 3: Skip GetComponent as Track may not be a MonoBehaviour
-                            // This would require the Track to be a MonoBehaviour which it may not be
-                            
-                            if (clip != null)
-                            {
-                                tracks.Add(clip);
-                            }
+                            tracks.Add(track.Clip);
                         }
                     }
                 }

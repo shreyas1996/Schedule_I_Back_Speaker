@@ -31,10 +31,10 @@ namespace BackSpeakerMod.S1Wrapper.Mono
         public bool AvailableInTutorial => _app.AvailableInTutorial;
 
         // Protected/Internal Properties - using reflection for access
-        public RectTransform appContainer => GetPrivateField<RectTransform>("appContainer");
-        public RectTransform notificationContainer => GetPrivateField<RectTransform>("notificationContainer");
-        public Text notificationText => GetPrivateField<Text>("notificationText");
-        public Button appIconButton => GetPrivateField<Button>("appIconButton");
+        public RectTransform? appContainer => GetPrivateField<RectTransform>("appContainer");
+        public RectTransform? notificationContainer => GetPrivateField<RectTransform>("notificationContainer");
+        public Text? notificationText => GetPrivateField<Text>("notificationText");
+        public Button? appIconButton => GetPrivateField<Button>("appIconButton");
 
         // Core Methods (from App<T>.cs) - exact matches
         public void SetOpen(bool open) => _app.SetOpen(open);
@@ -54,7 +54,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
 
         // Static App Management - not implemented for individual apps
         public List<IApp> Apps => new List<IApp>(); // Would need static access
-        public IApp GetApp(int index) => null; // Would need static access
+        public IApp? GetApp(int index) => null; // Would need static access
 
         // Helper Properties
         public bool IsHorizontal => Orientation == EOrientation.Horizontal;
@@ -67,7 +67,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
         /// <summary>
         /// Helper method to access private/protected fields via reflection
         /// </summary>
-        private T GetPrivateField<T>(string fieldName) where T : class
+        private T? GetPrivateField<T>(string fieldName) where T : class
         {
             try
             {

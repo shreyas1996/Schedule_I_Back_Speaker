@@ -432,7 +432,7 @@ namespace BackSpeakerMod.S1Wrapper
                 colorBlock.colorMultiplier = 1f;
                 
                 // Find ProductManagerApp to clone (exactly like old code)
-                var productManagerAppObj = appsCanvas.transform.FindChild("ProductManagerApp");
+                var productManagerAppObj = appsCanvas.transform.Find("ProductManagerApp");
                 if (productManagerAppObj == null)
                 {
                     NewLoggingSystem.Error("ProductManagerApp not found", "S1Factory");
@@ -510,7 +510,7 @@ namespace BackSpeakerMod.S1Wrapper
                 var appIcon = appIcons.transform.GetChild(iconCount - 1).gameObject;
                 
                 // Update icon label
-                var label = appIcon.transform.FindChild("Label").gameObject.GetComponent<Text>();
+                var label = appIcon.transform.Find("Label").gameObject.GetComponent<Text>();
                 if (label != null)
                 {
                     NewLoggingSystem.Debug($"Setting label text to: {appName}", "S1Factory");
@@ -520,7 +520,7 @@ namespace BackSpeakerMod.S1Wrapper
                 // Set BackSpeaker sprite
                 if (iconSprite != null)
                 {
-                    var mask = appIcon.transform.FindChild("Mask").GetChild(0).GetComponent<Image>();
+                    var mask = appIcon.transform.Find("Mask").GetChild(0).GetComponent<Image>();
                     if (mask != null)
                     {
                         mask.sprite = iconSprite;
@@ -656,7 +656,7 @@ namespace BackSpeakerMod.S1Wrapper
         /// </summary>
         private static Transform? FindAppContainer(GameObject appCanvas)
         {
-            return appCanvas.transform.FindChild("Container");
+            return appCanvas.transform.Find("Container");
         }
 
         /// <summary>

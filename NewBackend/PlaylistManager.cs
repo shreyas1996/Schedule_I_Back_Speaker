@@ -16,7 +16,7 @@ namespace BackSpeakerMod.NewBackend
     public class PlaylistManager
     {
         // Source track caches
-        private Dictionary<string, List<NewSongDetails>>? _sourceTracks;
+        private Dictionary<string, List<NewSongDetails>> _sourceTracks;
         
         public IEnumerator Initialize()
         {
@@ -282,7 +282,7 @@ namespace BackSpeakerMod.NewBackend
             
             // Clear caches
             _sourceTracks?.Clear();
-            _sourceTracks = null;
+            _sourceTracks = new Dictionary<string, List<NewSongDetails>>();
             
             NewLoggingSystem.Info("✓ PlaylistManager shutdown complete", "PlaylistManager");
         }

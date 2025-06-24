@@ -3,6 +3,7 @@ using System;
 using UnityEngine;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace BackSpeakerMod.S1Wrapper.Mono
 {
@@ -25,29 +26,29 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             
             try
             {
-                // Mono Jukebox has 27 tracks (TRACK_COUNT constant)
-                for (int i = 0; i < 27; i++)
+                // Access the private GetTrack method using reflection since it's private
+                // We still need reflection for this one method because it's private in the game code
+                var getTrackMethod = typeof(ScheduleOne.ObjectScripts.Jukebox).GetMethod("GetTrack", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                
+                if (getTrackMethod != null)
                 {
-                    try
+                    // Mono Jukebox has 27 tracks (TRACK_COUNT constant)
+                    for (int i = 0; i < 27; i++)
                     {
-                        var track = jukebox.GetType().GetMethod("GetTrack", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(jukebox, new object[] { i });
-                        if (track != null)
+                        try
                         {
-                            var clipProperty = track.GetType().GetProperty("Clip");
-                            if (clipProperty != null)
+                            var track = getTrackMethod.Invoke(jukebox, new object[] { i }) as ScheduleOne.ObjectScripts.Jukebox.Track;
+                            if (track?.Clip != null)
                             {
-                                var clip = clipProperty.GetValue(track) as AudioClip;
-                                if (clip != null)
-                                {
-                                    tracks.Add(clip);
-                                }
+                                tracks.Add(track.Clip);
                             }
                         }
-                    }
-                    catch
-                    {
-                        // Skip invalid tracks
-                        continue;
+                        catch
+                        {
+                            // Skip invalid tracks
+                            continue;
+                        }
                     }
                 }
                 

@@ -18,7 +18,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a button with text and click handler
         /// </summary>
-        public static Button CreateButton(Transform parent, string text, UnityAction onClick = null, Vector2? size = null)
+        public static Button CreateButton(Transform parent, string text, UnityAction? onClick = null, Vector2? size = null)
         {
             try
             {

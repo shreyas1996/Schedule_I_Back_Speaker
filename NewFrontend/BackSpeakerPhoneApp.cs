@@ -24,8 +24,6 @@ namespace BackSpeakerMod.NewFrontend
         private GameObject? _homeScreen;
         private GameObject? _appsCanvas;
         private GameObject? _backSpeakerCanvas;
-        private GameObject? _appIcon;
-        private Button? _appButton;
         private Transform? _appContainer;
         private bool _isPortrait = false;
         private float _lookOffsetMultiplier = 1.0f;
@@ -115,7 +113,7 @@ namespace BackSpeakerMod.NewFrontend
         {
             _homeScreen = GameObject.Find("HomeScreen");
             _appsCanvas = GameObject.Find("AppsCanvas");
-            _appContainer = _backSpeakerCanvas?.transform.FindChild("Container");
+            _appContainer = _backSpeakerCanvas?.transform.Find("Container");
         }
         
         /// <summary>
@@ -145,7 +143,7 @@ namespace BackSpeakerMod.NewFrontend
                         {
                             // Use S1Factory to properly add the screen to the container
                             S1Factory.AddScreenToContainer(_appContainer, testScreenContent);
-                            _backSpeakerCanvas.active = true;
+                            _backSpeakerCanvas?.SetActive(true);
                             NewLoggingSystem.Info("✓ BackSpeaker screen content added successfully", "PhoneApp");
                         }
                         else
@@ -208,7 +206,7 @@ namespace BackSpeakerMod.NewFrontend
 
                     if (_homeScreen != null) _homeScreen.GetComponent<Canvas>().enabled = false;
                     if (_appsCanvas != null) _appsCanvas.GetComponent<Canvas>().enabled = true;
-                    if (_backSpeakerCanvas != null) _backSpeakerCanvas.active = true;
+                    if (_backSpeakerCanvas != null) _backSpeakerCanvas.SetActive(true);
                     
                     // Container is now properly configured during app creation - no runtime rotation needed
                 }

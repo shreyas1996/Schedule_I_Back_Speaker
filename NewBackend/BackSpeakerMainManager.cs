@@ -72,6 +72,12 @@ namespace BackSpeakerMod.NewBackend
         {
             NewLoggingSystem.Info("Starting MainManager initialization...", "MainManager");
             
+            if (_currentPlayer == null)
+            {
+                NewLoggingSystem.Error("Current player is null, cannot initialize", "MainManager");
+                yield break;
+            }
+            
             // Initialize headphone manager
             _headphoneManager = new HeadphoneManager();
             yield return MelonCoroutines.Start(_headphoneManager.Initialize(_currentPlayer));

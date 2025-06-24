@@ -11,17 +11,17 @@ namespace BackSpeakerMod.S1Wrapper.Mono
     /// </summary>
     public class MonoAssetBundleWrapper : IAssetBundle
     {
-        private readonly AssetBundle bundle; // Standard Unity AssetBundle
+        private readonly AssetBundle? bundle; // Standard Unity AssetBundle
         private readonly bool isValid;
 
-        public MonoAssetBundleWrapper(AssetBundle assetBundle)
+        public MonoAssetBundleWrapper(AssetBundle? assetBundle)
         {
             bundle = assetBundle;
             isValid = bundle != null;
             
             if (isValid)
             {
-                NewLoggingSystem.Debug($"Created MonoAssetBundleWrapper with bundle: {bundle.name}", "MonoAssetBundleWrapper");
+                NewLoggingSystem.Debug($"Created MonoAssetBundleWrapper with bundle: {bundle?.name}", "MonoAssetBundleWrapper");
             }
             else
             {
@@ -48,7 +48,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
                 NewLoggingSystem.Debug($"Standard AssetBundle contains {allNames.Length} assets: [{string.Join(", ", allNames)}]", "MonoAssetBundleWrapper");
                 
                 // Use direct call to LoadAllAssets on standard AssetBundle
-                var assets = bundle.LoadAllAssets<T>();
+                var assets = bundle!.LoadAllAssets<T>();
                 NewLoggingSystem.Debug($"LoadAllAssets returned {assets.Length} assets of type {typeof(T).Name}", "MonoAssetBundleWrapper");
                 return assets;
             }
@@ -73,7 +73,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             try
             {
                 // Use direct call to LoadAsset on standard AssetBundle
-                var asset = bundle.LoadAsset<T>(name);
+                var asset = bundle!.LoadAsset<T>(name);
                 if (asset != null)
                 {
                     NewLoggingSystem.Debug($"Successfully loaded asset '{name}' of type {typeof(T).Name}", "MonoAssetBundleWrapper");
@@ -105,7 +105,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             try
             {
                 // Use direct call to GetAllAssetNames on standard AssetBundle
-                var names = bundle.GetAllAssetNames();
+                var names = bundle!.GetAllAssetNames();
                 NewLoggingSystem.Debug($"GetAllAssetNames returned {names.Length} asset names", "MonoAssetBundleWrapper");
                 return names;
             }
@@ -130,7 +130,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
             try
             {
                 // Use direct call to Unload on standard AssetBundle
-                bundle.Unload(unloadAllLoadedObjects);
+                bundle!.Unload(unloadAllLoadedObjects);
                 NewLoggingSystem.Debug("Successfully unloaded standard AssetBundle", "MonoAssetBundleWrapper");
             }
             catch (System.Exception ex)

@@ -45,8 +45,9 @@ namespace BackSpeakerMod.NewBackend.Utils
             {
                 NewLoggingSystem.Warning($"Failed to load audio clip from: {filePath}", "AudioLoaderHelper");
             }
+            onComplete?.Invoke(clip ?? null);
+            yield break;
 
-            onComplete?.Invoke(clip);
         }
 
         public static bool IsExtensionSupported(string extension)

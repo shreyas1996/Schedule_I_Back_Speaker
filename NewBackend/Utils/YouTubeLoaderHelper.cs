@@ -9,7 +9,7 @@ namespace BackSpeakerMod.NewBackend.Utils
 {
     public static class NewYouTubeLoaderHelper
     {
-        public static IEnumerator DownloadYouTubeAudio(string url, System.Action<bool, string> onComplete)
+        public static IEnumerator DownloadYouTubeAudio(string url, System.Action<bool, string?> onComplete)
         {
             if (string.IsNullOrEmpty(url))
             {
@@ -30,7 +30,7 @@ namespace BackSpeakerMod.NewBackend.Utils
 
             bool downloadCompleted = false;
             bool downloadSuccess = false;
-            string downloadedFilePath = null;
+            string? downloadedFilePath = null;
 
             // Use NewBackend NewYoutubeHelper.DownloadSong method
             NewYoutubeHelper.DownloadSong(songDetails, null, (success) => {
@@ -72,7 +72,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             NewLoggingSystem.Debug($"Getting YouTube video info: {url}", "NewYouTubeLoaderHelper");
 
             bool infoCompleted = false;
-            List<NewSongDetails> songDetailsList = null;
+            List<NewSongDetails>? songDetailsList = null;
 
             // Use NewBackend NewYoutubeHelper.GetSongDetails method
             NewYoutubeHelper.GetSongDetails(url, (results) => {
@@ -86,7 +86,7 @@ namespace BackSpeakerMod.NewBackend.Utils
                 yield return new WaitForSeconds(0.5f);
             }
 
-            NewSongDetails songDetails = null;
+            NewSongDetails? songDetails = null;
             if (songDetailsList != null && songDetailsList.Count > 0)
             {
                 songDetails = songDetailsList[0]; // Get first result
@@ -104,7 +104,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             onComplete?.Invoke(songDetails);
         }
 
-        public static IEnumerator SearchYouTube(string query, int maxResults, System.Action<List<NewSongDetails>> onComplete)
+        public static IEnumerator SearchYouTube(string query, int maxResults, System.Action<List<NewSongDetails>?>? onComplete)
         {
             if (string.IsNullOrEmpty(query))
             {
@@ -119,7 +119,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             string searchUrl = $"ytsearch{maxResults}:{query}";
             
             bool searchCompleted = false;
-            List<NewSongDetails> searchResults = null;
+            List<NewSongDetails>? searchResults = null;
 
             // Use NewBackend NewYoutubeHelper.GetSongDetails method with search URL
             NewYoutubeHelper.GetSongDetails(searchUrl, (results) => {

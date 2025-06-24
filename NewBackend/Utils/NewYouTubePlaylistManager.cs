@@ -97,8 +97,8 @@ namespace BackSpeakerMod.NewBackend.Utils
         private static readonly string PlaylistFilePrefix = "new_playlist_";
         private static readonly string PlaylistFileExtension = ".json";
         
-        private static string _playlistsDirectory;
-        private static Dictionary<string, NewYouTubePlaylistInfo> _cachedIndex;
+        private static string? _playlistsDirectory;
+        private static Dictionary<string, NewYouTubePlaylistInfo>? _cachedIndex;
         private static DateTime _lastIndexUpdate = DateTime.MinValue;
         private static readonly TimeSpan IndexCacheExpiry = TimeSpan.FromMinutes(2);
 
@@ -221,10 +221,6 @@ namespace BackSpeakerMod.NewBackend.Utils
 #if IL2CPP
                 var jsonContent = JsonConvert.SerializeObject(index, Formatting.Indented);
                 File.WriteAllText(indexPath, jsonContent);
-#else
-                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
-                return false;
-#endif
                 
                 // Update cache
                 _cachedIndex = new Dictionary<string, NewYouTubePlaylistInfo>(index);
@@ -233,6 +229,10 @@ namespace BackSpeakerMod.NewBackend.Utils
                 NewLoggingSystem.Info($"Saved NewBackend playlist index with {index.Count} playlists", "NewYouTubePlaylistManager");
                 
                 return true;
+#else
+                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
+                return false;
+#endif
             }
             catch (Exception ex)
             {
@@ -296,10 +296,6 @@ namespace BackSpeakerMod.NewBackend.Utils
 #if IL2CPP
                 var jsonContent = JsonConvert.SerializeObject(playlist, Formatting.Indented);
                 File.WriteAllText(playlistPath, jsonContent);
-#else
-                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
-                return false;
-#endif
                 
                 // Update index
                 var index = LoadPlaylistIndex();
@@ -322,6 +318,10 @@ namespace BackSpeakerMod.NewBackend.Utils
                 }
                 
                 return success;
+#else
+                NewLoggingSystem.Warning("JSON playlist saving not available in Mono build", "NewYouTubePlaylistManager");
+                return false;
+#endif
             }
             catch (Exception ex)
             {

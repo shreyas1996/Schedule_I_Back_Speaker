@@ -26,7 +26,7 @@ namespace BackSpeakerMod.NewBackend.Testing
             _isTestRunning = true;
             NewLoggingSystem.Info("🧪 Starting NewBackend Tests", "NewBackendTester");
             
-            Exception testError = null;
+            Exception? testError = null;
             
             // Run all tests and capture any errors
             yield return RunAllTests(error => testError = error);
