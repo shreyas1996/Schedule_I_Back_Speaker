@@ -117,43 +117,49 @@ namespace BackSpeakerMod.NewFrontend
         }
         
         /// <summary>
-        /// Setup BackSpeaker app content - Simplified to just add screen content to pre-configured container
+        /// Setup BackSpeaker app content - Now uses the Modern UI System
         /// </summary>
         private void SetupBackSpeakerContent()
         {
             try
             {
-                NewLoggingSystem.Info("Adding BackSpeaker screen content to configured container", "PhoneApp");
+                NewLoggingSystem.Info("Adding Modern BackSpeaker screen content to configured container", "PhoneApp");
 
                 // Container is already configured by S1Factory (titlebar, background, portrait mode, etc.)
-                // We just need to add our screen content
+                // We just need to add our modern screen content
                 if (_appContainer != null)
                 {
-                    // Create BackSpeaker screen GameObject
-                    var backSpeakerScreenObj = new GameObject("BackSpeakerScreen");
+                    // Create Modern BackSpeaker App
+                    var modernAppObj = new GameObject("ModernBackSpeakerApp");
+                    modernAppObj.transform.SetParent(_appContainer, false);
                     
-                    // Add BackSpeakerTestScreen component using S1Factory
-                    var backSpeakerScreen = S1Factory.RegisterAndAddComponent<BackSpeakerTestScreen>(backSpeakerScreenObj);
-                    if (backSpeakerScreen != null)
+                    // Set up full container layout
+                    var modernAppRect = modernAppObj.AddComponent<RectTransform>();
+                    modernAppRect.anchorMin = Vector2.zero;
+                    modernAppRect.anchorMax = Vector2.one;
+                    modernAppRect.offsetMin = Vector2.zero;
+                    modernAppRect.offsetMax = Vector2.zero;
+                    
+                    // Add the modern app component
+                    var modernApp = S1Factory.RegisterAndAddComponent<ModernBackSpeakerApp>(modernAppObj);
+                    if (modernApp != null)
                     {
-                        // Create the test screen content
-                        var testScreenContent = backSpeakerScreen.CreateTestScreen();
+                        // Initialize the modern app
+                        modernApp.Initialize();
                         
-                        if (testScreenContent != null)
+                        if (modernApp.IsInitialized)
                         {
-                            // Use S1Factory to properly add the screen to the container
-                            S1Factory.AddScreenToContainer(_appContainer, testScreenContent);
                             _backSpeakerCanvas?.SetActive(true);
-                            NewLoggingSystem.Info("✓ BackSpeaker screen content added successfully", "PhoneApp");
+                            NewLoggingSystem.Info("✓ Modern BackSpeaker app created and initialized successfully", "PhoneApp");
                         }
                         else
                         {
-                            NewLoggingSystem.Error("Failed to create BackSpeaker screen content", "PhoneApp");
+                            NewLoggingSystem.Error("Modern BackSpeaker app failed to initialize", "PhoneApp");
                         }
                     }
                     else
                     {
-                        NewLoggingSystem.Error("Failed to add BackSpeakerTestScreen component", "PhoneApp");
+                        NewLoggingSystem.Error("Failed to add ModernBackSpeakerApp component", "PhoneApp");
                     }
                 }
                 else
@@ -161,11 +167,11 @@ namespace BackSpeakerMod.NewFrontend
                     NewLoggingSystem.Error("App container is null, cannot add screen content", "PhoneApp");
                 }
 
-                NewLoggingSystem.Info("✓ BackSpeaker app content setup complete", "PhoneApp");
+                NewLoggingSystem.Info("✓ Modern BackSpeaker app content setup complete", "PhoneApp");
             }
             catch (Exception ex)
             {
-                NewLoggingSystem.Error($"Exception setting up BackSpeaker content: {ex}", "PhoneApp");
+                NewLoggingSystem.Error($"Exception setting up Modern BackSpeaker content: {ex}", "PhoneApp");
             }
         }
         

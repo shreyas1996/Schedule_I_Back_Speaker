@@ -1114,6 +1114,25 @@ namespace BackSpeakerMod.S1Wrapper
             }
         }
 
+        public static UnityEngine.Events.UnityAction<T> ConvertToUnityAction<T>(System.Action<T> action)
+        {
+            if (action == null) return null;
+
+            try
+            {
+                #if IL2CPP
+                return (UnityEngine.Events.UnityAction<T>)action;
+                #else
+                return new UnityEngine.Events.UnityAction<T>(action);
+                #endif
+            }
+            catch (Exception ex)
+            {
+                NewLoggingSystem.Error($"Failed to convert Action<T> to UnityAction<T>: {ex}", "S1Factory");
+                return null;
+            }
+        }
+
         /// <summary>
         /// Gets all active Schedule One systems in a single call
         /// Useful for initialization and system status checks
