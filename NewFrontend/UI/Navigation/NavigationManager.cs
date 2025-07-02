@@ -153,9 +153,9 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var sourcesLayout = sourcesLabel.gameObject.AddComponent<LayoutElement>();
             sourcesLayout.preferredHeight = 30;
             
-            CreateMenuButton("♪ Jukebox", () => NavigateToScreen("jukebox"));
-            CreateMenuButton("♫ Local Music", () => NavigateToScreen("local"));
-            CreateMenuButton("⚷ YouTube", () => NavigateToScreen("youtube"));
+            CreateMenuButton("♫ Jukebox", () => NavigateToScreen("jukebox"));
+            CreateMenuButton("F Local Music", () => NavigateToScreen("local"));
+            CreateMenuButton("Y YouTube", () => NavigateToScreen("youtube"));
             
             CreateMenuSeparator();
             
@@ -165,14 +165,14 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var playlistsLayout = playlistsLabel.gameObject.AddComponent<LayoutElement>();
             playlistsLayout.preferredHeight = 30;
             
-            CreateMenuButton("♬ My Playlists", () => NavigateToScreen("playlists"));
-            CreateMenuButton("∞ Global Mix", () => NavigateToScreen("global"));
+            CreateMenuButton("P My Playlists", () => NavigateToScreen("playlists"));
+            CreateMenuButton("G Global Mix", () => NavigateToScreen("global"));
             
             CreateMenuSeparator();
             
             // Settings Section
-            CreateMenuButton("⚙ Settings", () => NavigateToScreen("settings"));
-            CreateMenuButton("ⓘ About", () => NavigateToScreen("about"));
+            CreateMenuButton("S Settings", () => NavigateToScreen("settings"));
+            CreateMenuButton("? About", () => NavigateToScreen("about"));
         }
         
         private void CreateMenuButton(string text, System.Action onClick)
@@ -462,17 +462,83 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void ShowLocalMusicScreen()
         {
-            ShowComingSoonScreen("Local Music", "localmusic");
+            // Create and show the local music screen
+            if (!screens.ContainsKey("localmusic"))
+            {
+                var localMusicScreenObj = new GameObject("LocalMusicScreen");
+                localMusicScreenObj.transform.SetParent(this.transform.parent, false);
+                
+                var localMusicRect = localMusicScreenObj.AddComponent<RectTransform>();
+                localMusicRect.anchorMin = Vector2.zero;
+                localMusicRect.anchorMax = Vector2.one;
+                localMusicRect.offsetMin = Vector2.zero;
+                localMusicRect.offsetMax = Vector2.zero;
+                
+                var localMusicScreen = S1Factory.RegisterAndAddComponent<LocalMusicScreen>(localMusicScreenObj);
+                localMusicScreen.Initialize(mainManager, this);
+                
+                screens["localmusic"] = localMusicScreenObj;
+                NewLoggingSystem.Info("Created Local Music screen", "NavigationManager");
+            }
+            else
+            {
+                screens["localmusic"].SetActive(true);
+                NewLoggingSystem.Info("Showing existing Local Music screen", "NavigationManager");
+            }
         }
         
         private void ShowYouTubeScreen()
         {
-            ShowComingSoonScreen("YouTube", "youtube");
+            // Create and show the YouTube screen
+            if (!screens.ContainsKey("youtube"))
+            {
+                var youTubeScreenObj = new GameObject("YouTubeScreen");
+                youTubeScreenObj.transform.SetParent(this.transform.parent, false);
+                
+                var youTubeRect = youTubeScreenObj.AddComponent<RectTransform>();
+                youTubeRect.anchorMin = Vector2.zero;
+                youTubeRect.anchorMax = Vector2.one;
+                youTubeRect.offsetMin = Vector2.zero;
+                youTubeRect.offsetMax = Vector2.zero;
+                
+                var youTubeScreen = S1Factory.RegisterAndAddComponent<YouTubeScreen>(youTubeScreenObj);
+                youTubeScreen.Initialize(mainManager, this);
+                
+                screens["youtube"] = youTubeScreenObj;
+                NewLoggingSystem.Info("Created YouTube screen", "NavigationManager");
+            }
+            else
+            {
+                screens["youtube"].SetActive(true);
+                NewLoggingSystem.Info("Showing existing YouTube screen", "NavigationManager");
+            }
         }
         
         private void ShowPlaylistScreen()
         {
-            ShowComingSoonScreen("My Playlists", "playlists");
+            // Create and show the playlist screen
+            if (!screens.ContainsKey("playlists"))
+            {
+                var playlistScreenObj = new GameObject("PlaylistScreen");
+                playlistScreenObj.transform.SetParent(this.transform.parent, false);
+                
+                var playlistRect = playlistScreenObj.AddComponent<RectTransform>();
+                playlistRect.anchorMin = Vector2.zero;
+                playlistRect.anchorMax = Vector2.one;
+                playlistRect.offsetMin = Vector2.zero;
+                playlistRect.offsetMax = Vector2.zero;
+                
+                var playlistScreen = S1Factory.RegisterAndAddComponent<PlaylistScreen>(playlistScreenObj);
+                playlistScreen.Initialize(mainManager, this);
+                
+                screens["playlists"] = playlistScreenObj;
+                NewLoggingSystem.Info("Created Playlist screen", "NavigationManager");
+            }
+            else
+            {
+                screens["playlists"].SetActive(true);
+                NewLoggingSystem.Info("Showing existing Playlist screen", "NavigationManager");
+            }
         }
         
         private void ShowGlobalPlaylistScreen()

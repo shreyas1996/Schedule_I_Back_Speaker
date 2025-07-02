@@ -126,6 +126,35 @@ namespace BackSpeakerMod.NewFrontend.UI.Interfaces
         
         #endregion
         
+        #region Playlist Management
+        
+        /// <summary>
+        /// Get all available playlists
+        /// </summary>
+        List<NewYouTubePlaylistInfo> GetAllPlaylists();
+        
+        /// <summary>
+        /// Create a new playlist
+        /// </summary>
+        NewYouTubePlaylist CreatePlaylist(string name, string description = "");
+        
+        /// <summary>
+        /// Save playlist changes
+        /// </summary>
+        bool SavePlaylist(NewYouTubePlaylist playlist);
+        
+        /// <summary>
+        /// Delete a playlist
+        /// </summary>
+        bool DeletePlaylist(string playlistId);
+        
+        /// <summary>
+        /// Load a specific playlist
+        /// </summary>
+        NewYouTubePlaylist LoadPlaylist(string playlistId);
+        
+        #endregion
+        
         #region Queue Management
         
         /// <summary>
@@ -354,28 +383,46 @@ namespace BackSpeakerMod.NewFrontend.UI.Interfaces
         
         public List<NewSongDetails> GetJukeboxTracks()
         {
+            // Enhanced mock jukebox tracks for better testing
             return new List<NewSongDetails>
             {
                 new NewSongDetails { title = "Lobby Music", artist = "Schedule I Jukebox", url = "jukebox://lobby", duration = 180, source = "jukebox" },
-                new NewSongDetails { title = "Main Theme", artist = "Schedule I Jukebox", url = "jukebox://main", duration = 240, source = "jukebox" },
-                new NewSongDetails { title = "Background Ambient", artist = "Schedule I Jukebox", url = "jukebox://ambient", duration = 300, source = "jukebox" }
+                new NewSongDetails { title = "Blue Theme", artist = "Schedule I Jukebox", url = "jukebox://blue", duration = 240, source = "jukebox" },
+                new NewSongDetails { title = "Background Ambient", artist = "Schedule I Jukebox", url = "jukebox://ambient", duration = 300, source = "jukebox" },
+                new NewSongDetails { title = "Action Music", artist = "Schedule I Jukebox", url = "jukebox://action", duration = 195, source = "jukebox" },
+                new NewSongDetails { title = "Elevator Jazz", artist = "Schedule I Jukebox", url = "jukebox://jazz", duration = 220, source = "jukebox" },
+                new NewSongDetails { title = "Menu Sound", artist = "Schedule I Jukebox", url = "jukebox://menu", duration = 160, source = "jukebox" }
             };
         }
         
         public List<NewSongDetails> GetLocalTracks()
         {
+            // Enhanced mock local tracks - simulating file browser with folders and files
             return new List<NewSongDetails>
             {
-                new NewSongDetails { title = "Local Song 1", artist = "Local Artist", url = "file://song1.mp3", duration = 210, source = "local" },
-                new NewSongDetails { title = "Local Song 2", artist = "Local Artist", url = "file://song2.mp3", duration = 195, source = "local" }
+                new NewSongDetails { title = "My Favorites.mp3", artist = "Various Artists", url = "file://music/favorites/my_favorites.mp3", duration = 210, source = "local" },
+                new NewSongDetails { title = "Rock Folder", artist = "Folder (15 files)", url = "folder://music/rock/", duration = 0, source = "local" },
+                new NewSongDetails { title = "Jazz.mp3", artist = "Miles Davis", url = "file://music/jazz.mp3", duration = 195, source = "local" },
+                new NewSongDetails { title = "Electronic", artist = "Folder (8 files)", url = "folder://music/electronic/", duration = 0, source = "local" },
+                new NewSongDetails { title = "Classic.mp3", artist = "Beethoven", url = "file://music/classic.mp3", duration = 320, source = "local" },
+                new NewSongDetails { title = "Chill Vibes.mp3", artist = "Lo-Fi Artist", url = "file://music/chill/chill_vibes.mp3", duration = 240, source = "local" }
             };
         }
         
         public List<NewSongDetails> SearchYouTube(string query)
         {
+            // Enhanced mock YouTube search results
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<NewSongDetails>();
+                
             return new List<NewSongDetails>
             {
-                new NewSongDetails { title = $"YouTube Result for '{query}'", artist = "YouTube Artist", url = "youtube://result1", duration = 200, source = "youtube" }
+                new NewSongDetails { title = $"Amazing Song ({query})", artist = "Popular Artist", url = "https://youtube.com/watch?v=mock1", duration = 210, source = "youtube" },
+                new NewSongDetails { title = $"Best Hit ({query})", artist = "Famous Band", url = "https://youtube.com/watch?v=mock2", duration = 195, source = "youtube" },
+                new NewSongDetails { title = $"Classic Track ({query})", artist = "Legendary Singer", url = "https://youtube.com/watch?v=mock3", duration = 240, source = "youtube" },
+                new NewSongDetails { title = $"New Release ({query})", artist = "Rising Star", url = "https://youtube.com/watch?v=mock4", duration = 180, source = "youtube" },
+                new NewSongDetails { title = $"Popular Song ({query})", artist = "Top Artist", url = "https://youtube.com/watch?v=mock5", duration = 220, source = "youtube" },
+                new NewSongDetails { title = $"Great Music ({query})", artist = "Awesome Musician", url = "https://youtube.com/watch?v=mock6", duration = 205, source = "youtube" }
             };
         }
         
@@ -444,6 +491,61 @@ namespace BackSpeakerMod.NewFrontend.UI.Interfaces
             OnQueueChanged?.Invoke(GetCurrentQueue());
             NewLoggingSystem.Info("Mock: Queue shuffled", "MockBackend");
             return true;
+        }
+        
+        #endregion
+        
+        #region Playlist Management
+        
+        public List<NewYouTubePlaylistInfo> GetAllPlaylists()
+        {
+            // Mock playlists for testing
+            return new List<NewYouTubePlaylistInfo>
+            {
+                new NewYouTubePlaylistInfo { id = "1", name = "Favorites", description = "My favorite songs", songCount = 15, created = DateTime.Now.AddDays(-30), lastModified = DateTime.Now.AddDays(-1) },
+                new NewYouTubePlaylistInfo { id = "2", name = "Rock Collection", description = "Best rock songs", songCount = 8, created = DateTime.Now.AddDays(-20), lastModified = DateTime.Now.AddDays(-5) },
+                new NewYouTubePlaylistInfo { id = "3", name = "Chill Vibes", description = "Relaxing music for work", songCount = 22, created = DateTime.Now.AddDays(-10), lastModified = DateTime.Now.AddHours(-2) },
+                new NewYouTubePlaylistInfo { id = "4", name = "Workout Mix", description = "High energy tracks", songCount = 12, created = DateTime.Now.AddDays(-5), lastModified = DateTime.Now.AddDays(-1) }
+            };
+        }
+        
+        public NewYouTubePlaylist CreatePlaylist(string name, string description = "")
+        {
+            var playlist = new NewYouTubePlaylist(name)
+            {
+                description = description
+            };
+            NewLoggingSystem.Info($"Mock: Created playlist '{name}'", "MockBackend");
+            return playlist;
+        }
+        
+        public bool SavePlaylist(NewYouTubePlaylist playlist)
+        {
+            NewLoggingSystem.Info($"Mock: Saved playlist '{playlist.name}' with {playlist.songs.Count} songs", "MockBackend");
+            return true;
+        }
+        
+        public bool DeletePlaylist(string playlistId)
+        {
+            NewLoggingSystem.Info($"Mock: Deleted playlist {playlistId}", "MockBackend");
+            return true;
+        }
+        
+        public NewYouTubePlaylist LoadPlaylist(string playlistId)
+        {
+            // Mock playlist with sample songs
+            var playlist = new NewYouTubePlaylist("Sample Playlist")
+            {
+                id = playlistId,
+                description = "A sample playlist for testing"
+            };
+            
+            // Add some sample songs
+            playlist.AddSong(new NewSongDetails { title = "Sample Song 1", artist = "Test Artist", url = "youtube://sample1", duration = 180, source = "youtube" });
+            playlist.AddSong(new NewSongDetails { title = "Sample Song 2", artist = "Test Artist", url = "youtube://sample2", duration = 220, source = "youtube" });
+            
+            NewLoggingSystem.Info($"Mock: Loaded playlist {playlistId}", "MockBackend");
+            return playlist;
         }
         
         #endregion

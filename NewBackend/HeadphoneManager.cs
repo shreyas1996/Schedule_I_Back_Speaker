@@ -51,6 +51,7 @@ namespace BackSpeakerMod.NewBackend
             {
                 // Load asset bundle from embedded resources
                 NewLoggingSystem.Debug("Loading headphone asset bundle from embedded resources", "HeadphoneManager");
+                // var assetBundle = S1AssetBundleLoader.LoadFromEmbeddedResource("scheduleoneheadphones_simple_lit");
                 var assetBundle = S1AssetBundleLoader.LoadFromEmbeddedResource("scheduleoneheadphones");
                 
                 if (assetBundle == null || !assetBundle.IsValid)
@@ -359,6 +360,7 @@ namespace BackSpeakerMod.NewBackend
             }
             
             // Unload asset bundle
+            // S1AssetBundleLoader.UnloadAssetBundle("scheduleoneheadphones_simple_lit");
             S1AssetBundleLoader.UnloadAssetBundle("scheduleoneheadphones");
             
             _player = null;

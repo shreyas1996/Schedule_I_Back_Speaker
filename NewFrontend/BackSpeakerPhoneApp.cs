@@ -143,7 +143,7 @@ namespace BackSpeakerMod.NewFrontend
                     // Add the modern app component
                     var modernApp = S1Factory.RegisterAndAddComponent<ModernBackSpeakerApp>(modernAppObj);
                     if (modernApp != null)
-                    {
+                        {
                         // Initialize the modern app
                         modernApp.Initialize();
                         

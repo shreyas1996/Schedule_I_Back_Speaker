@@ -61,8 +61,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 mainManager = manager;
                 navigationManager = navManager;
                 
-                // Use the same backend instance - TODO: Get from manager
-                musicBackend = new MockMusicBackend();
+                // Get centralized backend from main manager
+                musicBackend = mainManager?.GetMusicBackend();
+                if (musicBackend == null)
+                {
+                    throw new InvalidOperationException("Music backend not available from main manager");
+                }
                 
                 trackItems = new List<GameObject>();
                 availableTracks = new List<NewSongDetails>();
@@ -107,9 +111,9 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var mainLayout = mainContainer.AddComponent<VerticalLayoutGroup>();
             mainLayout.spacing = 0;
             mainLayout.padding = new RectOffset(0, 0, 0, 0);
-            mainLayout.childControlHeight = false;
+            mainLayout.childControlHeight = true;  // Enable height control
             mainLayout.childControlWidth = true;
-            mainLayout.childForceExpandHeight = false;
+            mainLayout.childForceExpandHeight = false;  // DON'T force expand - let components use preferred heights
             mainLayout.childForceExpandWidth = true;
         }
         
@@ -154,55 +158,53 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             // Header layout element
             var headerLayoutElement = headerSection.AddComponent<LayoutElement>();
             headerLayoutElement.preferredHeight = 80;
+            headerLayoutElement.flexibleHeight = 0;  // Don't expand
         }
         
         private void CreateTrackList()
         {
-            // Create scroll view for track list
             trackListSection = new GameObject("TrackListSection");
             trackListSection.transform.SetParent(mainContainer.transform, false);
             
-            var listRect = trackListSection.AddComponent<RectTransform>();
-            listRect.anchorMin = Vector2.zero;
-            listRect.anchorMax = Vector2.one;
-            listRect.offsetMin = Vector2.zero;
-            listRect.offsetMax = Vector2.zero;
-            
-            // Scroll view
-            trackScrollView = trackListSection.AddComponent<ScrollRect>();
+            // Background
             var scrollImage = trackListSection.AddComponent<Image>();
             scrollImage.color = ModernUIFactory.Colors.Background;
             
-            // Content container
+            // Scroll view
+            trackScrollView = trackListSection.AddComponent<ScrollRect>();
+            var listRect = trackListSection.AddComponent<RectTransform>();
+            
+            // SIMPLIFIED: Direct content container, no complex viewport masking
             trackListContent = new GameObject("Content");
             trackListContent.transform.SetParent(trackListSection.transform, false);
             
             var contentRect = trackListContent.AddComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0, 1);
-            contentRect.anchorMax = new Vector2(1, 1);
-            contentRect.pivot = new Vector2(0.5f, 1);
-            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.anchorMin = Vector2.zero;
+            contentRect.anchorMax = Vector2.one;
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
             
-            // Content layout
+            // Simple content layout
             var contentLayout = trackListContent.AddComponent<VerticalLayoutGroup>();
-            contentLayout.spacing = 5;
-            contentLayout.padding = new RectOffset(10, 10, 10, 10);
+            contentLayout.spacing = 8;
+            contentLayout.padding = new RectOffset(15, 15, 15, 15);
             contentLayout.childControlHeight = false;
             contentLayout.childControlWidth = true;
             contentLayout.childForceExpandHeight = false;
             contentLayout.childForceExpandWidth = true;
             
-            // Content size fitter
+            // Content size fitter for proper scrolling
             var sizeFitter = trackListContent.AddComponent<ContentSizeFitter>();
             sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            sizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             
-            // Setup scroll view
+            // Simple scroll setup
             trackScrollView.content = contentRect;
             trackScrollView.vertical = true;
             trackScrollView.horizontal = false;
-            trackScrollView.scrollSensitivity = 20;
+            trackScrollView.scrollSensitivity = 15;
             
-            // Track list layout element
+            // Track list layout element - take remaining space
             var listLayoutElement = trackListSection.AddComponent<LayoutElement>();
             listLayoutElement.flexibleHeight = 1;
         }
@@ -263,7 +265,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             itemLayout.childForceExpandWidth = false;
             
             // Track icon
-            var iconText = ModernUIFactory.CreateModernText(trackItem.transform, "🎵", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
+            var iconText = ModernUIFactory.CreateModernText(trackItem.transform, "♫", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
             var iconLayout = iconText.gameObject.AddComponent<LayoutElement>();
             iconLayout.preferredWidth = 40;
             iconLayout.preferredHeight = 40;
@@ -283,7 +285,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             artistLayout.preferredHeight = 18;
             
             // Play button
-            var playButton = ModernUIFactory.CreateIconButton(trackItem.transform, "▶", S1Factory.ConvertToUnityAction(() => OnTrackPlay(track)), new Vector2(45, 45));
+            var playButton = ModernUIFactory.CreateIconButton(trackItem.transform, ">", S1Factory.ConvertToUnityAction(() => OnTrackPlay(track)), new Vector2(45, 45));
             var playLayout = playButton.gameObject.AddComponent<LayoutElement>();
             playLayout.preferredWidth = 45;
             playLayout.preferredHeight = 45;

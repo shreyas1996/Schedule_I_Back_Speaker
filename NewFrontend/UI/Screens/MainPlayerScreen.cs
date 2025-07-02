@@ -74,8 +74,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             {
                 mainManager = manager;
                 
-                // For now, use mock backend - TODO: Replace with actual backend integration
-                musicBackend = new MockMusicBackend();
+                // Get centralized backend from main manager
+                musicBackend = mainManager?.GetMusicBackend();
+                if (musicBackend == null)
+                {
+                    throw new InvalidOperationException("Music backend not available from main manager");
+                }
                 
                 NewLoggingSystem.Info("Initializing MainPlayerScreen", "MainPlayerScreen");
                 
@@ -254,31 +258,31 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             controlsLayout.childAlignment = TextAnchor.MiddleCenter;
             
             // Shuffle button
-            shuffleButton = ModernUIFactory.CreateIconButton(playerControls.transform, "⧢", S1Factory.ConvertToUnityAction(OnShuffleClick), new Vector2(55, 55));
+            shuffleButton = ModernUIFactory.CreateIconButton(playerControls.transform, "S", S1Factory.ConvertToUnityAction(OnShuffleClick), new Vector2(55, 55));
             var shuffleLayout = shuffleButton.gameObject.AddComponent<LayoutElement>();
             shuffleLayout.preferredWidth = 55;
             shuffleLayout.preferredHeight = 55;
             
             // Previous button
-            previousButton = ModernUIFactory.CreateIconButton(playerControls.transform, "⏪", S1Factory.ConvertToUnityAction(OnPreviousClick), new Vector2(60, 60));
+            previousButton = ModernUIFactory.CreateIconButton(playerControls.transform, "<<", S1Factory.ConvertToUnityAction(OnPreviousClick), new Vector2(60, 60));
             var prevLayout = previousButton.gameObject.AddComponent<LayoutElement>();
             prevLayout.preferredWidth = 60;
             prevLayout.preferredHeight = 60;
             
             // Play/Pause button (larger)
-            playPauseButton = ModernUIFactory.CreateIconButton(playerControls.transform, "▶", S1Factory.ConvertToUnityAction(OnPlayPauseClick), new Vector2(75, 75));
+            playPauseButton = ModernUIFactory.CreateIconButton(playerControls.transform, ">", S1Factory.ConvertToUnityAction(OnPlayPauseClick), new Vector2(75, 75));
             var playLayout = playPauseButton.gameObject.AddComponent<LayoutElement>();
             playLayout.preferredWidth = 75;
             playLayout.preferredHeight = 75;
             
             // Next button
-            nextButton = ModernUIFactory.CreateIconButton(playerControls.transform, "⏩", S1Factory.ConvertToUnityAction(OnNextClick), new Vector2(60, 60));
+            nextButton = ModernUIFactory.CreateIconButton(playerControls.transform, ">>", S1Factory.ConvertToUnityAction(OnNextClick), new Vector2(60, 60));
             var nextLayout = nextButton.gameObject.AddComponent<LayoutElement>();
             nextLayout.preferredWidth = 60;
             nextLayout.preferredHeight = 60;
             
             // Repeat button
-            repeatButton = ModernUIFactory.CreateIconButton(playerControls.transform, "↻", S1Factory.ConvertToUnityAction(OnRepeatClick), new Vector2(55, 55));
+            repeatButton = ModernUIFactory.CreateIconButton(playerControls.transform, "R", S1Factory.ConvertToUnityAction(OnRepeatClick), new Vector2(55, 55));
             var repeatLayout = repeatButton.gameObject.AddComponent<LayoutElement>();
             repeatLayout.preferredWidth = 55;
             repeatLayout.preferredHeight = 55;
@@ -474,7 +478,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 var textComponent = playPauseButton.GetComponentInChildren<Text>();
                 if (textComponent != null)
                 {
-                    textComponent.text = musicBackend.IsPlaying ? "⏸" : "▶";
+                    textComponent.text = musicBackend.IsPlaying ? "||" : ">";
                 }
             }
         }
@@ -503,15 +507,15 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                     switch (repeatMode)
                     {
                         case RepeatMode.None:
-                            textComponent.text = "↻";
+                            textComponent.text = "R";
                             image.color = ModernUIFactory.Colors.Secondary;
                             break;
                         case RepeatMode.All:
-                            textComponent.text = "↻";
+                            textComponent.text = "R";
                             image.color = ModernUIFactory.Colors.Primary;
                             break;
                         case RepeatMode.One:
-                            textComponent.text = "1↻";
+                            textComponent.text = "R1";
                             image.color = ModernUIFactory.Colors.Primary;
                             break;
                     }

@@ -5,6 +5,7 @@ using BackSpeakerMod.S1Wrapper;
 using BackSpeakerMod.S1Wrapper.Interfaces;
 using BackSpeakerMod.NewBackend.Utils;
 using BackSpeakerMod.NewFrontend;
+using BackSpeakerMod.NewFrontend.UI.Interfaces;
 
 
 namespace BackSpeakerMod.NewBackend
@@ -39,6 +40,9 @@ namespace BackSpeakerMod.NewBackend
         private AudioManager? _audioManager;
         private PlaylistManager? _playlistManager;
         private BackSpeakerPhoneApp? _phoneApp;
+        
+        // Backend interface
+        private IMusicBackend? _musicBackend;
         
         // Core state
         private bool _isInitialized = false;
@@ -90,6 +94,10 @@ namespace BackSpeakerMod.NewBackend
             _playlistManager = new PlaylistManager();
             yield return MelonCoroutines.Start(_playlistManager.Initialize());
             
+            // Initialize backend interface (Mock for now)
+            _musicBackend = new MockMusicBackend();
+            NewLoggingSystem.Info("✓ Mock backend initialized", "MainManager");
+            
             // Initialize phone app
             _phoneApp = new BackSpeakerPhoneApp();
             _phoneApp.Initialize();
@@ -116,6 +124,9 @@ namespace BackSpeakerMod.NewBackend
         
         // PHASE 1: Phone app access for rotation debugging
         public BackSpeakerPhoneApp? GetPhoneApp() => _phoneApp;
+        
+        // Backend interface access
+        public IMusicBackend? GetMusicBackend() => _musicBackend;
         
         // Audio control
         public void Play() => _audioManager?.Play();

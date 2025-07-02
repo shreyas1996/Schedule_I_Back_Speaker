@@ -49,6 +49,7 @@
   <ItemGroup>
 
     <EmbeddedResource Include="EmbeddedResources\back_speaker_logo.png" />
+    <!-- <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones_simple_lit" /> -->
     <EmbeddedResource Include="EmbeddedResources\scheduleoneheadphones" />
 
     <!-- Album Art Images -->
