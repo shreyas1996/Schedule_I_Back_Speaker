@@ -6,11 +6,11 @@ namespace BackSpeakerMod.NewBackend.Configs
     [global::System.Serializable]
     public class URPMaterialConfig
     {
-        public Shader Shader { get; set; } = Shader.Find("Universal Render Pipeline/Lit");
-        public Color BaseColor { get; set; } = Color.white;
-        public float Metallic { get; set; } = 0.0f;
-        public float Smoothness { get; set; } = 0.5f;
-        public bool IsOpaque { get; set; } = true;
+        public Shader? Shader { get; set; } = Shader.Find("Universal Render Pipeline/Lit");
+        public Color? BaseColor { get; set; } = Color.white;
+        public float? Metallic { get; set; } = 0.0f;
+        public float? Smoothness { get; set; } = 0.5f;
+        public bool? IsOpaque { get; set; } = true;
         public UnityEngine.Rendering.CullMode CullMode { get; set; } = UnityEngine.Rendering.CullMode.Back;
     }
     public static class HeadphoneConfig

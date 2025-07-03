@@ -37,10 +37,10 @@ namespace BackSpeakerMod.S1Wrapper.Interfaces
         bool AvailableInTutorial { get; }
         
         // Protected/Internal Properties
-        RectTransform appContainer { get; }
-        RectTransform notificationContainer { get; }
-        Text notificationText { get; }
-        Button appIconButton { get; }
+        RectTransform? appContainer { get; }
+        RectTransform? notificationContainer { get; }
+        Text? notificationText { get; }
+        Button? appIconButton { get; }
         
         // Core Methods (from App<T>.cs)  
         void SetOpen(bool open);
@@ -53,7 +53,7 @@ namespace BackSpeakerMod.S1Wrapper.Interfaces
         
         // Static App Management
         List<IApp> Apps { get; }
-        IApp GetApp(int index);
+        IApp? GetApp(int index);
         
         // Helper Properties
         bool IsHorizontal { get; }
@@ -77,7 +77,7 @@ namespace BackSpeakerMod.S1Wrapper.Interfaces
         // Unity Component Access
         Transform Transform { get; }
         GameObject GameObject { get; }
-        Canvas canvas { get; }
+        Canvas? canvas { get; }
     }
 
     /// <summary>

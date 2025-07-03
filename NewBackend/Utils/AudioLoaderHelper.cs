@@ -9,7 +9,7 @@ namespace BackSpeakerMod.NewBackend.Utils
 {
     public static class AudioLoaderHelper
     {
-        public static IEnumerator LoadAudioClipFromFile(string filePath, System.Action<AudioClip> onComplete)
+        public static IEnumerator LoadAudioClipFromFile(string filePath, System.Action<AudioClip?> onComplete)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -27,7 +27,7 @@ namespace BackSpeakerMod.NewBackend.Utils
                 yield return new WaitForSeconds(0.1f);
             }
 
-            AudioClip clip = null;
+            AudioClip? clip = null;
             try
             {
                 clip = loadTask.Result;
@@ -45,7 +45,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             {
                 NewLoggingSystem.Warning($"Failed to load audio clip from: {filePath}", "AudioLoaderHelper");
             }
-            onComplete?.Invoke(clip ?? null);
+            onComplete?.Invoke(clip);
             yield break;
 
         }

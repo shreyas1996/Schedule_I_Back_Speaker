@@ -100,7 +100,7 @@ namespace BackSpeakerMod.NewBackend
             }
             
             // Initialize the main manager with the detected player
-            Exception initError = null;
+            Exception? initError = null;
             
             try
             {
@@ -111,7 +111,7 @@ namespace BackSpeakerMod.NewBackend
                 }
                 else
                 {
-                    throw new InvalidOperationException("MainManager or CurrentPlayer is null");
+                    throw new InvalidOperationException($"MainManager or CurrentPlayer is null: Manager={_mainManager != null}, Player={_currentPlayer != null}");
                 }
                 
                 NewLoggingSystem.Info("✓ BackSpeaker system initialized successfully", "Entry");

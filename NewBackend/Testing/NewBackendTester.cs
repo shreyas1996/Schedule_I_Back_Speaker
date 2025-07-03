@@ -306,8 +306,8 @@ namespace BackSpeakerMod.NewBackend.Testing
         private class MockPlayer : IPlayer
         {
             public string Name => "MockPlayer";
-            public UnityEngine.GameObject GameObject => null;
-            public UnityEngine.Transform Transform => null;
+            public UnityEngine.GameObject GameObject => null!;
+            public UnityEngine.Transform Transform => null!;
             public IAvatar? Avatar => null;
         }
     }

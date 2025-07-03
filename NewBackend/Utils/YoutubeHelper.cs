@@ -93,7 +93,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             var arguments = BuildYtDlpArguments(url, cacheDir);
             NewLoggingSystem.Debug($"yt-dlp command: {ytDlpPath} {arguments}", "NewYoutubeHelper");
 
-            string processOutput = null;
+            string? processOutput = null;
             int exitCode = -1;
             bool processCompleted = false;
 
@@ -111,7 +111,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             if (exitCode == 0 && !string.IsNullOrEmpty(processOutput))
             {
                 NewLoggingSystem.Info("yt-dlp process completed successfully", "NewYoutubeHelper");
-                var songDetails = ProcessYtDlpJsonOutput(processOutput);
+                var songDetails = ProcessYtDlpJsonOutput(processOutput!);
                 NewLoggingSystem.Info($"Processed {songDetails.Count} song details", "NewYoutubeHelper");
                 onComplete?.Invoke(songDetails);
             }

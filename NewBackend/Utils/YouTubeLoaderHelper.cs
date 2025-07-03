@@ -60,7 +60,7 @@ namespace BackSpeakerMod.NewBackend.Utils
             onComplete?.Invoke(downloadSuccess, downloadedFilePath);
         }
 
-        public static IEnumerator GetYouTubeVideoInfo(string url, System.Action<NewSongDetails> onComplete)
+        public static IEnumerator GetYouTubeVideoInfo(string url, System.Action<NewSongDetails?> onComplete)
         {
             if (string.IsNullOrEmpty(url))
             {

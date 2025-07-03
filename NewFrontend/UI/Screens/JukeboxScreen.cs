@@ -16,30 +16,29 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private NavigationManager navigationManager;
-        private IMusicBackend musicBackend;
+        private BackSpeakerMainManager? mainManager;
+        private NavigationManager? navigationManager;
+        private IMusicBackend? musicBackend;
         
         // UI Elements
-        private GameObject mainContainer;
-        private GameObject headerSection;
-        private GameObject trackListSection;
-        private ScrollRect trackScrollView;
-        private GameObject trackListContent;
+        private GameObject? mainContainer;
+        private GameObject? headerSection;
+        private GameObject? trackListSection;
+        private ScrollRect? trackScrollView;
+        private GameObject? trackListContent;
         
         // Header Controls
-        private Button backButton;
-        private Text titleText;
-        private Button refreshButton;
-        private Text trackCountText;
+        private Button? backButton;
+        private Text? titleText;
+        private Button? refreshButton;
+        private Text? trackCountText;
         
         // Track List
-        private List<GameObject> trackItems;
-        private List<NewSongDetails> availableTracks;
+        private List<GameObject>? trackItems;
+        private List<NewSongDetails>? availableTracks;
         
         // State
         private bool isInitialized = false;
-        private bool isLoading = false;
         
         #endregion
         
@@ -119,94 +118,143 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateHeader()
         {
-            headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            headerSection = new GameObject("Header");
+            headerSection.transform.SetParent(mainContainer?.transform, false);
             
-            var headerLayout = headerSection.AddComponent<HorizontalLayoutGroup>();
-            headerLayout.spacing = 15;
-            headerLayout.padding = new RectOffset(20, 20, 15, 15);
-            headerLayout.childControlHeight = true;
-            headerLayout.childControlWidth = false;
-            headerLayout.childForceExpandHeight = false;
-            headerLayout.childForceExpandWidth = false;
+            var headerLayout = headerSection?.AddComponent<HorizontalLayoutGroup>();
+            if (headerLayout != null)
+            {
+                headerLayout.spacing = 15;
+                headerLayout.padding = new RectOffset(20, 20, 20, 20);
+                headerLayout.childControlHeight = false;
+                headerLayout.childControlWidth = false;
+                headerLayout.childForceExpandWidth = false;
+            }
             
             // Back button
-            backButton = ModernUIFactory.CreateIconButton(headerSection.transform, "←", S1Factory.ConvertToUnityAction(OnBackClick), new Vector2(40, 40), false);
-            var backLayout = backButton.gameObject.AddComponent<LayoutElement>();
-            backLayout.preferredWidth = 40;
-            backLayout.preferredHeight = 40;
+            if (headerSection != null)
+            {
+                backButton = ModernUIFactory.CreateIconButton(headerSection.transform, "←", 
+                    S1Factory.ConvertToUnityAction(OnBackClick), new Vector2(40, 40), true);
+            }
+            var backLayout = backButton?.gameObject?.AddComponent<LayoutElement>();
+            if (backLayout != null)
+            {
+                backLayout.preferredWidth = 40;
+                backLayout.preferredHeight = 40;
+            }
             
-            // Title and info section
-            var titleContainer = ModernUIFactory.CreateVerticalLayout(headerSection.transform, 2, new RectOffset(0, 0, 0, 0));
-            var titleContainerLayout = titleContainer.AddComponent<LayoutElement>();
-            titleContainerLayout.flexibleWidth = 1;
+            // Title
+            if (headerSection != null)
+            {
+                titleText = ModernUIFactory.CreateModernText(headerSection.transform, "Jukebox", 24, TextStyle.Primary, TextAnchor.MiddleLeft);
+            }
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+            }
+            var titleLayout = titleText?.gameObject?.AddComponent<LayoutElement>();
+            if (titleLayout != null)
+            {
+                titleLayout.flexibleWidth = 1;
+            }
             
-            titleText = ModernUIFactory.CreateModernText(titleContainer.transform, "🎵 Jukebox", 18, TextStyle.Primary);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleTextLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleTextLayout.preferredHeight = 25;
+            // Track count text
+            if (headerSection != null)
+            {
+                trackCountText = ModernUIFactory.CreateModernText(headerSection.transform, "", 14, TextStyle.Secondary, TextAnchor.MiddleRight);
+            }
+            var trackCountLayout = trackCountText?.gameObject?.AddComponent<LayoutElement>();
+            if (trackCountLayout != null)
+            {
+                trackCountLayout.preferredWidth = 150;
+            }
             
-            trackCountText = ModernUIFactory.CreateModernText(titleContainer.transform, "Loading tracks...", 12, TextStyle.Secondary);
-            var countLayout = trackCountText.gameObject.AddComponent<LayoutElement>();
-            countLayout.preferredHeight = 20;
-            
-            // Refresh button
-            refreshButton = ModernUIFactory.CreateIconButton(headerSection.transform, "⟳", S1Factory.ConvertToUnityAction(OnRefreshClick), new Vector2(40, 40), false);
-            var refreshLayout = refreshButton.gameObject.AddComponent<LayoutElement>();
-            refreshLayout.preferredWidth = 40;
-            refreshLayout.preferredHeight = 40;
+            // Search button
+            if (headerSection != null)
+            {
+                refreshButton = ModernUIFactory.CreateIconButton(headerSection.transform, "⟳", 
+                    S1Factory.ConvertToUnityAction(OnRefreshClick), new Vector2(40, 40), false);
+            }
+            var refreshLayout = refreshButton?.gameObject?.AddComponent<LayoutElement>();
+            if (refreshLayout != null)
+            {
+                refreshLayout.preferredWidth = 40;
+                refreshLayout.preferredHeight = 40;
+            }
             
             // Header layout element
-            var headerLayoutElement = headerSection.AddComponent<LayoutElement>();
-            headerLayoutElement.preferredHeight = 80;
-            headerLayoutElement.flexibleHeight = 0;  // Don't expand
+            var headerLayoutElement = headerSection?.AddComponent<LayoutElement>();
+            if (headerLayoutElement != null)
+            {
+                headerLayoutElement.preferredHeight = 80;
+                headerLayoutElement.flexibleHeight = 0;
+            }
         }
         
         private void CreateTrackList()
         {
-            trackListSection = new GameObject("TrackListSection");
-            trackListSection.transform.SetParent(mainContainer.transform, false);
+            trackListSection = new GameObject("TrackList");
+            if (mainContainer != null)
+            {
+                trackListSection.transform.SetParent(mainContainer.transform, false);
+            }
             
-            // Background
-            var scrollImage = trackListSection.AddComponent<Image>();
-            scrollImage.color = ModernUIFactory.Colors.Background;
+            var scrollImage = trackListSection?.AddComponent<Image>();
+            if (scrollImage != null)
+            {
+                scrollImage.color = ModernUIFactory.Colors.Background;
+            }
             
-            // Scroll view
-            trackScrollView = trackListSection.AddComponent<ScrollRect>();
-            var listRect = trackListSection.AddComponent<RectTransform>();
-            
-            // SIMPLIFIED: Direct content container, no complex viewport masking
             trackListContent = new GameObject("Content");
-            trackListContent.transform.SetParent(trackListSection.transform, false);
+            if (trackListSection != null)
+            {
+                trackListContent.transform.SetParent(trackListSection.transform, false);
+            }
             
-            var contentRect = trackListContent.AddComponent<RectTransform>();
-            contentRect.anchorMin = Vector2.zero;
-            contentRect.anchorMax = Vector2.one;
-            contentRect.offsetMin = Vector2.zero;
-            contentRect.offsetMax = Vector2.zero;
+            var contentRect = trackListContent?.AddComponent<RectTransform>();
+            if (contentRect != null)
+            {
+                contentRect.anchorMin = Vector2.zero;
+                contentRect.anchorMax = Vector2.one;
+                contentRect.offsetMin = Vector2.zero;
+                contentRect.offsetMax = Vector2.zero;
+            }
             
-            // Simple content layout
-            var contentLayout = trackListContent.AddComponent<VerticalLayoutGroup>();
-            contentLayout.spacing = 8;
-            contentLayout.padding = new RectOffset(15, 15, 15, 15);
-            contentLayout.childControlHeight = false;
-            contentLayout.childControlWidth = true;
-            contentLayout.childForceExpandHeight = false;
-            contentLayout.childForceExpandWidth = true;
+            var contentLayout = trackListContent?.AddComponent<VerticalLayoutGroup>();
+            if (contentLayout != null)
+            {
+                contentLayout.spacing = 8;
+                contentLayout.padding = new RectOffset(15, 15, 15, 15);
+                contentLayout.childControlHeight = false;
+                contentLayout.childControlWidth = true;
+                contentLayout.childForceExpandHeight = false;
+                contentLayout.childForceExpandWidth = true;
+            }
             
-            // Content size fitter for proper scrolling
-            var sizeFitter = trackListContent.AddComponent<ContentSizeFitter>();
-            sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            sizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            var sizeFitter = trackListContent?.AddComponent<ContentSizeFitter>();
+            if (sizeFitter != null)
+            {
+                sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                sizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            }
             
-            // Simple scroll setup
-            trackScrollView.content = contentRect;
-            trackScrollView.vertical = true;
-            trackScrollView.horizontal = false;
-            trackScrollView.scrollSensitivity = 15;
+            var scrollRect = trackListSection?.AddComponent<ScrollRect>();
+            trackScrollView = scrollRect;
+            if (scrollRect != null && contentRect != null)
+            {
+                scrollRect.content = contentRect;
+                scrollRect.vertical = true;
+                scrollRect.horizontal = false;
+                scrollRect.scrollSensitivity = 15;
+                trackScrollView = scrollRect;
+            }
             
-            // Track list layout element - take remaining space
-            var listLayoutElement = trackListSection.AddComponent<LayoutElement>();
-            listLayoutElement.flexibleHeight = 1;
+            var listLayoutElement = trackListSection?.AddComponent<LayoutElement>();
+            if (listLayoutElement != null)
+            {
+                listLayoutElement.flexibleHeight = 1;
+            }
         }
         
         #endregion
@@ -218,24 +266,24 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             try
             {
                 NewLoggingSystem.Info("Loading jukebox tracks", "JukeboxScreen");
-                isLoading = true;
+                // Loading tracks
                 UpdateTrackCount("Loading...");
                 
                 // Clear existing tracks
                 ClearTrackList();
                 
                 // Get tracks from backend
-                availableTracks = musicBackend.GetJukeboxTracks();
+                availableTracks = musicBackend?.GetJukeboxTracks() ?? new List<NewSongDetails>();
                 
                 PopulateTrackList();
-                isLoading = false;
+                // Finished loading
                 
                 NewLoggingSystem.Info($"Loaded {availableTracks.Count} jukebox tracks", "JukeboxScreen");
             }
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to load jukebox tracks: {ex}", "JukeboxScreen");
-                isLoading = false;
+                // Failed to load
                 UpdateTrackCount("Error loading tracks");
             }
         }
@@ -244,73 +292,157 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void PopulateTrackList()
         {
-            UpdateTrackCount($"{availableTracks.Count} tracks available");
-            
-            foreach (var track in availableTracks)
+            if (availableTracks != null)
             {
-                CreateTrackItem(track);
+                UpdateTrackCount($"{availableTracks.Count} tracks available");
+                
+                foreach (var track in availableTracks)
+                {
+                    CreateTrackItem(track);
+                }
+            }
+            else
+            {
+                UpdateTrackCount("No tracks available");
             }
         }
         
         private void CreateTrackItem(NewSongDetails track)
         {
+            if (trackListContent == null) return;
+            
             var trackItem = ModernUIFactory.CreateCard(trackListContent.transform, new Vector2(0, 70), true);
             
-            var itemLayout = trackItem.AddComponent<HorizontalLayoutGroup>();
-            itemLayout.spacing = 15;
-            itemLayout.padding = new RectOffset(15, 15, 10, 10);
-            itemLayout.childControlHeight = true;
-            itemLayout.childControlWidth = false;
-            itemLayout.childForceExpandHeight = false;
-            itemLayout.childForceExpandWidth = false;
+            var itemLayout = trackItem?.AddComponent<HorizontalLayoutGroup>();
+            if (itemLayout != null)
+            {
+                itemLayout.spacing = 15;
+                itemLayout.padding = new RectOffset(15, 15, 10, 10);
+                itemLayout.childControlHeight = true;
+                itemLayout.childControlWidth = false;
+                itemLayout.childForceExpandHeight = false;
+                itemLayout.childForceExpandWidth = false;
+            }
             
             // Track icon
-            var iconText = ModernUIFactory.CreateModernText(trackItem.transform, "♫", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
-            var iconLayout = iconText.gameObject.AddComponent<LayoutElement>();
-            iconLayout.preferredWidth = 40;
-            iconLayout.preferredHeight = 40;
+            Text? iconText = null;
+            if (trackItem != null)
+            {
+                iconText = ModernUIFactory.CreateModernText(trackItem.transform, "♫", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
+            }
+            if (iconText != null)
+            {
+                var iconLayout = iconText.gameObject?.AddComponent<LayoutElement>();
+                if (iconLayout != null)
+                {
+                    iconLayout.preferredWidth = 40;
+                    iconLayout.preferredHeight = 40;
+                }
+            }
             
             // Track info section
-            var infoContainer = ModernUIFactory.CreateVerticalLayout(trackItem.transform, 2, new RectOffset(0, 0, 0, 0));
-            var infoLayout = infoContainer.AddComponent<LayoutElement>();
-            infoLayout.flexibleWidth = 1;
+            GameObject? infoContainer = null;
+            if (trackItem != null)
+            {
+                infoContainer = ModernUIFactory.CreateVerticalLayout(trackItem.transform, 2, new RectOffset(0, 0, 0, 0));
+            }
+            var infoLayout = infoContainer?.AddComponent<LayoutElement>();
+            if (infoLayout != null)
+            {
+                infoLayout.flexibleWidth = 1;
+            }
             
-            var titleText = ModernUIFactory.CreateModernText(infoContainer.transform, track.title, 14, TextStyle.Primary);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleLayout.preferredHeight = 20;
+            Text? titleText = null;
+            if (infoContainer != null)
+            {
+                titleText = ModernUIFactory.CreateModernText(infoContainer.transform, track.title, 14, TextStyle.Primary);
+            }
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+                var titleLayout = titleText.gameObject?.AddComponent<LayoutElement>();
+                if (titleLayout != null)
+                {
+                    titleLayout.preferredHeight = 20;
+                }
+            }
             
-            var artistText = ModernUIFactory.CreateModernText(infoContainer.transform, $"{track.artist} • {FormatDuration(track.duration)}", 12, TextStyle.Secondary);
-            var artistLayout = artistText.gameObject.AddComponent<LayoutElement>();
-            artistLayout.preferredHeight = 18;
+            Text? artistText = null;
+            if (infoContainer != null)
+            {
+                artistText = ModernUIFactory.CreateModernText(infoContainer.transform, $"{track.artist} • {FormatDuration(track.duration)}", 12, TextStyle.Secondary);
+            }
+            var artistLayout = artistText?.gameObject?.AddComponent<LayoutElement>();
+            if (artistLayout != null)
+            {
+                artistLayout.preferredHeight = 18;
+            }
             
             // Play button
-            var playButton = ModernUIFactory.CreateIconButton(trackItem.transform, ">", S1Factory.ConvertToUnityAction(() => OnTrackPlay(track)), new Vector2(45, 45));
-            var playLayout = playButton.gameObject.AddComponent<LayoutElement>();
-            playLayout.preferredWidth = 45;
-            playLayout.preferredHeight = 45;
+            Button? playButton = null;
+            if (trackItem != null)
+            {
+                playButton = ModernUIFactory.CreateIconButton(trackItem.transform, ">", S1Factory.ConvertToUnityAction(() => OnTrackPlay(track)), new Vector2(45, 45));
+            }
+            var playLayout = playButton?.gameObject?.AddComponent<LayoutElement>();
+            if (playLayout != null)
+            {
+                playLayout.preferredWidth = 45;
+                playLayout.preferredHeight = 45;
+            }
             
             // Add to playlist button
-            var addButton = ModernUIFactory.CreateIconButton(trackItem.transform, "+", S1Factory.ConvertToUnityAction(() => OnTrackAdd(track)), new Vector2(35, 35));
-            var addLayout = addButton.gameObject.AddComponent<LayoutElement>();
-            addLayout.preferredWidth = 35;
-            addLayout.preferredHeight = 35;
+            Button? addButton = null;
+            if (trackItem != null)
+            {
+                addButton = ModernUIFactory.CreateIconButton(trackItem.transform, "+", S1Factory.ConvertToUnityAction(() => OnTrackAdd(track)), new Vector2(35, 35));
+            }
+            var addLayout = addButton?.gameObject?.AddComponent<LayoutElement>();
+            if (addLayout != null)
+            {
+                addLayout.preferredWidth = 35;
+                addLayout.preferredHeight = 35;
+            }
+            
+            // Context menu button (3-dot menu)
+            if (trackItem != null)
+            {
+                var contextButton = ModernUIFactory.CreateContextMenuButton(trackItem.transform, 
+                    () => ShowTrackContextMenu(track, trackItem.transform), new Vector2(35, 35));
+                var contextLayout = contextButton?.gameObject?.AddComponent<LayoutElement>();
+                if (contextLayout != null)
+                {
+                    contextLayout.preferredWidth = 35;
+                    contextLayout.preferredHeight = 35;
+                }
+            }
             
             // Track item layout element
-            var trackLayout = trackItem.AddComponent<LayoutElement>();
-            trackLayout.preferredHeight = 70;
+            var trackLayout = trackItem?.AddComponent<LayoutElement>();
+            if (trackLayout != null)
+            {
+                trackLayout.preferredHeight = 70;
+            }
             
-            trackItems.Add(trackItem);
+            if (trackItem != null)
+            {
+                trackItems?.Add(trackItem);
+            }
         }
         
         private void ClearTrackList()
         {
-            foreach (var item in trackItems)
+            if (trackItems != null)
             {
-                if (item != null)
-                    DestroyImmediate(item);
+                foreach (var item in trackItems)
+                {
+                    if (item != null)
+                    {
+                        UnityEngine.Object.Destroy(item);
+                    }
+                }
+                trackItems.Clear();
             }
-            trackItems.Clear();
         }
         
         #endregion
@@ -332,13 +464,141 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void OnTrackPlay(NewSongDetails track)
         {
             NewLoggingSystem.Info($"Play track: {track.title}", "JukeboxScreen");
-            musicBackend.PlayTrack(track);
+            musicBackend?.PlayTrack(track);
         }
         
         private void OnTrackAdd(NewSongDetails track)
         {
             NewLoggingSystem.Info($"Add track to playlist: {track.title}", "JukeboxScreen");
-            musicBackend.AddToQueue(track);
+            musicBackend?.AddToQueue(track);
+        }
+        
+        private void ShowTrackContextMenu(NewSongDetails track, Transform relativeTo)
+        {
+            NewLoggingSystem.Info($"Show context menu for: {track.title}", "JukeboxScreen");
+            
+            // Calculate position relative to the track item
+            var screenPos = RectTransformUtility.WorldToScreenPoint(null, relativeTo.position);
+            var canvasPos = Vector2.zero;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                this.transform as RectTransform, screenPos, null, out canvasPos);
+            
+            ModernUIFactory.CreateSongContextMenu(this.transform, track, 
+                OnContextMenuAction, canvasPos + new Vector2(100, 0));
+        }
+        
+        private void OnContextMenuAction(ModernUIFactory.SongContextAction action, NewSongDetails song)
+        {
+            switch (action)
+            {
+                case ModernUIFactory.SongContextAction.AddToQueue:
+                    musicBackend?.AddToQueue(song);
+                    NewLoggingSystem.Info($"Added '{song.title}' to queue", "JukeboxScreen");
+                    break;
+                    
+                case ModernUIFactory.SongContextAction.AddToPlaylist:
+                    ShowPlaylistSelectionDialog(song);
+                    break;
+                    
+                case ModernUIFactory.SongContextAction.Download:
+                    musicBackend?.DownloadSong(song);
+                    NewLoggingSystem.Info($"Started download: '{song.title}'", "JukeboxScreen");
+                    break;
+            }
+        }
+        
+        private void ShowPlaylistSelectionDialog(NewSongDetails song)
+        {
+            // Create overlay
+            var overlay = new GameObject("PlaylistSelectionOverlay");
+            overlay.transform.SetParent(this.transform, false);
+            
+            var overlayRect = overlay.AddComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+            
+            var overlayImage = overlay.AddComponent<Image>();
+            overlayImage.color = new Color(0, 0, 0, 0.5f);
+            
+            // Create dialog
+            var dialog = ModernUIFactory.CreateCard(overlay.transform, new Vector2(300, 400), true);
+            if (dialog == null) return;
+            var dialogRect = dialog.GetComponent<RectTransform>();
+            dialogRect.anchorMin = new Vector2(0.5f, 0.5f);
+            dialogRect.anchorMax = new Vector2(0.5f, 0.5f);
+            dialogRect.pivot = new Vector2(0.5f, 0.5f);
+            
+            var dialogLayout = dialog.AddComponent<VerticalLayoutGroup>();
+            dialogLayout.padding = new RectOffset(15, 15, 15, 15);
+            dialogLayout.spacing = 10;
+            
+            // Title
+            Text? titleText = null;
+            titleText = ModernUIFactory.CreateModernText(dialog.transform, $"Add '{song.title}' to Playlist", 16, TextStyle.Primary, TextAnchor.MiddleCenter);
+            var titleLayout = titleText?.gameObject?.AddComponent<LayoutElement>();
+            if (titleLayout != null)
+            {
+                titleLayout.preferredHeight = 30;
+            }
+            
+            // Playlist list
+            var scrollView = ModernUIFactory.CreateCard(dialog.transform, new Vector2(0, 250), false);
+            var scrollLayout = scrollView?.AddComponent<LayoutElement>();
+            if (scrollLayout != null)
+            {
+                scrollLayout.flexibleHeight = 1;
+            }
+            
+            var scrollContent = new GameObject("Content");
+            scrollContent.transform.SetParent(scrollView?.transform, false);
+            var contentRect = scrollContent.AddComponent<RectTransform>();
+            contentRect.anchorMin = Vector2.zero;
+            contentRect.anchorMax = Vector2.one;
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+            
+            var contentLayout = scrollContent.AddComponent<VerticalLayoutGroup>();
+            contentLayout.spacing = 5;
+            contentLayout.padding = new RectOffset(5, 5, 5, 5);
+            
+            // Add playlists
+            if (musicBackend != null)
+            {
+                var playlists = musicBackend.GetAllPlaylists();
+                foreach (var playlist in playlists)
+                {
+                    var playlistButton = ModernUIFactory.CreateModernButton(scrollContent.transform, playlist.name,
+                        S1Factory.ConvertToUnityAction(() => {
+                            musicBackend.AddSongToPlaylist(playlist.id, song);
+                            DestroyImmediate(overlay);
+                            NewLoggingSystem.Info($"Added '{song.title}' to playlist '{playlist.name}'", "JukeboxScreen");
+                        }), ButtonStyle.Secondary, new Vector2(0, 35));
+                }
+            }
+            
+            // Buttons
+            var buttonContainer = ModernUIFactory.CreateHorizontalLayout(dialog.transform, 10);
+            var buttonLayout = buttonContainer.AddComponent<LayoutElement>();
+            buttonLayout.preferredHeight = 40;
+            
+            var cancelButton = ModernUIFactory.CreateModernButton(buttonContainer.transform, "Cancel",
+                S1Factory.ConvertToUnityAction(() => DestroyImmediate(overlay)), ButtonStyle.Secondary, new Vector2(100, 35));
+                
+            var newPlaylistButton = ModernUIFactory.CreateModernButton(buttonContainer.transform, "New Playlist",
+                S1Factory.ConvertToUnityAction(() => {
+                    if (musicBackend != null)
+                    {
+                        var newPlaylist = musicBackend.CreateNewPlaylist($"Playlist {System.DateTime.Now:HH:mm}");
+                        if (newPlaylist != null)
+                        {
+                            musicBackend.AddSongToPlaylist(newPlaylist.id, song);
+                            DestroyImmediate(overlay);
+                            NewLoggingSystem.Info($"Created new playlist and added '{song.title}'", "JukeboxScreen");
+                        }
+                    }
+                }), ButtonStyle.Primary, new Vector2(120, 35));
         }
         
         #endregion

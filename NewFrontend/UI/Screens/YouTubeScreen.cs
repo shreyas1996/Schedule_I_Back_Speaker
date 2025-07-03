@@ -17,31 +17,31 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private NavigationManager navigationManager;
-        private IMusicBackend musicBackend;
+        private BackSpeakerMainManager? mainManager;
+        private NavigationManager? navigationManager;
+        private IMusicBackend? musicBackend;
         
         // UI Elements
-        private GameObject mainContainer;
-        private GameObject headerSection;
-        private GameObject searchSection;
-        private GameObject resultsSection;
-        private ScrollRect resultsScrollView;
-        private GameObject resultsListContent;
+        private GameObject? mainContainer;
+        private GameObject? headerSection;
+        private GameObject? searchSection;
+        private GameObject? resultsSection;
+        private ScrollRect? resultsScrollView;
+        private GameObject? resultsListContent;
         
         // Header components
-        private Button backButton;
-        private Text titleText;
-        private Button playlistButton;
+        private Button? backButton;
+        private Text? titleText;
+        private Button? playlistButton;
         
         // Search components
-        private InputField searchInput;
-        private Button searchButton;
-        private Text searchStatus;
+        private InputField? searchInput;
+        private Button? searchButton;
+        private Text? searchStatus;
         
         // Results management
-        private List<GameObject> resultItems;
-        private List<NewSongDetails> searchResults;
+        private List<GameObject>? resultItems;
+        private List<NewSongDetails>? searchResults;
         
         // State
         private bool isInitialized = false;
@@ -128,9 +128,9 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateHeader()
         {
             // Use same clean header design as jukebox
-            headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            headerSection = ModernUIFactory.CreateCard(mainContainer!.transform, new Vector2(0, 80), false);
             
-            var headerLayout = headerSection.AddComponent<HorizontalLayoutGroup>();
+            var headerLayout = headerSection!.AddComponent<HorizontalLayoutGroup>();
             headerLayout.spacing = 15;
             headerLayout.padding = new RectOffset(20, 20, 15, 15);
             headerLayout.childControlHeight = true;
@@ -140,7 +140,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Back button
             backButton = ModernUIFactory.CreateIconButton(headerSection.transform, "←", S1Factory.ConvertToUnityAction(OnBackClick), new Vector2(40, 40), false);
-            var backLayout = backButton.gameObject.AddComponent<LayoutElement>();
+            var backLayout = backButton!.gameObject.AddComponent<LayoutElement>();
             backLayout.preferredWidth = 40;
             backLayout.preferredHeight = 40;
             
@@ -155,12 +155,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             titleTextLayout.preferredHeight = 25;
             
             searchStatus = ModernUIFactory.CreateModernText(titleContainer.transform, "Enter search terms to find YouTube music", 12, TextStyle.Secondary);
-            var statusLayout = searchStatus.gameObject.AddComponent<LayoutElement>();
+            var statusLayout = searchStatus!.gameObject.AddComponent<LayoutElement>();
             statusLayout.preferredHeight = 20;
             
             // Playlist button
             playlistButton = ModernUIFactory.CreateIconButton(headerSection.transform, "P", S1Factory.ConvertToUnityAction(OnPlaylistClick), new Vector2(40, 40), false);
-            var playlistLayout = playlistButton.gameObject.AddComponent<LayoutElement>();
+            var playlistLayout = playlistButton!.gameObject.AddComponent<LayoutElement>();
             playlistLayout.preferredWidth = 40;
             playlistLayout.preferredHeight = 40;
             
@@ -173,9 +173,9 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateSearchSection()
         {
             // Simple search bar only
-            searchSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 60), false);
+            searchSection = ModernUIFactory.CreateCard(mainContainer!.transform, new Vector2(0, 60), false);
             
-            var searchLayout = searchSection.AddComponent<HorizontalLayoutGroup>();
+            var searchLayout = searchSection!.AddComponent<HorizontalLayoutGroup>();
             searchLayout.spacing = 10;
             searchLayout.padding = new RectOffset(20, 20, 10, 10);
             searchLayout.childControlHeight = true;
@@ -183,19 +183,19 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Search input field
             var inputFieldObj = ModernUIFactory.CreateCard(searchSection.transform, new Vector2(0, 40), true);
-            inputFieldObj.GetComponent<Image>().color = ModernUIFactory.Colors.Background;
+            inputFieldObj.GetComponent<Image>()!.color = ModernUIFactory.Colors.Background;
             
             searchInput = inputFieldObj.AddComponent<InputField>();
-            searchInput.textComponent = ModernUIFactory.CreateModernText(inputFieldObj.transform, "", 16, TextStyle.Primary, TextAnchor.MiddleLeft);
+            searchInput!.textComponent = ModernUIFactory.CreateModernText(inputFieldObj.transform, "", 16, TextStyle.Primary, TextAnchor.MiddleLeft);
             searchInput.placeholder = ModernUIFactory.CreateModernText(inputFieldObj.transform, "Search YouTube...", 16, TextStyle.Muted, TextAnchor.MiddleLeft);
             
             // Adjust text positioning
             var textRect = searchInput.textComponent.GetComponent<RectTransform>();
-            textRect.offsetMin = new Vector2(15, 5);
+            textRect!.offsetMin = new Vector2(15, 5);
             textRect.offsetMax = new Vector2(-15, -5);
             
             var placeholderRect = ((Text)searchInput.placeholder).GetComponent<RectTransform>();
-            placeholderRect.offsetMin = new Vector2(15, 5);
+            placeholderRect!.offsetMin = new Vector2(15, 5);
             placeholderRect.offsetMax = new Vector2(-15, -5);
             
             var inputLayout = inputFieldObj.AddComponent<LayoutElement>();
@@ -204,7 +204,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Search button
             searchButton = ModernUIFactory.CreateIconButton(searchSection.transform, "?", S1Factory.ConvertToUnityAction(OnSearchClick), new Vector2(40, 40));
-            var searchBtnLayout = searchButton.gameObject.AddComponent<LayoutElement>();
+            var searchBtnLayout = searchButton!.gameObject.AddComponent<LayoutElement>();
             searchBtnLayout.preferredWidth = 40;
             searchBtnLayout.preferredHeight = 40;
             
@@ -217,15 +217,15 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateResultsList()
         {
             resultsSection = new GameObject("ResultsList");
-            resultsSection.transform.SetParent(mainContainer.transform, false);
+            resultsSection.transform.SetParent(mainContainer!.transform, false);
             
             // Simple background
-            var scrollImage = resultsSection.AddComponent<Image>();
+            var scrollImage = resultsSection!.AddComponent<Image>();
             scrollImage.color = ModernUIFactory.Colors.Background;
             
             // SIMPLIFIED: Direct content container, no complex viewport masking
             resultsListContent = new GameObject("Content");
-            resultsListContent.transform.SetParent(resultsSection.transform, false);
+            resultsListContent!.transform.SetParent(resultsSection.transform, false);
             
             var contentRect = resultsListContent.AddComponent<RectTransform>();
             contentRect.anchorMin = Vector2.zero;
@@ -249,7 +249,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Simple scroll setup
             resultsScrollView = resultsSection.AddComponent<ScrollRect>();
-            resultsScrollView.content = contentRect;
+            resultsScrollView!.content = contentRect;
             resultsScrollView.vertical = true;
             resultsScrollView.horizontal = false;
             resultsScrollView.scrollSensitivity = 15;
@@ -268,7 +268,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             UpdateSearchStatus("Enter search terms to find YouTube music");
             
             // Show welcome card
-            var welcomeCard = ModernUIFactory.CreateCard(resultsListContent.transform, new Vector2(0, 120), true);
+            var welcomeCard = ModernUIFactory.CreateCard(resultsListContent!.transform, new Vector2(0, 120), true);
             
             var welcomeLayout = welcomeCard.AddComponent<VerticalLayoutGroup>();
             welcomeLayout.spacing = 10;
@@ -293,7 +293,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var cardLayout = welcomeCard.AddComponent<LayoutElement>();
             cardLayout.preferredHeight = 120;
             
-            resultItems.Add(welcomeCard);
+            resultItems!.Add(welcomeCard);
         }
         
         private void PerformSearch(string query)
@@ -322,12 +322,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 ClearResultsList();
                 
                 // Get search results from backend
-                searchResults = musicBackend.SearchYouTube(query);
+                searchResults = musicBackend!.SearchYouTube(query);
                 
                 PopulateResults();
                 isSearching = false;
                 
-                UpdateSearchStatus($"Found {searchResults.Count} results for '{query}'");
+                UpdateSearchStatus($"Found {searchResults!.Count} results for '{query}'");
                 NewLoggingSystem.Info($"YouTube search completed: {searchResults.Count} results", "YouTubeScreen");
             }
             catch (Exception ex)
@@ -340,7 +340,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void PopulateResults()
         {
-            foreach (var result in searchResults)
+            foreach (var result in searchResults!)
             {
                 CreateResultItem(result);
             }
@@ -348,7 +348,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateResultItem(NewSongDetails song)
         {
-            var resultItem = ModernUIFactory.CreateCard(resultsListContent.transform, new Vector2(0, 80), true);
+            var resultItem = ModernUIFactory.CreateCard(resultsListContent!.transform, new Vector2(0, 80), true);
             
             var itemLayout = resultItem.AddComponent<HorizontalLayoutGroup>();
             itemLayout.spacing = 15;
@@ -405,17 +405,20 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var resultLayout = resultItem.AddComponent<LayoutElement>();
             resultLayout.preferredHeight = 80;
             
-            resultItems.Add(resultItem);
+            resultItems!.Add(resultItem);
         }
         
         private void ClearResultsList()
         {
-            foreach (var item in resultItems)
+            if (resultItems != null)
             {
-                if (item != null)
-                    DestroyImmediate(item);
+                foreach (var item in resultItems)
+                {
+                    if (item != null)
+                        DestroyImmediate(item);
+                }
+                resultItems.Clear();
             }
-            resultItems.Clear();
         }
         
         private void UpdateSearchStatus(string status)
@@ -497,7 +500,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             // Get playlists and populate
             try
             {
-                var playlists = musicBackend.GetAllPlaylists();
+                var playlists = musicBackend?.GetAllPlaylists() ?? new List<NewYouTubePlaylistInfo>();
                 
                 if (playlists.Count == 0)
                 {
@@ -548,7 +551,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             try
             {
                 // Load the full playlist
-                var fullPlaylist = musicBackend.LoadPlaylist(playlistInfo.id);
+                var fullPlaylist = musicBackend?.LoadPlaylist(playlistInfo.id);
                 if (fullPlaylist != null)
                 {
                     // Add song to playlist
@@ -556,7 +559,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                     if (added)
                     {
                         // Save the updated playlist
-                        bool saved = musicBackend.SavePlaylist(fullPlaylist);
+                        bool saved = musicBackend?.SavePlaylist(fullPlaylist) ?? false;
                         if (saved)
                         {
                             UpdateSearchStatus($"Saved '{song.title}' to '{playlistInfo.name}'");
@@ -590,14 +593,14 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 var timestamp = DateTime.Now.ToString("MM/dd HH:mm");
                 var playlistName = $"YouTube Playlist {timestamp}";
                 
-                var newPlaylist = musicBackend.CreatePlaylist(playlistName, "Created from YouTube search");
+                var newPlaylist = musicBackend?.CreatePlaylist(playlistName, "Created from YouTube search");
                 if (newPlaylist != null)
                 {
                     // Add the song to the new playlist
                     bool added = newPlaylist.AddSong(song);
                     if (added)
                     {
-                        bool saved = musicBackend.SavePlaylist(newPlaylist);
+                        bool saved = musicBackend?.SavePlaylist(newPlaylist) ?? false;
                         if (saved)
                         {
                             UpdateSearchStatus($"Created '{playlistName}' with '{song.title}'");
@@ -638,7 +641,10 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             var query = searchInput?.text?.Trim();
             NewLoggingSystem.Info($"Search button clicked: {query}", "YouTubeScreen");
-            PerformSearch(query);
+            if (!string.IsNullOrEmpty(query))
+            {
+                PerformSearch(query!);
+            }
         }
         
         private void OnPlaylistClick()
@@ -653,7 +659,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             NewLoggingSystem.Info($"Playing YouTube song: {song.title}", "YouTubeScreen");
             try
             {
-                bool success = musicBackend.PlayTrack(song);
+                bool success = musicBackend?.PlayTrack(song) ?? false;
                 if (success)
                 {
                     UpdateSearchStatus($"Now playing: {song.title}");
@@ -677,7 +683,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             NewLoggingSystem.Info($"Adding YouTube song to queue: {song.title}", "YouTubeScreen");
             try
             {
-                bool success = musicBackend.AddToQueue(song);
+                bool success = musicBackend?.AddToQueue(song) ?? false;
                 if (success)
                 {
                     UpdateSearchStatus($"Added '{song.title}' to queue");

@@ -19,30 +19,29 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private NavigationManager navigationManager;
-        private IMusicBackend musicBackend;
+        private BackSpeakerMainManager? mainManager;
+        private NavigationManager? navigationManager;
+        private IMusicBackend? musicBackend;
         
         // UI Elements
-        private GameObject mainContainer;
-        private GameObject headerSection;
-        private GameObject playlistsSection;
-        private ScrollRect playlistsScrollView;
-        private GameObject playlistsListContent;
+        private GameObject? mainContainer;
+        private GameObject? headerSection;
+        private GameObject? playlistsSection;
+        private ScrollRect? playlistsScrollView;
+        private GameObject? playlistsListContent;
         
         // Header components
-        private Button backButton;
-        private Text titleText;
-        private Text playlistCountText;
-        private Button createButton;
+        private Button? backButton;
+        private Text? titleText;
+        private Text? playlistCountText;
+        private Button? createButton;
         
         // Playlist management
-        private List<GameObject> playlistItems;
-        private List<NewYouTubePlaylistInfo> availablePlaylists;
+        private List<GameObject>? playlistItems;
+        private List<NewYouTubePlaylistInfo>? availablePlaylists;
         
         // State
         private bool isInitialized = false;
-        private bool isLoading = false;
         
         #endregion
         
@@ -123,50 +122,92 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateHeader()
         {
             // Use same clean header design as jukebox
-            headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            if (mainContainer != null)
+            {
+                headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            }
             
-            var headerLayout = headerSection.AddComponent<HorizontalLayoutGroup>();
-            headerLayout.spacing = 15;
-            headerLayout.padding = new RectOffset(20, 20, 15, 15);
-            headerLayout.childControlHeight = true;
-            headerLayout.childControlWidth = false;
-            headerLayout.childForceExpandHeight = false;
-            headerLayout.childForceExpandWidth = false;
+            var headerLayout = headerSection?.AddComponent<HorizontalLayoutGroup>();
+            if (headerLayout != null)
+            {
+                headerLayout.spacing = 15;
+                headerLayout.padding = new RectOffset(20, 20, 15, 15);
+                headerLayout.childControlHeight = true;
+                headerLayout.childControlWidth = false;
+                headerLayout.childForceExpandHeight = false;
+                headerLayout.childForceExpandWidth = false;
+            }
             
             // Back button
-            backButton = ModernUIFactory.CreateIconButton(headerSection.transform, "←", S1Factory.ConvertToUnityAction(OnBackClick), new Vector2(40, 40), false);
-            var backLayout = backButton.gameObject.AddComponent<LayoutElement>();
-            backLayout.preferredWidth = 40;
-            backLayout.preferredHeight = 40;
+            if (headerSection != null)
+            {
+                backButton = ModernUIFactory.CreateIconButton(headerSection.transform, "←", S1Factory.ConvertToUnityAction(OnBackClick), new Vector2(40, 40), false);
+            }
+            var backLayout = backButton?.gameObject?.AddComponent<LayoutElement>();
+            if (backLayout != null)
+            {
+                backLayout.preferredWidth = 40;
+                backLayout.preferredHeight = 40;
+            }
             
             // Title and info section
-            var titleContainer = ModernUIFactory.CreateVerticalLayout(headerSection.transform, 2, new RectOffset(0, 0, 0, 0));
-            var titleContainerLayout = titleContainer.AddComponent<LayoutElement>();
-            titleContainerLayout.flexibleWidth = 1;
+            GameObject? titleContainer = null;
+            if (headerSection != null)
+            {
+                titleContainer = ModernUIFactory.CreateVerticalLayout(headerSection.transform, 2, new RectOffset(0, 0, 0, 0));
+            }
+            var titleContainerLayout = titleContainer?.AddComponent<LayoutElement>();
+            if (titleContainerLayout != null)
+            {
+                titleContainerLayout.flexibleWidth = 1;
+            }
             
-            titleText = ModernUIFactory.CreateModernText(titleContainer.transform, "P My Playlists", 18, TextStyle.Primary);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleTextLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleTextLayout.preferredHeight = 25;
-            
-            playlistCountText = ModernUIFactory.CreateModernText(titleContainer.transform, "Loading playlists...", 12, TextStyle.Secondary);
-            var countLayout = playlistCountText.gameObject.AddComponent<LayoutElement>();
-            countLayout.preferredHeight = 20;
+            if (titleContainer != null)
+            {
+                titleText = ModernUIFactory.CreateModernText(titleContainer.transform, "P My Playlists", 18, TextStyle.Primary);
+                if (titleText != null)
+                {
+                    titleText.fontStyle = FontStyle.Bold;
+                    var titleTextLayout = titleText.gameObject?.AddComponent<LayoutElement>();
+                    if (titleTextLayout != null)
+                    {
+                        titleTextLayout.preferredHeight = 25;
+                    }
+                }
+                
+                playlistCountText = ModernUIFactory.CreateModernText(titleContainer.transform, "Loading playlists...", 12, TextStyle.Secondary);
+            }
+            var countLayout = playlistCountText?.gameObject?.AddComponent<LayoutElement>();
+            if (countLayout != null)
+            {
+                countLayout.preferredHeight = 20;
+            }
             
             // Create playlist button
-            createButton = ModernUIFactory.CreateIconButton(headerSection.transform, "+", S1Factory.ConvertToUnityAction(OnCreateClick), new Vector2(40, 40), false);
-            var createLayout = createButton.gameObject.AddComponent<LayoutElement>();
-            createLayout.preferredWidth = 40;
-            createLayout.preferredHeight = 40;
+            if (headerSection != null)
+            {
+                createButton = ModernUIFactory.CreateIconButton(headerSection.transform, "+", S1Factory.ConvertToUnityAction(OnCreateClick), new Vector2(40, 40), false);
+            }
+            var createLayout = createButton?.gameObject?.AddComponent<LayoutElement>();
+            if (createLayout != null)
+            {
+                createLayout.preferredWidth = 40;
+                createLayout.preferredHeight = 40;
+            }
             
             // Header layout element
-            var headerLayoutElement = headerSection.AddComponent<LayoutElement>();
-            headerLayoutElement.preferredHeight = 80;
-            headerLayoutElement.flexibleHeight = 0;  // Don't expand
+            var headerLayoutElement = headerSection?.AddComponent<LayoutElement>();
+            if (headerLayoutElement != null)
+            {
+                headerLayoutElement.preferredHeight = 80;
+                headerLayoutElement.flexibleHeight = 0;  // Don't expand
+            }
         }
         
         private void CreatePlaylistsList()
         {
+            if (mainContainer == null) return;
+            
             playlistsSection = new GameObject("PlaylistsList");
             playlistsSection.transform.SetParent(mainContainer.transform, false);
             
@@ -219,13 +260,13 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             try
             {
                 NewLoggingSystem.Info("Loading playlists", "PlaylistScreen");
-                isLoading = true;
+                // Loading playlists
                 
                 // Clear existing playlists
                 ClearPlaylistsList();
                 
                 // Get playlists from backend
-                availablePlaylists = musicBackend.GetAllPlaylists();
+                availablePlaylists = musicBackend?.GetAllPlaylists() ?? new List<NewYouTubePlaylistInfo>();
                 
                 if (availablePlaylists.Count == 0)
                 {
@@ -238,18 +279,20 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                     PopulatePlaylistsList();
                 }
                 
-                isLoading = false;
+                // Finished loading
                 NewLoggingSystem.Info($"Loaded {availablePlaylists.Count} playlists", "PlaylistScreen");
             }
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to load playlists: {ex}", "PlaylistScreen");
-                isLoading = false;
+                // Failed to load
             }
         }
         
         private void ShowEmptyState()
         {
+            if (playlistsListContent == null) return;
+            
             var emptyCard = ModernUIFactory.CreateCard(playlistsListContent.transform, new Vector2(0, 150), true);
             
             var emptyLayout = emptyCard.AddComponent<VerticalLayoutGroup>();
@@ -264,9 +307,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             iconLayout.preferredHeight = 60;
             
             var title = ModernUIFactory.CreateModernText(emptyCard.transform, "No Playlists Yet", 20, TextStyle.Primary, TextAnchor.MiddleCenter);
-            title.fontStyle = FontStyle.Bold;
-            var titleLayout = title.gameObject.AddComponent<LayoutElement>();
-            titleLayout.preferredHeight = 30;
+            if (title != null)
+            {
+                title.fontStyle = FontStyle.Bold;
+                var titleLayout = title.gameObject.AddComponent<LayoutElement>();
+                titleLayout.preferredHeight = 30;
+            }
             
             var description = ModernUIFactory.CreateModernText(emptyCard.transform, "Create your first playlist by tapping the + button", 14, TextStyle.Secondary, TextAnchor.MiddleCenter);
             var descLayout = description.gameObject.AddComponent<LayoutElement>();
@@ -275,19 +321,24 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var cardLayout = emptyCard.AddComponent<LayoutElement>();
             cardLayout.preferredHeight = 150;
             
-            playlistItems.Add(emptyCard);
+            playlistItems?.Add(emptyCard);
         }
         
         private void PopulatePlaylistsList()
         {
-            foreach (var playlist in availablePlaylists)
+            if (availablePlaylists != null)
             {
-                CreatePlaylistItem(playlist);
+                foreach (var playlist in availablePlaylists)
+                {
+                    CreatePlaylistItem(playlist);
+                }
             }
         }
         
         private void CreatePlaylistItem(NewYouTubePlaylistInfo playlist)
         {
+            if (playlistsListContent == null) return;
+            
             var playlistItem = ModernUIFactory.CreateCard(playlistsListContent.transform, new Vector2(0, 100), true);
             
             var itemLayout = playlistItem.AddComponent<HorizontalLayoutGroup>();
@@ -299,10 +350,20 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             itemLayout.childForceExpandWidth = false;
             
             // Playlist icon
-            var iconText = ModernUIFactory.CreateModernText(playlistItem.transform, "♬", 32, TextStyle.Primary, TextAnchor.MiddleCenter);
-            var iconLayout = iconText.gameObject.AddComponent<LayoutElement>();
-            iconLayout.preferredWidth = 50;
-            iconLayout.preferredHeight = 50;
+            Text? iconText = null;
+            if (playlistItem != null)
+            {
+                iconText = ModernUIFactory.CreateModernText(playlistItem.transform, "📁", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
+            }
+            if (iconText != null)
+            {
+                var iconLayout = iconText.gameObject?.AddComponent<LayoutElement>();
+                if (iconLayout != null)
+                {
+                    iconLayout.preferredWidth = 40;
+                    iconLayout.preferredHeight = 40;
+                }
+            }
             
             // Playlist info section
             var infoContainer = ModernUIFactory.CreateVerticalLayout(playlistItem.transform, 5, new RectOffset(0, 0, 0, 0));
@@ -310,13 +371,19 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             infoLayout.flexibleWidth = 1;
             
             var nameText = ModernUIFactory.CreateModernText(infoContainer.transform, playlist.name, 18, TextStyle.Primary);
-            nameText.fontStyle = FontStyle.Bold;
-            var nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
-            nameLayout.preferredHeight = 25;
+            if (nameText != null)
+            {
+                nameText.fontStyle = FontStyle.Bold;
+                var nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
+                nameLayout.preferredHeight = 25;
+            }
             
             var descText = ModernUIFactory.CreateModernText(infoContainer.transform, playlist.description, 14, TextStyle.Secondary);
-            var descLayout = descText.gameObject.AddComponent<LayoutElement>();
-            descLayout.preferredHeight = 20;
+            var descLayout = descText?.gameObject?.AddComponent<LayoutElement>();
+            if (descLayout != null)
+            {
+                descLayout.preferredHeight = 20;
+            }
             
             var detailText = ModernUIFactory.CreateModernText(infoContainer.transform, $"{playlist.songCount} songs • Updated {GetRelativeTime(playlist.lastModified)}", 12, TextStyle.Muted);
             var detailLayout = detailText.gameObject.AddComponent<LayoutElement>();
@@ -337,7 +404,11 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Delete button
             var deleteButton = ModernUIFactory.CreateIconButton(playlistItem.transform, "X", S1Factory.ConvertToUnityAction(() => OnPlaylistDelete(playlist)), new Vector2(45, 45));
-            deleteButton.GetComponent<Image>().color = ModernUIFactory.Colors.Accent;
+            var deleteImage = deleteButton.GetComponent<Image>();
+            if (deleteImage != null)
+            {
+                deleteImage.color = ModernUIFactory.Colors.Accent;
+            }
             var deleteLayout = deleteButton.gameObject.AddComponent<LayoutElement>();
             deleteLayout.preferredWidth = 45;
             deleteLayout.preferredHeight = 45;
@@ -346,17 +417,20 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var playlistLayout = playlistItem.AddComponent<LayoutElement>();
             playlistLayout.preferredHeight = 100;
             
-            playlistItems.Add(playlistItem);
+            playlistItems?.Add(playlistItem);
         }
         
         private void ClearPlaylistsList()
         {
-            foreach (var item in playlistItems)
+            if (playlistItems != null)
             {
-                if (item != null)
-                    DestroyImmediate(item);
+                foreach (var item in playlistItems)
+                {
+                    if (item != null)
+                        DestroyImmediate(item);
+                }
+                playlistItems.Clear();
             }
-            playlistItems.Clear();
         }
         
         private void UpdatePlaylistCount(string text)
@@ -404,12 +478,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             try
             {
                 // Load the full playlist from backend
-                var fullPlaylist = musicBackend.LoadPlaylist(playlist.id);
+                var fullPlaylist = musicBackend?.LoadPlaylist(playlist.id);
                 if (fullPlaylist != null && fullPlaylist.songs.Count > 0)
                 {
                     // Set playlist as current queue and start playing
-                    musicBackend.SetQueue(fullPlaylist.songs);
-                    musicBackend.PlayTrack(fullPlaylist.songs[0]);
+                    musicBackend?.SetQueue(fullPlaylist.songs);
+                    musicBackend?.PlayTrack(fullPlaylist.songs[0]);
                     
                     ShowTemporaryMessage($"Playing '{playlist.name}' ({fullPlaylist.songs.Count} songs)");
                     
@@ -448,7 +522,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 var timestamp = DateTime.Now.ToString("MM/dd HH:mm");
                 var playlistName = $"Playlist {timestamp}";
                 
-                var newPlaylist = musicBackend.CreatePlaylist(playlistName, "Created from BackSpeaker");
+                var newPlaylist = musicBackend?.CreatePlaylist(playlistName, "Created from BackSpeaker");
                 
                 if (newPlaylist != null)
                 {
@@ -583,7 +657,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             try
             {
-                bool success = musicBackend.DeletePlaylist(playlist.id);
+                bool success = musicBackend?.DeletePlaylist(playlist.id) ?? false;
                 
                 if (success)
                 {

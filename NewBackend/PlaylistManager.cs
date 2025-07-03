@@ -16,7 +16,7 @@ namespace BackSpeakerMod.NewBackend
     public class PlaylistManager
     {
         // Source track caches
-        private Dictionary<string, List<NewSongDetails>> _sourceTracks;
+        private Dictionary<string, List<NewSongDetails>>? _sourceTracks;
         
         public IEnumerator Initialize()
         {
@@ -56,11 +56,11 @@ namespace BackSpeakerMod.NewBackend
                                 cachedFilePath = "",
                                 duration = (int)track.length
                             };
-                            _sourceTracks["Jukebox"].Add(songDetails);
+                            _sourceTracks?["Jukebox"]?.Add(songDetails);
                         }
                     }
                     
-                    NewLoggingSystem.Info($"✓ Loaded {_sourceTracks["Jukebox"].Count} jukebox tracks", "PlaylistManager");
+                    NewLoggingSystem.Info($"✓ Loaded {_sourceTracks?["Jukebox"]?.Count ?? 0} jukebox tracks", "PlaylistManager");
                 }
                 else
                 {
@@ -103,13 +103,13 @@ namespace BackSpeakerMod.NewBackend
                                     cachedFilePath = file,
                                     isDownloaded = true
                                 };
-                                _sourceTracks["LocalFolder"].Add(songDetails);
+                                _sourceTracks?["LocalFolder"]?.Add(songDetails);
                             }
                         }
                     }
                 }
                 
-                NewLoggingSystem.Info($"✓ Loaded {_sourceTracks["LocalFolder"].Count} local folder tracks", "PlaylistManager");
+                NewLoggingSystem.Info($"✓ Loaded {_sourceTracks?["LocalFolder"]?.Count ?? 0} local folder tracks", "PlaylistManager");
             }
             catch (Exception ex)
             {
@@ -133,12 +133,12 @@ namespace BackSpeakerMod.NewBackend
                         // No conversion needed - already NewSongDetails
                         foreach (var song in playlist.songs)
                         {
-                            _sourceTracks["YouTube"].Add(song);
+                            _sourceTracks?["YouTube"]?.Add(song);
                         }
                     }
                 }
                 
-                NewLoggingSystem.Info($"✓ Loaded {_sourceTracks["YouTube"].Count} YouTube tracks", "PlaylistManager");
+                NewLoggingSystem.Info($"✓ Loaded {_sourceTracks?["YouTube"]?.Count ?? 0} YouTube tracks", "PlaylistManager");
             }
             catch (Exception ex)
             {
@@ -149,9 +149,9 @@ namespace BackSpeakerMod.NewBackend
         }
         
         // Public API
-        public List<NewSongDetails> GetJukeboxTracks() => _sourceTracks.ContainsKey("Jukebox") ? _sourceTracks["Jukebox"] : new List<NewSongDetails>();
-        public List<NewSongDetails> GetLocalFolderTracks() => _sourceTracks.ContainsKey("LocalFolder") ? _sourceTracks["LocalFolder"] : new List<NewSongDetails>();
-        public List<NewSongDetails> GetYouTubeTracks() => _sourceTracks.ContainsKey("YouTube") ? _sourceTracks["YouTube"] : new List<NewSongDetails>();
+        public List<NewSongDetails> GetJukeboxTracks() => _sourceTracks?.ContainsKey("Jukebox") == true ? _sourceTracks["Jukebox"] : new List<NewSongDetails>();
+        public List<NewSongDetails> GetLocalFolderTracks() => _sourceTracks?.ContainsKey("LocalFolder") == true ? _sourceTracks["LocalFolder"] : new List<NewSongDetails>();
+        public List<NewSongDetails> GetYouTubeTracks() => _sourceTracks?.ContainsKey("YouTube") == true ? _sourceTracks["YouTube"] : new List<NewSongDetails>();
         
         public List<string> GetPlaylistNames(string source)
         {

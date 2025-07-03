@@ -64,7 +64,15 @@ namespace BackSpeakerMod.NewBackend
 
                 // Load all GameObjects from the bundle to find the headphone prefab
                 var gameObjects = assetBundle.LoadAllAssets<GameObject>();
-                NewLoggingSystem.Debug($"Found {gameObjects.Length} GameObjects in asset bundle", "HeadphoneManager");
+                if (gameObjects != null)
+                {
+                    NewLoggingSystem.Debug($"Found {gameObjects.Length} GameObjects in asset bundle", "HeadphoneManager");
+                }
+                else
+                {
+                    NewLoggingSystem.Error("Failed to load GameObjects from asset bundle", "HeadphoneManager");
+                    yield break;
+                }
 
                 GameObject? headphonePrefab = null;
                 foreach (var go in gameObjects)
@@ -145,7 +153,7 @@ namespace BackSpeakerMod.NewBackend
             
             // Find head attachment point
             // Transform headTransform = FindHeadAttachmentPoint(_player.GameObject);
-            Transform headTransform = FindHeadAttachmentPoint.FindEarAttachmentPoint(_player.Avatar?.HeadBone);
+            Transform? headTransform = FindHeadAttachmentPoint.FindEarAttachmentPoint(_player.Avatar?.HeadBone);
             if (headTransform == null)
             {
                 NewLoggingSystem.Error("Could not find head attachment point", "HeadphoneManager");
@@ -153,30 +161,33 @@ namespace BackSpeakerMod.NewBackend
             }
             
             // Attach headphones to player
-            _headphoneObject.transform.SetParent(headTransform);
-            _headphoneObject.transform.localPosition = new Vector3(0f, -0.0011f, -0.0005f);
-            _headphoneObject.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-            _headphoneObject.transform.localScale = Vector3.one * 0.2f;
-            _headphoneObject.name = "HeadphoneInstance_Attached";
-            _headphoneObject.SetActive(true);
-            var renderers = _headphoneObject.GetComponentsInChildren<Renderer>();
+            if (_headphoneObject != null)
+            {
+                _headphoneObject.transform.SetParent(headTransform);
+                _headphoneObject.transform.localPosition = new Vector3(0f, -0.0011f, -0.0005f);
+                _headphoneObject.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                _headphoneObject.transform.localScale = Vector3.one * 0.2f;
+                _headphoneObject.name = "HeadphoneInstance_Attached";
+                _headphoneObject.SetActive(true);
+                var renderers = _headphoneObject.GetComponentsInChildren<Renderer>();
                 foreach (var renderer in renderers)
                 {
                     renderer.enabled = true;
                     NewLoggingSystem.Debug($"Renderer: {renderer.name}, enabled: {renderer.enabled}, visible: {renderer.isVisible}", "HeadphoneManager");
                 }
-            // Set Headphone name in config to the new name
-            HeadphoneConfig.Name = _headphoneObject.name;
-            
-            // Apply URP materials at runtime
-            NewLoggingSystem.Debug("Applying shader and materials to headphone object", "HeadphoneManager");
-            FixShaderAndMaterial.ApplyShaderAndMaterials(_headphoneObject);
-            NewLoggingSystem.Debug("✓ Shader and materials applied to headphone object", "HeadphoneManager");
+                // Set Headphone name in config to the new name
+                HeadphoneConfig.Name = _headphoneObject.name;
+                
+                // Apply URP materials at runtime
+                NewLoggingSystem.Debug("Applying shader and materials to headphone object", "HeadphoneManager");
+                FixShaderAndMaterial.ApplyShaderAndMaterials(_headphoneObject);
+                NewLoggingSystem.Debug("✓ Shader and materials applied to headphone object", "HeadphoneManager");
 
-            // Set camera based visibility
-            ForceUpdateCameraBasedVisibility();
-            
-            UnityEngine.Object.DontDestroyOnLoad(_headphoneObject);
+                // Set camera based visibility
+                ForceUpdateCameraBasedVisibility();
+                
+                UnityEngine.Object.DontDestroyOnLoad(_headphoneObject);
+            }
             
             _headphonesAttached = true;
             OnHeadphonesStateChanged?.Invoke(true);

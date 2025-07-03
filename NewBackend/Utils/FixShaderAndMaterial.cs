@@ -50,25 +50,25 @@ namespace BackSpeakerMod.NewBackend.Utils
                             NewLoggingSystem.Debug($"Applying shader to {material.name}", "FixShaderAndMaterial");
                             material.shader = materialConfig.Shader;
                         }
-                        if(materialConfig.BaseColor != null && material.HasProperty("_BaseColor"))
+                        if(materialConfig.BaseColor.HasValue && material.HasProperty("_BaseColor"))
                         {
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
-                            material.SetColor("_BaseColor", materialConfig.BaseColor);
+                            material.SetColor("_BaseColor", materialConfig.BaseColor.Value);
                         }
-                        if(materialConfig.Metallic != null && material.HasProperty("_Metallic"))
+                        if(materialConfig.Metallic.HasValue && material.HasProperty("_Metallic"))
                         {
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
-                            material.SetFloat("_Metallic", materialConfig.Metallic);
+                            material.SetFloat("_Metallic", materialConfig.Metallic.Value);
                         }
-                        if(materialConfig.Smoothness != null && material.HasProperty("_Smoothness"))
+                        if(materialConfig.Smoothness.HasValue && material.HasProperty("_Smoothness"))
                         {
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
-                            material.SetFloat("_Smoothness", materialConfig.Smoothness);
+                            material.SetFloat("_Smoothness", materialConfig.Smoothness.Value);
                         }
-                        if(materialConfig.IsOpaque != null && material.HasProperty("_IsOpaque"))
+                        if(materialConfig.IsOpaque.HasValue && material.HasProperty("_IsOpaque"))
                         {
                             NewLoggingSystem.Debug($"Applying shader and material to {material.name}", "FixShaderAndMaterial");
-                            material.SetInt("_IsOpaque", materialConfig.IsOpaque ? 1 : 0);
+                            material.SetInt("_IsOpaque", materialConfig.IsOpaque.Value ? 1 : 0);
                         }
                         if(material.HasProperty("_CullMode"))
                         {

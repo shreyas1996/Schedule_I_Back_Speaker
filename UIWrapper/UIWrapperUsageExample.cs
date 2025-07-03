@@ -177,7 +177,7 @@ namespace BackSpeakerMod.UIWrapper
             };
 
             var popup = ComponentBuilder.CreatePopup(parent, customPopupConfig.Title, customPopupConfig.OnClose);
-            popup.Show();
+            popup?.Show();
 
             UnityEngine.Debug.Log("Custom popup created!");
         }

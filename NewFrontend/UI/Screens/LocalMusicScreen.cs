@@ -17,31 +17,30 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private NavigationManager navigationManager;
-        private IMusicBackend musicBackend;
+        private BackSpeakerMainManager? mainManager;
+        private NavigationManager? navigationManager;
+        private IMusicBackend? musicBackend;
         
         // UI Elements
-        private GameObject mainContainer;
-        private GameObject headerSection;
-        private GameObject fileListSection;
-        private ScrollRect fileScrollView;
-        private GameObject fileListContent;
+        private GameObject? mainContainer;
+        private GameObject? headerSection;
+        private GameObject? fileListSection;
+        private ScrollRect? fileScrollView;
+        private GameObject? fileListContent;
         
         // Header components
-        private Button backButton;
-        private Text titleText;
-        private Button refreshButton;
-        private Text pathText;
+        private Button? backButton;
+        private Text? titleText;
+        private Button? refreshButton;
+        private Text? pathText;
         
         // File management
-        private List<GameObject> fileItems;
-        private List<LocalFileInfo> availableFiles;
+        private List<GameObject>? fileItems;
+        private List<LocalFileInfo>? availableFiles;
         private string currentPath = "";
         
         // State
         private bool isInitialized = false;
-        private bool isLoading = false;
         
         #endregion
         
@@ -122,7 +121,10 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateHeader()
         {
             // Use same clean header design as jukebox
-            headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            if (mainContainer != null)
+            {
+                headerSection = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 80), false);
+            }
             
             var headerLayout = headerSection.AddComponent<HorizontalLayoutGroup>();
             headerLayout.spacing = 15;
@@ -144,13 +146,19 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             titleContainerLayout.flexibleWidth = 1;
             
             titleText = ModernUIFactory.CreateModernText(titleContainer.transform, "F Local Music", 18, TextStyle.Primary);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleTextLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleTextLayout.preferredHeight = 25;
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+                var titleTextLayout = titleText.gameObject.AddComponent<LayoutElement>();
+                titleTextLayout.preferredHeight = 25;
+            }
             
             pathText = ModernUIFactory.CreateModernText(titleContainer.transform, "Loading...", 12, TextStyle.Secondary);
-            var pathLayout = pathText.gameObject.AddComponent<LayoutElement>();
-            pathLayout.preferredHeight = 20;
+            var pathLayout = pathText?.gameObject?.AddComponent<LayoutElement>();
+            if (pathLayout != null)
+            {
+                pathLayout.preferredHeight = 20;
+            }
             
             // Refresh button
             refreshButton = ModernUIFactory.CreateIconButton(headerSection.transform, "R", S1Factory.ConvertToUnityAction(OnRefreshClick), new Vector2(40, 40), false);
@@ -167,7 +175,10 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateFileList()
         {
             fileListSection = new GameObject("FileList");
-            fileListSection.transform.SetParent(mainContainer.transform, false);
+            if (mainContainer != null)
+            {
+                fileListSection.transform.SetParent(mainContainer.transform, false);
+            }
             
             // Simple background
             var scrollImage = fileListSection.AddComponent<Image>();
@@ -199,10 +210,13 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Simple scroll setup
             fileScrollView = fileListSection.AddComponent<ScrollRect>();
-            fileScrollView.content = contentRect;
-            fileScrollView.vertical = true;
-            fileScrollView.horizontal = false;
-            fileScrollView.scrollSensitivity = 15;
+            if (fileScrollView != null)
+            {
+                fileScrollView.content = contentRect;
+                fileScrollView.vertical = true;
+                fileScrollView.horizontal = false;
+                fileScrollView.scrollSensitivity = 15;
+            }
             
             // File list layout element - take remaining space
             var listLayoutElement = fileListSection.AddComponent<LayoutElement>();
@@ -218,26 +232,26 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             try
             {
                 NewLoggingSystem.Info("Loading local music files", "LocalMusicScreen");
-                isLoading = true;
+                // Loading files
                 UpdatePath("Loading...");
                 
                 // Clear existing files
                 ClearFileList();
                 
                 // Get files from backend  
-                var localTracks = musicBackend.GetLocalTracks();
+                var localTracks = musicBackend?.GetLocalTracks() ?? new List<NewSongDetails>();
                 availableFiles = ConvertTracksToFileInfo(localTracks);
                 currentPath = "/Music/";
                 
                 PopulateFileList();
-                isLoading = false;
+                // Finished loading
                 
                 NewLoggingSystem.Info($"Loaded {availableFiles.Count} local files", "LocalMusicScreen");
             }
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to load local files: {ex}", "LocalMusicScreen");
-                isLoading = false;
+                // Failed to load
                 UpdatePath("Error loading files");
             }
         }
@@ -273,14 +287,19 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             UpdatePath(currentPath);
             
-            foreach (var file in availableFiles)
+            if (availableFiles != null)
             {
-                CreateFileItem(file);
+                foreach (var file in availableFiles)
+                {
+                    CreateFileItem(file);
+                }
             }
         }
         
         private void CreateFileItem(LocalFileInfo fileInfo)
         {
+            if (fileListContent == null) return;
+            
             var fileItem = ModernUIFactory.CreateCard(fileListContent.transform, new Vector2(0, 70), true);
             
             var itemLayout = fileItem.AddComponent<HorizontalLayoutGroup>();
@@ -293,9 +312,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // File icon
             var iconText = ModernUIFactory.CreateModernText(fileItem.transform, fileInfo.IsFolder ? "D" : "♫", 24, TextStyle.Primary, TextAnchor.MiddleCenter);
-            var iconLayout = iconText.gameObject.AddComponent<LayoutElement>();
-            iconLayout.preferredWidth = 40;
-            iconLayout.preferredHeight = 40;
+            if (iconText != null)
+            {
+                var iconLayout = iconText.gameObject.AddComponent<LayoutElement>();
+                iconLayout.preferredWidth = 40;
+                iconLayout.preferredHeight = 40;
+            }
             
             // File info section
             var infoContainer = ModernUIFactory.CreateVerticalLayout(fileItem.transform, 2, new RectOffset(0, 0, 0, 0));
@@ -303,9 +325,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             infoLayout.flexibleWidth = 1;
             
             var nameText = ModernUIFactory.CreateModernText(infoContainer.transform, fileInfo.Name, 16, TextStyle.Primary);
-            nameText.fontStyle = FontStyle.Bold;
-            var nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
-            nameLayout.preferredHeight = 25;
+            if (nameText != null)
+            {
+                nameText.fontStyle = FontStyle.Bold;
+                var nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
+                nameLayout.preferredHeight = 25;
+            }
             
             var detailText = ModernUIFactory.CreateModernText(infoContainer.transform, $"{(fileInfo.IsFolder ? "Folder" : "Audio File")} • {fileInfo.Size}", 12, TextStyle.Secondary);
             var detailLayout = detailText.gameObject.AddComponent<LayoutElement>();
@@ -339,17 +364,22 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             var fileLayout = fileItem.AddComponent<LayoutElement>();
             fileLayout.preferredHeight = 70;
             
-            fileItems.Add(fileItem);
+            fileItems?.Add(fileItem);
         }
         
         private void ClearFileList()
         {
-            foreach (var item in fileItems)
+            if (fileItems != null)
             {
-                if (item != null)
-                    DestroyImmediate(item);
+                foreach (var item in fileItems)
+                {
+                    if (item != null)
+                    {
+                        UnityEngine.Object.Destroy(item);
+                    }
+                }
+                fileItems.Clear();
             }
-            fileItems.Clear();
         }
         
         #endregion
@@ -387,7 +417,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 url = fileInfo.Path,
                 duration = 180 // Mock duration
             };
-            musicBackend.PlayTrack(songDetails);
+            musicBackend?.PlayTrack(songDetails);
         }
         
         private void OnFileAdd(LocalFileInfo fileInfo)
@@ -401,7 +431,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 url = fileInfo.Path,
                 duration = 180 // Mock duration
             };
-            musicBackend.AddToQueue(songDetails);
+            musicBackend?.AddToQueue(songDetails);
         }
         
         #endregion
@@ -436,10 +466,10 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     [Serializable]
     public class LocalFileInfo
     {
-        public string Name;
-        public string Path;
+        public string Name = "";
+        public string Path = "";
         public bool IsFolder;
-        public string Size;
+        public string Size = "";
     }
     
     #endregion

@@ -109,7 +109,7 @@ namespace BackSpeakerMod.NewBackend
             NewLoggingSystem.Info($"Track set: {track.title}", "AudioManager");
         }
         
-        private void OnAudioClipLoaded(AudioClip clip)
+        private void OnAudioClipLoaded(AudioClip? clip)
         {
             if (_audioSource != null && clip != null)
             {

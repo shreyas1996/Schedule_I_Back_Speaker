@@ -168,7 +168,7 @@ namespace BackSpeakerMod.NewBackend.Utils
         /// </summary>
         public static string GetYtDlpPath()
         {
-            if (!IsYtDlpAvailable()) return null;
+            if (!IsYtDlpAvailable()) return null!;
             return YtDlpExtractedPath;
         }
     }

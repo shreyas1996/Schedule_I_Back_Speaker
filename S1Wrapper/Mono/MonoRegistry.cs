@@ -31,7 +31,7 @@ namespace BackSpeakerMod.S1Wrapper.Mono
                 value = typedValue;
                 return true;
             }
-            value = default(T);
+            value = default(T)!;
             return false;
         }
 

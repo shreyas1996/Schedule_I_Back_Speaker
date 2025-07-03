@@ -15,7 +15,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create the main BackSpeaker screen layout structure
         /// </summary>
-        public static BackSpeakerLayout CreateMainScreenLayout(Transform parent, LayoutConfig config = null)
+        public static BackSpeakerLayout CreateMainScreenLayout(Transform parent, LayoutConfig? config = null)
         {
             config = config ?? new LayoutConfig();
             
@@ -87,7 +87,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a track info layout
         /// </summary>
-        public static TrackInfoLayout CreateTrackInfoLayout(Transform parent, TrackInfoConfig config = null)
+        public static TrackInfoLayout CreateTrackInfoLayout(Transform parent, TrackInfoConfig? config = null)
         {
             config = config ?? new TrackInfoConfig();
             
@@ -137,7 +137,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a control buttons layout
         /// </summary>
-        public static ControlsLayout CreateControlsLayout(Transform parent, ControlsConfig config = null)
+        public static ControlsLayout CreateControlsLayout(Transform parent, ControlsConfig? config = null)
         {
             config = config ?? new ControlsConfig();
             
@@ -177,7 +177,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a popup layout with optional content areas
         /// </summary>
-        public static PopupLayout CreatePopupLayout(Transform parent, PopupConfig config = null)
+        public static PopupLayout CreatePopupLayout(Transform parent, PopupConfig? config = null)
         {
             config = config ?? new PopupConfig();
             
@@ -264,7 +264,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a horizontal button group
         /// </summary>
-        public static ButtonGroupLayout CreateHorizontalButtonGroup(Transform parent, ButtonGroupConfig config = null)
+        public static ButtonGroupLayout CreateHorizontalButtonGroup(Transform parent, ButtonGroupConfig? config = null)
         {
             config = config ?? new ButtonGroupConfig();
             
@@ -313,7 +313,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a list layout for scrollable content
         /// </summary>
-        public static ListLayout CreateListLayout(Transform parent, ListConfig config = null)
+        public static ListLayout CreateListLayout(Transform parent, ListConfig? config = null)
         {
             config = config ?? new ListConfig();
             

@@ -455,7 +455,7 @@ namespace BackSpeakerMod.S1Wrapper
                 clonedCanvas.transform.localPosition = Vector3.zero;
                 clonedCanvas.transform.localScale = Vector3.one;
                 clonedCanvas.transform.localRotation = Quaternion.identity;
-                clonedCanvas.active = false;
+                clonedCanvas.SetActive(false);
 
                 // CRITICAL: Set proper canvas sorting to prevent bleeding
                 var canvasComponent = clonedCanvas.GetComponent<Canvas>();
@@ -1110,13 +1110,13 @@ namespace BackSpeakerMod.S1Wrapper
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to convert Action to UnityAction: {ex}", "S1Factory");
-                return null;
+                return null!;
             }
         }
 
         public static UnityEngine.Events.UnityAction<T> ConvertToUnityAction<T>(System.Action<T> action)
         {
-            if (action == null) return null;
+            if (action == null) return null!;
 
             try
             {
@@ -1129,7 +1129,7 @@ namespace BackSpeakerMod.S1Wrapper
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to convert Action<T> to UnityAction<T>: {ex}", "S1Factory");
-                return null;
+                return null!;
             }
         }
 

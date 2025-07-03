@@ -16,8 +16,8 @@ namespace BackSpeakerMod.NewFrontend
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private MainPlayerScreen mainPlayerScreen;
+        private BackSpeakerMainManager? mainManager;
+        private MainPlayerScreen? mainPlayerScreen;
         
         // UI State
         private bool isInitialized = false;
@@ -66,7 +66,7 @@ namespace BackSpeakerMod.NewFrontend
             var managerObj = new GameObject("BackSpeakerMainManager");
             managerObj.transform.SetParent(this.transform, false);
             
-            mainManager = BackSpeakerMainManager.Instance;
+            mainManager = BackSpeakerMainManager.Instance!;
             // Note: BackSpeakerMainManager will be initialized separately by the main mod
             
             NewLoggingSystem.Info("Backend manager reference created", "ModernApp");
@@ -91,7 +91,7 @@ namespace BackSpeakerMod.NewFrontend
             
             // Add the main player screen component
             mainPlayerScreen = S1Factory.RegisterAndAddComponent<MainPlayerScreen>(mainScreenObj);
-            mainPlayerScreen.Initialize(mainManager);
+            mainPlayerScreen?.Initialize(mainManager!);
             
             NewLoggingSystem.Info("Main UI created successfully", "ModernApp");
         }
@@ -130,14 +130,14 @@ namespace BackSpeakerMod.NewFrontend
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to create modern screen: {ex}", "ModernApp");
-                return null;
+                return null!;
             }
         }
         
         /// <summary>
         /// Get the main player screen component
         /// </summary>
-        public MainPlayerScreen GetMainPlayerScreen()
+        public MainPlayerScreen? GetMainPlayerScreen()
         {
             return mainPlayerScreen;
         }
@@ -166,11 +166,11 @@ namespace BackSpeakerMod.NewFrontend
                 if (mainPlayerScreen != null)
                 {
                     // The MonoBehaviour will be destroyed automatically
-                    mainPlayerScreen = null;
+                    mainPlayerScreen = null!;
                 }
                 
                 // Clean up backend references
-                mainManager = null;
+                mainManager = null!;
                 
                 isInitialized = false;
                 NewLoggingSystem.Info("ModernBackSpeakerApp shutdown complete", "ModernApp");

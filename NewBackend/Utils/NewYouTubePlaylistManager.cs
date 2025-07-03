@@ -244,7 +244,7 @@ namespace BackSpeakerMod.NewBackend.Utils
         /// <summary>
         /// Create a new playlist
         /// </summary>
-        public static NewYouTubePlaylist CreatePlaylist(string name, string description = null)
+        public static NewYouTubePlaylist? CreatePlaylist(string name, string? description = null)
         {
             try
             {
@@ -333,7 +333,7 @@ namespace BackSpeakerMod.NewBackend.Utils
         /// <summary>
         /// Load a playlist from disk
         /// </summary>
-        public static NewYouTubePlaylist LoadPlaylist(string playlistId)
+        public static NewYouTubePlaylist? LoadPlaylist(string playlistId)
         {
             try
             {
@@ -445,7 +445,7 @@ namespace BackSpeakerMod.NewBackend.Utils
         /// <summary>
         /// Create a default playlist if none exist
         /// </summary>
-        public static NewYouTubePlaylist CreateDefaultPlaylist()
+        public static NewYouTubePlaylist? CreateDefaultPlaylist()
         {
             try
             {

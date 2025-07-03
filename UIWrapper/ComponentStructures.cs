@@ -19,7 +19,7 @@ namespace BackSpeakerMod.UIWrapper
         public Text? AlbumText { get; set; }
         public Text? DurationText { get; set; }
 
-        public void UpdateTrackInfo(string title, string artist, string album, string duration, Sprite albumArt = null)
+        public void UpdateTrackInfo(string title, string artist, string album, string duration, Sprite? albumArt = null)
         {
             if (TrackTitleText != null) TrackTitleText.text = title;
             if (ArtistText != null) ArtistText.text = artist;

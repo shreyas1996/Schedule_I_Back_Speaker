@@ -15,13 +15,13 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     /// </summary>
     public class NavigationManager : MonoBehaviour
     {
-        private BackSpeakerMainManager mainManager;
+        private BackSpeakerMainManager? mainManager;
         
         // Navigation UI
-        private GameObject navigationMenu;
-        private GameObject menuOverlay;
-        private CanvasGroup menuCanvasGroup;
-        private CanvasGroup overlayCanvasGroup;
+        private GameObject? navigationMenu;
+        private GameObject? menuOverlay;
+        private CanvasGroup? menuCanvasGroup;
+        private CanvasGroup? overlayCanvasGroup;
         private bool isMenuOpen = false;
         private bool isAnimating = false;
         
@@ -30,13 +30,15 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private const float MENU_WIDTH = 300f;
         
         // Screens
-        private Dictionary<string, GameObject> screens;
+        private Dictionary<string, GameObject>? screens;
         private string currentScreen = "main";
         private string previousScreen = "main";
         
         // Screen objects
-        private MainPlayerScreen mainPlayerScreen;
-        private JukeboxScreen jukeboxScreen;
+        private MainPlayerScreen? mainPlayerScreen;
+        private JukeboxScreen? jukeboxScreen;
+        private PlaylistEditScreen? playlistEditScreen;
+        private DownloadsScreen? downloadsScreen;
         
         public bool IsInitialized { get; private set; }
         
@@ -124,34 +126,66 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void CreateMenuItems()
         {
             // Close button and title bar
+            if (navigationMenu == null) return;
             var headerContainer = ModernUIFactory.CreateHorizontalLayout(navigationMenu.transform, 15, new RectOffset(0, 0, 0, 0));
+            if (headerContainer == null) return;
             var headerLayout = headerContainer.AddComponent<LayoutElement>();
             headerLayout.preferredHeight = 50;
             
             // Close button (X)
             var closeButton = ModernUIFactory.CreateIconButton(headerContainer.transform, "×", S1Factory.ConvertToUnityAction(HideNavigationMenu), new Vector2(40, 40), true);
-            closeButton.GetComponent<Image>().color = ModernUIFactory.Colors.Surface;
-            var closeButtonText = closeButton.GetComponentInChildren<Text>();
-            closeButtonText.color = ModernUIFactory.Colors.TextMuted;
-            closeButtonText.fontSize = 18;
-            var closeLayout = closeButton.gameObject.AddComponent<LayoutElement>();
-            closeLayout.preferredWidth = 40;
-            closeLayout.preferredHeight = 40;
+            var closeButtonImage = closeButton?.GetComponent<Image>();
+            if (closeButtonImage != null)
+            {
+                closeButtonImage.color = ModernUIFactory.Colors.Surface;
+            }
+            var closeButtonText = closeButton?.GetComponentInChildren<Text>();
+            if (closeButtonText != null)
+            {
+                closeButtonText.color = ModernUIFactory.Colors.TextMuted;
+                closeButtonText.fontSize = 18;
+            }
+            var closeLayout = closeButton?.gameObject?.AddComponent<LayoutElement>();
+            if (closeLayout != null)
+            {
+                closeLayout.preferredWidth = 40;
+                closeLayout.preferredHeight = 40;
+            }
             
             // Title
-            var titleText = ModernUIFactory.CreateModernText(headerContainer.transform, "BackSpeaker", 22, TextStyle.Primary, TextAnchor.MiddleLeft);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleLayout.flexibleWidth = 1;
+            Text? titleText = null;
+            if (headerContainer != null)
+            {
+                titleText = ModernUIFactory.CreateModernText(headerContainer.transform, "BackSpeaker", 22, TextStyle.Primary, TextAnchor.MiddleLeft);
+            }
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+            }
+            var titleLayout = titleText?.gameObject?.AddComponent<LayoutElement>();
+            if (titleLayout != null)
+            {
+                titleLayout.flexibleWidth = 1;
+            }
             
             // Separator
             CreateMenuSeparator();
             
             // Music Sources Section
-            var sourcesLabel = ModernUIFactory.CreateModernText(navigationMenu.transform, "MUSIC SOURCES", 13, TextStyle.Muted, TextAnchor.MiddleLeft);
-            sourcesLabel.fontStyle = FontStyle.Bold;
-            var sourcesLayout = sourcesLabel.gameObject.AddComponent<LayoutElement>();
-            sourcesLayout.preferredHeight = 30;
+            Text? sourcesLabel = null;
+            if (navigationMenu != null)
+            {
+                sourcesLabel = ModernUIFactory.CreateModernText(navigationMenu.transform, "MUSIC SOURCES", 13, TextStyle.Muted, TextAnchor.MiddleLeft);
+            }
+            if (sourcesLabel != null)
+            {
+                sourcesLabel.fontStyle = FontStyle.Bold;
+                var sourcesLayout = sourcesLabel.gameObject?.AddComponent<LayoutElement>();
+                if (sourcesLayout != null)
+                {
+                    sourcesLayout.preferredHeight = 30;
+                }
+            }
             
             CreateMenuButton("♫ Jukebox", () => NavigateToScreen("jukebox"));
             CreateMenuButton("F Local Music", () => NavigateToScreen("local"));
@@ -160,13 +194,43 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             CreateMenuSeparator();
             
             // Playlists Section
-            var playlistsLabel = ModernUIFactory.CreateModernText(navigationMenu.transform, "PLAYLISTS", 13, TextStyle.Muted, TextAnchor.MiddleLeft);
-            playlistsLabel.fontStyle = FontStyle.Bold;
-            var playlistsLayout = playlistsLabel.gameObject.AddComponent<LayoutElement>();
-            playlistsLayout.preferredHeight = 30;
+            Text? playlistsLabel = null;
+            if (navigationMenu != null)
+            {
+                playlistsLabel = ModernUIFactory.CreateModernText(navigationMenu.transform, "PLAYLISTS", 13, TextStyle.Muted, TextAnchor.MiddleLeft);
+            }
+            if (playlistsLabel != null)
+            {
+                playlistsLabel.fontStyle = FontStyle.Bold;
+                var playlistsLayout = playlistsLabel.gameObject?.AddComponent<LayoutElement>();
+                if (playlistsLayout != null)
+                {
+                    playlistsLayout.preferredHeight = 30;
+                }
+            }
             
             CreateMenuButton("P My Playlists", () => NavigateToScreen("playlists"));
             CreateMenuButton("G Global Mix", () => NavigateToScreen("global"));
+            
+            CreateMenuSeparator();
+            
+            // Downloads Section
+            Text? downloadsLabel = null;
+            if (navigationMenu != null)
+            {
+                downloadsLabel = ModernUIFactory.CreateModernText(navigationMenu.transform, "DOWNLOADS", 13, TextStyle.Muted, TextAnchor.MiddleLeft);
+            }
+            if (downloadsLabel != null)
+            {
+                downloadsLabel.fontStyle = FontStyle.Bold;
+                var downloadsLayout = downloadsLabel.gameObject?.AddComponent<LayoutElement>();
+                if (downloadsLayout != null)
+                {
+                    downloadsLayout.preferredHeight = 30;
+                }
+            }
+            
+            CreateMenuButton("↓ Downloads", () => NavigateToScreen("downloads"));
             
             CreateMenuSeparator();
             
@@ -177,43 +241,57 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateMenuButton(string text, System.Action onClick)
         {
+            if (navigationMenu == null) return;
             var button = ModernUIFactory.CreateModernButton(navigationMenu.transform, text, S1Factory.ConvertToUnityAction(() => {
                 onClick?.Invoke();
                 HideNavigationMenu();
             }), ButtonStyle.Secondary, new Vector2(0, 50));
+            if (button == null) return;
             
             // Style the button for menu
-            var buttonImage = button.GetComponent<Image>();
-            buttonImage.color = new Color(0.2f, 0.2f, 0.25f, 0.3f); // Subtle background
+            var buttonImage = button?.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(0.2f, 0.2f, 0.25f, 0.3f); // Subtle background
+            }
             
-            var buttonLayout = button.gameObject.AddComponent<LayoutElement>();
-            buttonLayout.preferredHeight = 50;
+            var buttonLayout = button?.gameObject?.AddComponent<LayoutElement>();
+            if (buttonLayout != null)
+            {
+                buttonLayout.preferredHeight = 50;
+            }
             
             // Left-align text with padding
-            var textComponent = button.GetComponentInChildren<Text>();
+            var textComponent = button?.GetComponentInChildren<Text>();
             if (textComponent != null)
             {
                 textComponent.alignment = TextAnchor.MiddleLeft;
                 textComponent.fontSize = 16;
                 var textRect = textComponent.GetComponent<RectTransform>();
-                textRect.offsetMin = new Vector2(20, 0);
-                textRect.offsetMax = new Vector2(-20, 0);
+                if (textRect != null)
+                {
+                    textRect.offsetMin = new Vector2(20, 0);
+                    textRect.offsetMax = new Vector2(-20, 0);
+                }
             }
             
             // Add hover effect
-            var buttonTransition = button.transition;
-            button.transition = Selectable.Transition.ColorTint;
-            var colors = button.colors;
-            colors.normalColor = new Color(0.2f, 0.2f, 0.25f, 0.3f);
-            colors.highlightedColor = new Color(0.1f, 0.8f, 0.4f, 0.2f);
-            colors.pressedColor = new Color(0.1f, 0.8f, 0.4f, 0.4f);
-            button.colors = colors;
+            if (button != null)
+            {
+                var buttonTransition = button.transition;
+                button.transition = Selectable.Transition.ColorTint;
+                var colors = button.colors;
+                colors.normalColor = new Color(0.2f, 0.2f, 0.25f, 0.3f);
+                colors.highlightedColor = new Color(0.1f, 0.8f, 0.4f, 0.2f);
+                colors.pressedColor = new Color(0.1f, 0.8f, 0.4f, 0.4f);
+                button.colors = colors;
+            }
         }
         
         private void CreateMenuSeparator()
         {
             var separator = new GameObject("Separator");
-            separator.transform.SetParent(navigationMenu.transform, false);
+            separator.transform.SetParent(navigationMenu!.transform, false);
             
             var separatorRect = separator.AddComponent<RectTransform>();
             separatorRect.sizeDelta = new Vector2(0, 1);
@@ -260,7 +338,11 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             isAnimating = true;
             
+            if (navigationMenu == null) yield break;
+            
             var menuRect = navigationMenu.GetComponent<RectTransform>();
+            if (menuRect == null) yield break;
+            
             var startPos = new Vector2(-MENU_WIDTH, 0); // Off-screen LEFT
             var endPos = Vector2.zero;                  // On-screen LEFT edge
             
@@ -278,20 +360,26 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 menuRect.anchoredPosition = Vector2.Lerp(startPos, endPos, t);
                 
                 // Animate alpha
-                overlayCanvasGroup.alpha = Mathf.Lerp(0f, 1f, t);
-                menuCanvasGroup.alpha = Mathf.Lerp(0f, 1f, t);
+                if (overlayCanvasGroup != null)
+                    overlayCanvasGroup.alpha = Mathf.Lerp(0f, 1f, t);
+                if (menuCanvasGroup != null)
+                    menuCanvasGroup.alpha = Mathf.Lerp(0f, 1f, t);
                 
                 yield return null;
             }
             
             // Ensure final position
             menuRect.anchoredPosition = endPos;
-            overlayCanvasGroup.alpha = 1f;
-            menuCanvasGroup.alpha = 1f;
-            
-            // Enable interactions
-            overlayCanvasGroup.interactable = true;
-            overlayCanvasGroup.blocksRaycasts = true;
+            if (overlayCanvasGroup != null)
+            {
+                overlayCanvasGroup.alpha = 1f;
+                overlayCanvasGroup.interactable = true;
+                overlayCanvasGroup.blocksRaycasts = true;
+            }
+            if (menuCanvasGroup != null)
+            {
+                menuCanvasGroup.alpha = 1f;
+            }
             
             isAnimating = false;
         }
@@ -300,15 +388,22 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             isAnimating = true;
             
+            if (navigationMenu == null) yield break;
+            
             var menuRect = navigationMenu.GetComponent<RectTransform>();
+            if (menuRect == null) yield break;
+            
             var startPos = Vector2.zero;                  // On-screen LEFT edge
             var endPos = new Vector2(-MENU_WIDTH, 0);     // Off-screen LEFT
             
             float elapsed = 0f;
             
             // Disable interactions
-            overlayCanvasGroup.interactable = false;
-            overlayCanvasGroup.blocksRaycasts = false;
+            if (overlayCanvasGroup != null)
+            {
+                overlayCanvasGroup.interactable = false;
+                overlayCanvasGroup.blocksRaycasts = false;
+            }
             
             while (elapsed < ANIMATION_DURATION)
             {
@@ -322,19 +417,30 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 menuRect.anchoredPosition = Vector2.Lerp(startPos, endPos, t);
                 
                 // Animate alpha
-                overlayCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
-                menuCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
+                if (overlayCanvasGroup != null)
+                    overlayCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
+                if (menuCanvasGroup != null)
+                    menuCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
                 
                 yield return null;
             }
             
             // Ensure final position
             menuRect.anchoredPosition = endPos;
-            overlayCanvasGroup.alpha = 0f;
-            menuCanvasGroup.alpha = 0f;
+            if (overlayCanvasGroup != null)
+            {
+                overlayCanvasGroup.alpha = 0f;
+            }
+            if (menuCanvasGroup != null)
+            {
+                menuCanvasGroup.alpha = 0f;
+            }
             
             // Hide the menu
-            menuOverlay.SetActive(false);
+            if (menuOverlay != null)
+            {
+                menuOverlay.SetActive(false);
+            }
             
             isAnimating = false;
         }
@@ -369,6 +475,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                     break;
                 case "global":
                     ShowGlobalPlaylistScreen();
+                    break;
+                case "downloads":
+                    ShowDownloadsScreen();
+                    break;
+                case "playlist-edit":
+                    ShowPlaylistEditScreen();
                     break;
                 case "settings":
                     ShowSettingsScreen();
@@ -424,11 +536,14 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         /// </summary>
         private void HideAllScreens()
         {
-            foreach (var screen in screens.Values)
+            if (screens != null)
             {
-                if (screen != null)
+                foreach (var screen in screens.Values)
                 {
-                    screen.SetActive(false);
+                    if (screen != null)
+                    {
+                        screen.SetActive(false);
+                    }
                 }
             }
         }
@@ -436,7 +551,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void ShowJukeboxScreen()
         {
             // Create and show the jukebox screen
-            if (!screens.ContainsKey("jukebox"))
+            if (!screens!.ContainsKey("jukebox"))
             {
                 var jukeboxScreenObj = new GameObject("JukeboxScreen");
                 jukeboxScreenObj.transform.SetParent(this.transform.parent, false);
@@ -448,14 +563,17 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 jukeboxRect.offsetMax = Vector2.zero;
                 
                 jukeboxScreen = S1Factory.RegisterAndAddComponent<JukeboxScreen>(jukeboxScreenObj);
-                jukeboxScreen.Initialize(mainManager, this);
+                if (jukeboxScreen != null && mainManager != null)
+                {
+                    jukeboxScreen.Initialize(mainManager, this);
+                }
                 
                 screens["jukebox"] = jukeboxScreenObj;
                 NewLoggingSystem.Info("Created Jukebox screen", "NavigationManager");
             }
             else
             {
-                screens["jukebox"].SetActive(true);
+                screens["jukebox"]!.SetActive(true);
                 NewLoggingSystem.Info("Showing existing Jukebox screen", "NavigationManager");
             }
         }
@@ -463,7 +581,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void ShowLocalMusicScreen()
         {
             // Create and show the local music screen
-            if (!screens.ContainsKey("localmusic"))
+            if (!screens!.ContainsKey("localmusic"))
             {
                 var localMusicScreenObj = new GameObject("LocalMusicScreen");
                 localMusicScreenObj.transform.SetParent(this.transform.parent, false);
@@ -475,14 +593,17 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 localMusicRect.offsetMax = Vector2.zero;
                 
                 var localMusicScreen = S1Factory.RegisterAndAddComponent<LocalMusicScreen>(localMusicScreenObj);
-                localMusicScreen.Initialize(mainManager, this);
+                if (localMusicScreen != null && mainManager != null)
+                {
+                    localMusicScreen.Initialize(mainManager, this);
+                }
                 
                 screens["localmusic"] = localMusicScreenObj;
                 NewLoggingSystem.Info("Created Local Music screen", "NavigationManager");
             }
             else
             {
-                screens["localmusic"].SetActive(true);
+                screens["localmusic"]!.SetActive(true);
                 NewLoggingSystem.Info("Showing existing Local Music screen", "NavigationManager");
             }
         }
@@ -490,7 +611,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void ShowYouTubeScreen()
         {
             // Create and show the YouTube screen
-            if (!screens.ContainsKey("youtube"))
+            if (!screens!.ContainsKey("youtube"))
             {
                 var youTubeScreenObj = new GameObject("YouTubeScreen");
                 youTubeScreenObj.transform.SetParent(this.transform.parent, false);
@@ -502,14 +623,17 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 youTubeRect.offsetMax = Vector2.zero;
                 
                 var youTubeScreen = S1Factory.RegisterAndAddComponent<YouTubeScreen>(youTubeScreenObj);
-                youTubeScreen.Initialize(mainManager, this);
+                if (youTubeScreen != null && mainManager != null)
+                {
+                    youTubeScreen.Initialize(mainManager, this);
+                }
                 
                 screens["youtube"] = youTubeScreenObj;
                 NewLoggingSystem.Info("Created YouTube screen", "NavigationManager");
             }
             else
             {
-                screens["youtube"].SetActive(true);
+                screens["youtube"]!.SetActive(true);
                 NewLoggingSystem.Info("Showing existing YouTube screen", "NavigationManager");
             }
         }
@@ -517,7 +641,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void ShowPlaylistScreen()
         {
             // Create and show the playlist screen
-            if (!screens.ContainsKey("playlists"))
+            if (!screens!.ContainsKey("playlists"))
             {
                 var playlistScreenObj = new GameObject("PlaylistScreen");
                 playlistScreenObj.transform.SetParent(this.transform.parent, false);
@@ -529,14 +653,17 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 playlistRect.offsetMax = Vector2.zero;
                 
                 var playlistScreen = S1Factory.RegisterAndAddComponent<PlaylistScreen>(playlistScreenObj);
-                playlistScreen.Initialize(mainManager, this);
+                if (playlistScreen != null && mainManager != null)
+                {
+                    playlistScreen.Initialize(mainManager, this);
+                }
                 
                 screens["playlists"] = playlistScreenObj;
                 NewLoggingSystem.Info("Created Playlist screen", "NavigationManager");
             }
             else
             {
-                screens["playlists"].SetActive(true);
+                screens["playlists"]!.SetActive(true);
                 NewLoggingSystem.Info("Showing existing Playlist screen", "NavigationManager");
             }
         }
@@ -544,6 +671,83 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         private void ShowGlobalPlaylistScreen()
         {
             ShowComingSoonScreen("Global Mix", "global");
+        }
+        
+        private void ShowDownloadsScreen()
+        {
+            // Create and show the downloads screen
+            if (!screens!.ContainsKey("downloads"))
+            {
+                var downloadsScreenObj = new GameObject("DownloadsScreen");
+                downloadsScreenObj.transform.SetParent(this.transform.parent, false);
+                
+                var downloadsRect = downloadsScreenObj.AddComponent<RectTransform>();
+                downloadsRect.anchorMin = Vector2.zero;
+                downloadsRect.anchorMax = Vector2.one;
+                downloadsRect.offsetMin = Vector2.zero;
+                downloadsRect.offsetMax = Vector2.zero;
+                
+                downloadsScreen = S1Factory.RegisterAndAddComponent<DownloadsScreen>(downloadsScreenObj);
+                if (downloadsScreen != null && mainManager != null)
+                {
+                    downloadsScreen.Initialize(mainManager, this);
+                }
+                downloadsScreen?.Show(); // Call Show() to make content visible
+                
+                screens["downloads"] = downloadsScreenObj;
+                NewLoggingSystem.Info("Created Downloads screen", "NavigationManager");
+            }
+            else
+            {
+                screens["downloads"]!.SetActive(true);
+                if (downloadsScreen != null)
+                {
+                    downloadsScreen.Show(); // Call Show() on existing screen too
+                }
+                NewLoggingSystem.Info("Showing existing Downloads screen", "NavigationManager");
+            }
+        }
+        
+        private void ShowPlaylistEditScreen()
+        {
+            // Create and show the playlist edit screen
+            if (!screens!.ContainsKey("playlist-edit"))
+            {
+                var playlistEditScreenObj = new GameObject("PlaylistEditScreen");
+                playlistEditScreenObj.transform.SetParent(this.transform.parent, false);
+                
+                var playlistEditRect = playlistEditScreenObj.AddComponent<RectTransform>();
+                playlistEditRect.anchorMin = Vector2.zero;
+                playlistEditRect.anchorMax = Vector2.one;
+                playlistEditRect.offsetMin = Vector2.zero;
+                playlistEditRect.offsetMax = Vector2.zero;
+                
+                playlistEditScreen = S1Factory.RegisterAndAddComponent<PlaylistEditScreen>(playlistEditScreenObj);
+                if (playlistEditScreen != null && mainManager?.GetMusicBackend() != null)
+                {
+                    playlistEditScreen.Initialize(mainManager, this, mainManager.GetMusicBackend()!);
+                }
+                
+                screens["playlist-edit"] = playlistEditScreenObj;
+                NewLoggingSystem.Info("Created Playlist Edit screen", "NavigationManager");
+            }
+            else
+            {
+                screens["playlist-edit"]!.SetActive(true);
+                NewLoggingSystem.Info("Showing existing Playlist Edit screen", "NavigationManager");
+            }
+        }
+        
+        /// <summary>
+        /// Show playlist edit screen for specific playlist
+        /// </summary>
+        public void ShowPlaylistEditScreen(NewYouTubePlaylistInfo playlist)
+        {
+            ShowPlaylistEditScreen();
+            if (playlistEditScreen != null && playlist != null)
+            {
+                playlistEditScreen.SetPlaylist(playlist);
+            }
         }
         
         private void ShowSettingsScreen()
@@ -563,7 +767,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         {
             NewLoggingSystem.Info($"{screenTitle} screen - Coming Soon!", "NavigationManager");
             
-            if (!screens.ContainsKey(screenKey))
+            if (screens != null && !screens.ContainsKey(screenKey))
             {
                 var screenObj = new GameObject($"{screenTitle}Screen");
                 screenObj.transform.SetParent(this.transform.parent, false);
@@ -596,9 +800,12 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 backLayout.preferredHeight = 50;
                 
                 var title = ModernUIFactory.CreateModernText(header.transform, screenTitle, 24, TextStyle.Primary, TextAnchor.MiddleLeft);
-                title.fontStyle = FontStyle.Bold;
-                var titleLayout = title.gameObject.AddComponent<LayoutElement>();
-                titleLayout.flexibleWidth = 1;
+                if (title != null)
+                {
+                    title.fontStyle = FontStyle.Bold;
+                    var titleLayout = title.gameObject.AddComponent<LayoutElement>();
+                    titleLayout.flexibleWidth = 1;
+                }
                 
                 // Coming soon message
                 var comingSoon = ModernUIFactory.CreateModernText(screenObj.transform, "Coming Soon!", 32, TextStyle.Primary, TextAnchor.MiddleCenter);
@@ -614,7 +821,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 screens[screenKey] = screenObj;
                 NewLoggingSystem.Info($"Created {screenTitle} coming soon screen", "NavigationManager");
             }
-            else
+            else if (screens != null)
             {
                 screens[screenKey].SetActive(true);
                 NewLoggingSystem.Info($"Showing existing {screenTitle} screen", "NavigationManager");

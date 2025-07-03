@@ -68,7 +68,7 @@ namespace BackSpeakerMod.UIWrapper
             catch (Exception ex)
             {
                 NewLoggingSystem.Error($"Failed to create button: {ex.Message}", "S1UIFactory");
-                return null;
+                return null!;
             }
         }
 
@@ -230,7 +230,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a slider with proper styling
         /// </summary>
-        public static Slider CreateSlider(Transform parent, float minValue = 0f, float maxValue = 1f, float currentValue = 0.5f, UnityAction<float> onValueChanged = null)
+        public static Slider CreateSlider(Transform parent, float minValue = 0f, float maxValue = 1f, float currentValue = 0.5f, UnityAction<float>? onValueChanged = null)
         {
             var sliderObj = new GameObject("Slider");
             sliderObj.transform.SetParent(parent, false);
@@ -306,7 +306,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a toggle with proper styling
         /// </summary>
-        public static Toggle CreateToggle(Transform parent, string labelText = "", bool isOn = false, UnityAction<bool> onValueChanged = null)
+        public static Toggle CreateToggle(Transform parent, string labelText = "", bool isOn = false, UnityAction<bool>? onValueChanged = null)
         {
             var toggleObj = new GameObject("Toggle");
             toggleObj.transform.SetParent(parent, false);
@@ -365,7 +365,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a dropdown with proper styling
         /// </summary>
-        public static Dropdown CreateDropdown(Transform parent, System.Collections.Generic.List<string> options = null, int selectedIndex = 0, UnityAction<int> onValueChanged = null)
+        public static Dropdown CreateDropdown(Transform parent, System.Collections.Generic.List<string>? options = null, int selectedIndex = 0, UnityAction<int>? onValueChanged = null)
         {
             var dropdownObj = new GameObject("Dropdown");
             dropdownObj.transform.SetParent(parent, false);
@@ -589,7 +589,7 @@ namespace BackSpeakerMod.UIWrapper
 
         private static Font GetDefaultFont()
         {
-            return Resources.GetBuiltinResource<Font>("Arial.ttf");
+            return Resources.GetBuiltinResource<Font>("Arial.ttf")!;
         }
 
         #endregion

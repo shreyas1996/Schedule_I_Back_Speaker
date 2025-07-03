@@ -17,49 +17,53 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
     {
         #region Private Fields
         
-        private BackSpeakerMainManager mainManager;
-        private NavigationManager navigationManager;
-        private IMusicBackend musicBackend;
+        private BackSpeakerMainManager? mainManager;
+        private NavigationManager? navigationManager;
+        private IMusicBackend? musicBackend;
         
         // UI Elements
-        private GameObject mainContainer;
-        private GameObject topBar;
-        private GameObject nowPlayingCard;
-        private GameObject playerControls;
-        private GameObject bottomBar;
-        private CollapsibleSection queueSection;
+        private GameObject? mainContainer;
+        private GameObject? topBar;
+        private GameObject? nowPlayingCard;
+        private GameObject? playerControls;
+        private GameObject? bottomBar;
+        private CollapsibleSection? queueSection;
         
         // Now Playing Components
-        private Image albumArtImage;
-        private Text songTitleText;
-        private Text artistText;
-        private Slider progressSlider;
-        private Text currentTimeText;
-        private Text totalTimeText;
+        private Image? albumArtImage;
+        private Text? songTitleText;
+        private Text? artistText;
+        private Slider? progressSlider;
+        private Text? currentTimeText;
+        private Text? totalTimeText;
         
         // Player Control Buttons
-        private Button previousButton;
-        private Button playPauseButton;
-        private Button nextButton;
-        private Button shuffleButton;
-        private Button repeatButton;
+        private Button? previousButton;
+        private Button? playPauseButton;
+        private Button? nextButton;
+        private Button? shuffleButton;
+        private Button? repeatButton;
         
         // Navigation & System
-        private Button hamburgerButton;
-        private Button headphoneToggleButton;
-        private Slider volumeSlider;
-        private Text headphoneStatusText;
+        private Button? hamburgerButton;
+        private Button? headphoneToggleButton;
+        private Slider? volumeSlider;
+        private Text? headphoneStatusText;
         
         // State
         private bool isShuffleOn = false;
         private RepeatMode repeatMode = RepeatMode.None;
+        
+        // Queue
+        private GameObject? queueContentContainer;
+        private Text? queueInfoText;
         
         #endregion
         
         #region Public Properties
         
         public bool IsInitialized { get; private set; }
-        public NavigationManager Navigation => navigationManager;
+        public NavigationManager? Navigation => navigationManager;
         
         #endregion
         
@@ -134,6 +138,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateTopBar()
         {
+            if (mainContainer == null) return;
+            
             topBar = new GameObject("TopBar");
             topBar.transform.SetParent(mainContainer.transform, false);
             
@@ -160,9 +166,15 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             
             // Title
             var titleText = ModernUIFactory.CreateModernText(topBar.transform, "BackSpeaker", 22, TextStyle.Primary, TextAnchor.MiddleLeft);
-            titleText.fontStyle = FontStyle.Bold;
-            var titleLayout = titleText.gameObject.AddComponent<LayoutElement>();
-            titleLayout.flexibleWidth = 1;
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+            }
+            var titleLayout = titleText?.gameObject?.AddComponent<LayoutElement>();
+            if (titleLayout != null)
+            {
+                titleLayout.flexibleWidth = 1;
+            }
             
             // Headphone status indicator
             headphoneStatusText = ModernUIFactory.CreateModernText(topBar.transform, "♫ OFF", 16, TextStyle.Muted, TextAnchor.MiddleRight);
@@ -177,6 +189,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateNowPlayingCard()
         {
+            if (mainContainer == null) return;
+            
             nowPlayingCard = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 0), true);
             
             var cardLayout = nowPlayingCard.AddComponent<VerticalLayoutGroup>();
@@ -221,6 +235,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateProgressSection()
         {
+            if (nowPlayingCard == null) return;
+            
             var progressContainer = ModernUIFactory.CreateVerticalLayout(nowPlayingCard.transform, 5, new RectOffset(0, 0, 0, 0));
             var progressLayout = progressContainer.AddComponent<LayoutElement>();
             progressLayout.preferredHeight = 60;
@@ -246,6 +262,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreatePlayerControls()
         {
+            if (mainContainer == null) return;
+            
             playerControls = ModernUIFactory.CreateCard(mainContainer.transform, new Vector2(0, 120), false);
             
             var controlsLayout = playerControls.AddComponent<HorizontalLayoutGroup>();
@@ -295,6 +313,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateBottomBar()
         {
+            if (mainContainer == null) return;
+            
             bottomBar = new GameObject("BottomBar");
             bottomBar.transform.SetParent(mainContainer.transform, false);
             
@@ -341,15 +361,118 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void CreateQueue()
         {
+            if (mainContainer == null) return;
+            
             queueSection = ModernUIFactory.CreateCollapsibleSection(mainContainer.transform, "Queue", false);
             var queueLayoutElement = queueSection.gameObject.AddComponent<LayoutElement>();
             queueLayoutElement.flexibleHeight = 1;
             
-            // Queue will be populated dynamically
-            // For now, add placeholder
-            var queuePlaceholder = ModernUIFactory.CreateModernText(queueSection.ContentContainer, "Queue is empty", 14, TextStyle.Muted, TextAnchor.MiddleCenter);
-            var placeholderLayout = queuePlaceholder.gameObject.AddComponent<LayoutElement>();
-            placeholderLayout.preferredHeight = 40;
+            // Create queue scroll view manually
+            var queueScrollViewObj = new GameObject("QueueScrollView");
+            queueScrollViewObj.transform.SetParent(queueSection.ContentContainer, false);
+            
+            var queueScrollRect = queueScrollViewObj.AddComponent<RectTransform>();
+            queueScrollRect.sizeDelta = new Vector2(0, 200);
+            
+            var queueScrollLayout = queueScrollViewObj.AddComponent<LayoutElement>();
+            queueScrollLayout.preferredHeight = 200;
+            queueScrollLayout.flexibleHeight = 1;
+            
+            // Add ScrollRect component
+            var scrollRect = queueScrollViewObj.AddComponent<ScrollRect>();
+            scrollRect.vertical = true;
+            scrollRect.horizontal = false;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.inertia = true;
+            scrollRect.decelerationRate = 0.135f;
+            scrollRect.scrollSensitivity = 1.0f;
+            
+            // Create viewport
+            var viewport = new GameObject("Viewport");
+            viewport.transform.SetParent(queueScrollViewObj.transform, false);
+            var viewportRect = viewport.AddComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.sizeDelta = Vector2.zero;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+            
+            // Add Mask component to viewport
+            var viewportImage = viewport.AddComponent<Image>();
+            viewportImage.color = Color.clear;
+            viewport.AddComponent<Mask>().showMaskGraphic = false;
+            
+            scrollRect.viewport = viewportRect;
+            
+            // Create content
+            var content = new GameObject("Content");
+            content.transform.SetParent(viewport.transform, false);
+            var contentRect = content.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.sizeDelta = new Vector2(0, 100);
+            contentRect.anchoredPosition = Vector2.zero;
+            
+            scrollRect.content = contentRect;
+            
+            // Add ContentSizeFitter
+            var contentSizeFitter = content.AddComponent<ContentSizeFitter>();
+            contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            
+            // Add vertical layout for queue items
+            var queueContentLayout = content.AddComponent<VerticalLayoutGroup>();
+            queueContentLayout.spacing = 5;
+            queueContentLayout.padding = new RectOffset(10, 10, 10, 10);
+            queueContentLayout.childControlHeight = false;
+            queueContentLayout.childControlWidth = true;
+            queueContentLayout.childForceExpandHeight = false;
+            queueContentLayout.childForceExpandWidth = true;
+            
+            // Store reference for queue updates
+            queueContentContainer = content;
+            
+            // Create queue controls at bottom
+            CreateQueueControls();
+            
+            // Initialize with current queue
+            UpdateQueueDisplay();
+        }
+        
+        private void CreateQueueControls()
+        {
+            if (queueSection?.ContentContainer == null) return;
+            
+            // Queue control buttons container
+            var queueControlsContainer = ModernUIFactory.CreateHorizontalLayout(queueSection.ContentContainer.transform, 10, new RectOffset(10, 10, 5, 5));
+            var queueControlsLayout = queueControlsContainer.AddComponent<LayoutElement>();
+            queueControlsLayout.preferredHeight = 50;
+            
+            // Clear queue button
+            var clearQueueButton = ModernUIFactory.CreateModernButton(queueControlsContainer.transform, "Clear All", 
+                S1Factory.ConvertToUnityAction(OnClearQueueClick), ButtonStyle.Danger, new Vector2(100, 35));
+            var clearLayout = clearQueueButton.gameObject.AddComponent<LayoutElement>();
+            clearLayout.preferredWidth = 100;
+            
+            // Shuffle queue button  
+            var shuffleQueueButton = ModernUIFactory.CreateModernButton(queueControlsContainer.transform, "Shuffle Queue",
+                S1Factory.ConvertToUnityAction(OnShuffleQueueClick), ButtonStyle.Secondary, new Vector2(120, 35));
+            var shuffleLayout = shuffleQueueButton.gameObject.AddComponent<LayoutElement>();
+            shuffleLayout.preferredWidth = 120;
+            
+            // Spacer
+            var spacer = new GameObject("Spacer");
+            spacer.transform.SetParent(queueControlsContainer.transform, false);
+            var spacerLayout = spacer.AddComponent<LayoutElement>();
+            spacerLayout.flexibleWidth = 1;
+            
+            // Queue info text
+            var queueInfo = ModernUIFactory.CreateModernText(queueControlsContainer.transform, "0 songs", 12, TextStyle.Muted, TextAnchor.MiddleRight);
+            var infoLayout = queueInfo.gameObject.AddComponent<LayoutElement>();
+            infoLayout.preferredWidth = 80;
+            
+            // Store reference for updates
+            queueInfoText = queueInfo;
         }
         
         #endregion
@@ -364,6 +487,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void OnPlayPauseClick()
         {
+            if (musicBackend == null) return;
+            
             if (!musicBackend.HeadphonesEnabled)
             {
                 NewLoggingSystem.Warning("Cannot play music - headphones not enabled", "MainPlayerScreen");
@@ -390,8 +515,6 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             UpdatePlayPauseButton();
         }
         
-
-        
         private void OnShuffleClick()
         {
             ToggleShuffle();
@@ -404,16 +527,24 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void OnPreviousClick()
         {
-            musicBackend.PreviousTrack();
+            if (musicBackend != null)
+            {
+                musicBackend.PreviousTrack();
+            }
         }
         
         private void OnNextClick()
         {
-            musicBackend.NextTrack();
+            if (musicBackend != null)
+            {
+                musicBackend.NextTrack();
+            }
         }
         
         private void OnHeadphoneToggle()
         {
+            if (musicBackend == null) return;
+            
             if (musicBackend.HeadphonesEnabled)
             {
                 musicBackend.DisableHeadphones();
@@ -429,12 +560,55 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void OnVolumeChanged(float value)
         {
-            musicBackend.SetVolume(value);
+            if (musicBackend != null)
+            {
+                musicBackend.SetVolume(value);
+            }
         }
         
         private void OnProgressSliderChanged(float value)
         {
-            musicBackend.SeekTo(value / 100f); // Convert from 0-100 to 0-1
+            musicBackend?.SeekTo(value / 100f); // Convert from 0-100 to 0-1
+        }
+        
+        private void OnClearQueueClick()
+        {
+            NewLoggingSystem.Info("Clear queue button clicked", "MainPlayerScreen");
+            if (musicBackend != null)
+            {
+                musicBackend.ClearQueue();
+                UpdateQueueDisplay();
+            }
+        }
+        
+        private void OnShuffleQueueClick()
+        {
+            NewLoggingSystem.Info("Shuffle queue button clicked", "MainPlayerScreen");
+            if (musicBackend != null)
+            {
+                musicBackend.ShuffleQueue();
+                UpdateQueueDisplay();
+            }
+        }
+        
+        private void OnQueueItemPlay(int index)
+        {
+            NewLoggingSystem.Info($"Queue item play clicked: index {index}", "MainPlayerScreen");
+            if (musicBackend != null)
+            {
+                musicBackend.PlayQueueItem(index);
+                // UI will update via backend events
+            }
+        }
+        
+        private void OnQueueItemRemove(int index)
+        {
+            NewLoggingSystem.Info($"Queue item remove clicked: index {index}", "MainPlayerScreen");
+            if (musicBackend != null)
+            {
+                musicBackend.RemoveFromQueue(index);
+                UpdateQueueDisplay();
+            }
         }
         
         #endregion
@@ -446,7 +620,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             isShuffleOn = !isShuffleOn;
             if (isShuffleOn)
             {
-                musicBackend.ShuffleQueue();
+                musicBackend?.ShuffleQueue();
             }
             UpdateShuffleButton();
             NewLoggingSystem.Info($"Shuffle turned {(isShuffleOn ? "ON" : "OFF")}", "MainPlayerScreen");
@@ -473,7 +647,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void UpdatePlayPauseButton()
         {
-            if (playPauseButton != null)
+            if (playPauseButton != null && musicBackend != null)
             {
                 var textComponent = playPauseButton.GetComponentInChildren<Text>();
                 if (textComponent != null)
@@ -525,7 +699,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void UpdateHeadphoneButton()
         {
-            if (headphoneToggleButton != null)
+            if (headphoneToggleButton != null && musicBackend != null)
             {
                 var textComponent = headphoneToggleButton.GetComponentInChildren<Text>();
                 var image = headphoneToggleButton.GetComponent<Image>();
@@ -545,7 +719,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 }
             }
             
-            if (headphoneStatusText != null)
+            if (headphoneStatusText != null && musicBackend != null)
             {
                 headphoneStatusText.text = musicBackend.HeadphonesEnabled ? "♫ ON" : "♫ OFF";
                 headphoneStatusText.color = musicBackend.HeadphonesEnabled ? ModernUIFactory.Colors.Success : ModernUIFactory.Colors.TextMuted;
@@ -570,7 +744,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             navRect.anchoredPosition = Vector2.zero;
             
             navigationManager = S1Factory.RegisterAndAddComponent<NavigationManager>(navObj);
-            navigationManager.Initialize(mainManager);
+            navigationManager?.Initialize(mainManager!);
         }
         
         private void SetupEventHandlers()
@@ -588,6 +762,127 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
                 musicBackend.OnQueueChanged += OnQueueChanged;
             }
         }
+        
+        private void UpdateQueueDisplay()
+        {
+            if (queueContentContainer == null || musicBackend == null) return;
+            
+            // Clear existing queue items
+            for (int i = queueContentContainer.transform.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(queueContentContainer.transform.GetChild(i).gameObject);
+            }
+            
+            var queue = musicBackend.GetCurrentQueue();
+            var currentTrack = musicBackend.CurrentTrack;
+            
+            if (queue.Count == 0)
+            {
+                // Show empty state
+                var emptyText = ModernUIFactory.CreateModernText(queueContentContainer.transform, "Queue is empty - Add some songs!", 14, TextStyle.Muted, TextAnchor.MiddleCenter);
+                var emptyLayout = emptyText?.gameObject?.AddComponent<LayoutElement>();
+                if (emptyLayout != null)
+                {
+                    emptyLayout.preferredHeight = 50;
+                }
+            }
+            else
+            {
+                // Create queue items
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    CreateQueueItem(queue[i], i, currentTrack != null && queue[i].url == currentTrack.url);
+                }
+            }
+            
+            // Update queue info
+            if (queueInfoText != null)
+            {
+                queueInfoText.text = $"{queue.Count} songs";
+            }
+        }
+        
+        private void CreateQueueItem(NewSongDetails song, int index, bool isCurrentTrack)
+        {
+            if (queueContentContainer == null) return;
+            var queueItem = ModernUIFactory.CreateCard(queueContentContainer.transform, new Vector2(0, 60), true);
+            if (queueItem == null) return;
+            var queueItemLayout = queueItem.AddComponent<LayoutElement>();
+            if (queueItemLayout != null)
+            {
+                queueItemLayout.preferredHeight = 60;
+                queueItemLayout.flexibleWidth = 1;
+            }
+            
+            // Highlight current track
+            var cardImage = queueItem.GetComponent<Image>();
+            if (isCurrentTrack)
+            {
+                cardImage.color = new Color(ModernUIFactory.Colors.Primary.r, ModernUIFactory.Colors.Primary.g, ModernUIFactory.Colors.Primary.b, 0.3f);
+            }
+            
+            // Horizontal layout for queue item content
+            var itemLayout = queueItem.AddComponent<HorizontalLayoutGroup>();
+            itemLayout.spacing = 10;
+            itemLayout.padding = new RectOffset(15, 15, 10, 10);
+            itemLayout.childControlHeight = true;
+            itemLayout.childControlWidth = false;
+            itemLayout.childForceExpandHeight = false;
+            itemLayout.childForceExpandWidth = false;
+            
+            // Track number/current indicator
+            var trackNumber = ModernUIFactory.CreateModernText(queueItem.transform, 
+                isCurrentTrack ? "♫" : (index + 1).ToString(), 
+                14, isCurrentTrack ? TextStyle.Primary : TextStyle.Secondary, TextAnchor.MiddleCenter);
+            var numberLayout = trackNumber?.gameObject?.AddComponent<LayoutElement>();
+            if (numberLayout != null)
+            {
+                numberLayout.preferredWidth = 30;
+            }
+            
+            // Song info container
+            var songInfoContainer = ModernUIFactory.CreateVerticalLayout(queueItem.transform, 2, new RectOffset(0, 0, 0, 0));
+            var songInfoLayout = songInfoContainer.AddComponent<LayoutElement>();
+            songInfoLayout.flexibleWidth = 1;
+            
+            // Song title
+            var titleText = ModernUIFactory.CreateModernText(songInfoContainer.transform, song.title, 13, 
+                isCurrentTrack ? TextStyle.Primary : TextStyle.Primary, TextAnchor.MiddleLeft);
+            if (titleText != null)
+            {
+                titleText.fontStyle = FontStyle.Bold;
+            }
+            
+            // Artist and duration
+            var subtitleText = ModernUIFactory.CreateModernText(songInfoContainer.transform, 
+                $"{song.artist} • {FormatTime(song.duration)}", 11, TextStyle.Muted, TextAnchor.MiddleLeft);
+            
+            // Action buttons container
+            var actionsContainer = ModernUIFactory.CreateHorizontalLayout(queueItem.transform, 5, new RectOffset(0, 0, 0, 0));
+            var actionsLayout = actionsContainer.AddComponent<LayoutElement>();
+            actionsLayout.preferredWidth = 80;
+            
+            // Play button
+            var playButton = ModernUIFactory.CreateIconButton(actionsContainer.transform, "▶", 
+                S1Factory.ConvertToUnityAction(() => OnQueueItemPlay(index)), new Vector2(30, 30));
+            
+            // Remove button  
+            var removeButton = ModernUIFactory.CreateIconButton(actionsContainer.transform, "✕",
+                S1Factory.ConvertToUnityAction(() => OnQueueItemRemove(index)), new Vector2(30, 30));
+            removeButton.GetComponent<Image>().color = ModernUIFactory.Colors.Accent;
+            
+            // Make entire item clickable to play
+            var clickHandler = queueItem.AddComponent<Button>();
+            clickHandler.targetGraphic = cardImage;
+            clickHandler.onClick.AddListener(S1Factory.ConvertToUnityAction(() => OnQueueItemPlay(index)));
+            
+            // Add hover effect
+            var colorBlock = clickHandler.colors;
+            colorBlock.highlightedColor = new Color(1f, 1f, 1f, 0.1f);
+            colorBlock.pressedColor = new Color(1f, 1f, 1f, 0.2f);
+            clickHandler.colors = colorBlock;
+        }
+        
         #endregion
         
         #region Backend Event Handlers
@@ -599,6 +894,7 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
             if (artistText != null)
                 artistText.text = track.artist;
             UpdatePlayPauseButton();
+            UpdateQueueDisplay(); // Refresh queue to show current track
         }
         
         private void OnPlaybackPaused()
@@ -646,8 +942,8 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private void OnQueueChanged(System.Collections.Generic.List<NewSongDetails> queue)
         {
-            // TODO: Update queue UI
             NewLoggingSystem.Info($"Queue updated with {queue.Count} tracks", "MainPlayerScreen");
+            UpdateQueueDisplay();
         }
         
         #endregion
@@ -656,9 +952,9 @@ namespace BackSpeakerMod.NewFrontend.UI.Screens
         
         private string FormatTime(float seconds)
         {
-            var minutes = Mathf.FloorToInt(seconds / 60);
-            var remainingSeconds = Mathf.FloorToInt(seconds % 60);
-            return $"{minutes}:{remainingSeconds:00}";
+            int minutes = Mathf.FloorToInt(seconds / 60);
+            int secs = Mathf.FloorToInt(seconds % 60);
+            return $"{minutes}:{secs:00}";
         }
         
         #endregion

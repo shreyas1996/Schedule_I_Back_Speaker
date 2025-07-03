@@ -16,7 +16,7 @@ namespace BackSpeakerMod.UIWrapper
         /// <summary>
         /// Create a test screen for the BackSpeaker app
         /// </summary>
-        public GameObject CreateTestScreen()
+        public GameObject? CreateTestScreen()
         {
             try
             {
